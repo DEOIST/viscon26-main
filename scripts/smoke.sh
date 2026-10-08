@@ -42,7 +42,6 @@ expect_status / 200 '<div id="root">'
 expect_status /pages/index.js 200
 expect_status /pages/index.css 200
 expect_status /static/favicon.svg 200
-expect_status /docs 200
 expect_status /this-page-does-not-exist 404
 expect_status /api/this-route-does-not-exist 404
 

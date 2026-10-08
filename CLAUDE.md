@@ -277,7 +277,7 @@ The full rules are in [docs/BRANCH_RULES.md](docs/BRANCH_RULES.md) (humans) and 
 - **The frontend build does not typecheck.** esbuild strips types without checking them. Run `npx tsc --noEmit` (included in `make check`).
 - **The example data store is in memory.** `uvicorn --reload` restarts the process on every Python save, which wipes all data. The same happens in production on every container restart or redeploy. Expected until a real database replaces the dict in `services/`.
 - **The production container runs one uvicorn worker on purpose.** In-memory state is per process, so with `--workers 2` each request could hit a different copy of the data. Only raise it once state lives in a database.
-- **`/docs` (Swagger UI) is also exposed in production.** That's handy for a demo, but if the API should be private, pass `docs_url=None, redoc_url=None, openapi_url=None` to `FastAPI(...)` when `settings.environment == "production"`.
+- **`/docs` (Swagger UI) is not exposed in production.**.
 - **You must refresh the browser** after a rebuild (no HMR). Responses are sent `Cache-Control: no-cache`, so a normal refresh is enough.
 - **`/{page_name}` is a catch-all** for single-segment paths. `mount_frontend(app)` must stay the **last** line in `main.py`, after every router.
 - **The page bundle is `type="module"`**, so top-level code runs after the DOM is parsed and `import`s are real ES modules. Don't use `require`.
