@@ -1,0 +1,84 @@
+name: CI
+
+# The four jobs below are the required checks in docs/BRANCH_RULES.md. Their `name:`s
+# must match the ruleset exactly; rename both together or merges wait forever.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  hygiene:
+    name: Repo hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: No merge conflict markers
+        run: if git grep -nE '^(<{7}|>{7})( |$)' -- . ':!*.lock' ':!package-lock.json'; then exit 1; fi
+      - name: No files over 5 MB
+        run: |
+          big=$(git ls-files -z | xargs -0 du -k | awk '$1 > 5120 {print $2}')
+          if [ -n "$big" ]; then echo "Too large (use LFS or external storage):"; echo "$big"; exit 1; fi
+      - name: No committed .env
+        run: if git ls-files | grep -E '(^|/)\.env$'; then exit 1; fi
+
+  backend:
+    name: Backend (ruff + pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14" # same as the production image (Dockerfile)
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: pytest -q
+
+  frontend:
+    name: Frontend (tsc + prettier + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npx prettier --check .
+      - run: npm run build
+
+  e2e-smoke:
+    name: End-to-end smoke (Docker)
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build and start the stack
+        # --wait blocks until the container's HEALTHCHECK reports healthy.
+        run: docker compose up --build -d --wait
+      - name: Smoke test the running container, like a browser would
+        run: ./scripts/smoke.sh http://localhost:8000
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs
+      - name: Stop
+        if: always()
+        run: docker compose down

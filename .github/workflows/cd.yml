@@ -1,0 +1,98 @@
+name: CD
+
+# Runs after CI passes on main: publishes the Docker image to GitHub Container Registry
+# (ghcr.io/<owner>/<repo>:latest and :<sha>), then deploys it to a server if one is configured.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cd
+  cancel-in-progress: false
+
+env:
+  SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+jobs:
+  publish:
+    name: Publish image
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.SHA }}
+      - name: Image name (registry paths must be lowercase)
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ env.SHA }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to server
+    needs: publish
+    # Skipped until a server exists. To enable, add in Settings → Secrets and variables → Actions:
+    #   variable DEPLOY_HOST (e.g. vm.example.org), variable DEPLOY_USER,
+    #   optional variable DEPLOY_PORT (host port to publish, default 8000),
+    #   secret DEPLOY_SSH_KEY (private key whose public half is on the server).
+    # The server needs Docker. The stack runs from ~/app/compose.prod.yaml; put production
+    # settings in ~/app/.env on the server (see backend/.env.example).
+    if: vars.DEPLOY_HOST != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    env:
+      TARGET: ${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '8000' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.SHA }}
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+      - name: Pull and restart
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          ssh -i ~/.ssh/id_deploy "$TARGET" 'mkdir -p ~/app'
+          scp -i ~/.ssh/id_deploy compose.prod.yaml "$TARGET":~/app/
+          # The token goes over stdin, so it never appears in the remote command line.
+          printf '%s' "$GHCR_TOKEN" | ssh -i ~/.ssh/id_deploy "$TARGET" \
+            "docker login ghcr.io -u '$GHCR_USER' --password-stdin"
+          # Deploy the exact commit CI tested. Roll back on the server with
+          # IMAGE=... TAG=<older sha> docker compose -f compose.prod.yaml up -d
+          ssh -i ~/.ssh/id_deploy "$TARGET" "
+            cd ~/app &&
+            export IMAGE='$IMAGE' TAG='$SHA' APP_PORT='$DEPLOY_PORT' &&
+            docker compose -f compose.prod.yaml pull &&
+            docker compose -f compose.prod.yaml up -d --wait
+          "
+      - name: Smoke test the live server
+        run: ./scripts/smoke.sh "http://${{ vars.DEPLOY_HOST }}:$DEPLOY_PORT"

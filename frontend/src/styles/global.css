@@ -1,0 +1,62 @@
+/* Global styles and design tokens. Component styles belong in co-located *.module.css files. */
+
+:root {
+    --color-bg: #f8f9fb;
+    --color-surface: #ffffff;
+    --color-text: #1a1d24;
+    --color-muted: #6b7280;
+    --color-border: #e3e6ec;
+    --color-primary: #4f46e5;
+    --color-primary-text: #ffffff;
+    --color-danger: #dc2626;
+    --color-success: #16a34a;
+
+    --radius: 8px;
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 16px;
+    --space-4: 24px;
+    --space-5: 40px;
+
+    font-family:
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        Roboto,
+        sans-serif;
+    color: var(--color-text);
+    background: var(--color-bg);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-bg: #111318;
+        --color-surface: #1a1d24;
+        --color-text: #e8eaef;
+        --color-muted: #9aa1ad;
+        --color-border: #2c303a;
+        --color-primary: #818cf8;
+        --color-primary-text: #111318;
+    }
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--color-bg);
+}
+
+a {
+    color: var(--color-primary);
+}
+
+button,
+input,
+textarea {
+    font: inherit;
+}

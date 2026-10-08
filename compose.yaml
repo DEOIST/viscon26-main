@@ -1,0 +1,20 @@
+# Production stack. From the repo root:
+#   docker compose up --build -d     build + start → http://localhost:8000
+#   docker compose logs -f           follow logs
+#   docker compose down              stop + remove
+# Override the host port with APP_PORT=9000 docker compose up -d.
+
+services:
+  app:
+    build: .
+    image: hackathon-app:latest
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    env_file:
+      # Optional: the same variables as backend/.env.example (secrets, API keys, ...).
+      - path: backend/.env
+        required: false
+    environment:
+      # Wins over env_file, so a dev .env can't accidentally run prod as "development".
+      ENVIRONMENT: production
+    restart: unless-stopped
