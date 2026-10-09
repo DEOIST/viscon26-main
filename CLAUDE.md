@@ -207,6 +207,8 @@ How the image is built ([Dockerfile](Dockerfile)):
 1. **Stage `frontend`** (`node:26-alpine`): `npm ci`, then `node build.js --prod` (minified, production React, no source maps).
 2. **Runtime stage** (`python:3.14-slim`): installs **only** `backend/requirements.txt`, copies `backend/app/` and the built `frontend/dist/`, runs as a non-root user, and starts `uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1`.
 
+Both base images are pulled from `public.ecr.aws/docker/library/`, AWS's mirror of the Docker Official Images (same digests as Docker Hub), because Docker Hub rate-limits anonymous pulls per IP and shared IPs (CI runners, the event network) hit that limit. Use the same prefix for any new service image, e.g. `public.ecr.aws/docker/library/redis:8-alpine`, and don't add a `# syntax=` line to the Dockerfile (it pulls from Docker Hub).
+
 Inside the image the paths mirror the repo (`/app/backend`, `/app/frontend/dist`), so `app/config.py` finds the frontend with no extra configuration.
 
 - **Configuration:** `compose.yaml` loads `backend/.env` if it exists (optional) and always forces `ENVIRONMENT=production`. Put production secrets in that `.env` on the server, never in the image. `.dockerignore` keeps every `.env` out of the build context.
