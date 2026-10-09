@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # End-to-end smoke test against a RUNNING app: API health, page HTML, JS/CSS bundles, 404s.
-# It only reads; it never creates or deletes data.
+# It only reads (GET requests); it never creates data and never calls OpenAI.
 #
 #   scripts/smoke.sh [URL]          default http://localhost:8000
 #   make prod && make smoke         the Docker smoke test referenced in AGENTS.md
@@ -16,10 +16,15 @@ fail() { printf '  FAIL  %s\n' "$1"; failures=$((failures + 1)); }
 
 # expect_status <path> <status> [text the body must contain]
 expect_status() {
-    local path="$1" want="$2" needle="${3:-}" body status
-    body="$(curl -sS -w '\n%{http_code}' "$URL$path" 2>/dev/null)" || { fail "GET $path (connection failed)"; return; }
-    status="${body##*$'\n'}"
-    body="${body%$'\n'*}"
+    local path="$1" want="$2" needle="${3:-}" body="" status
+    if [[ -z "$needle" ]]; then
+        # Status only: large binary files (the MediaPipe wasm) never pass through a variable.
+        status="$(curl -sS -o /dev/null -w '%{http_code}' "$URL$path" 2>/dev/null)" || { fail "GET $path (connection failed)"; return; }
+    else
+        body="$(curl -sS -w '\n%{http_code}' "$URL$path" 2>/dev/null)" || { fail "GET $path (connection failed)"; return; }
+        status="${body##*$'\n'}"
+        body="${body%$'\n'*}"
+    fi
     if [[ "$status" != "$want" ]]; then
         fail "GET $path → $status (expected $want)"
     elif [[ -n "$needle" && "$body" != *"$needle"* ]]; then
@@ -42,6 +47,17 @@ expect_status / 200 '<div id="root">'
 expect_status /pages/index.js 200
 expect_status /pages/index.css 200
 expect_status /static/favicon.svg 200
+# Every game scene is its own page (docs/ARCHITECTURE.md → Pages and navigation).
+for page in enroll campus blackjack shooter graduation; do
+    expect_status "/$page" 200 '<div id="root">'
+    expect_status "/pages/$page.js" 200
+done
+# The shooter's hand tracking is self-hosted (no CDN at the venue).
+expect_status /static/mediapipe/vision_wasm_internal.wasm 200
+# Read-only API checks that go through Redis. Never a POST here: story POSTs may spend credits.
+expect_status /api/leaderboard 200 '['
+expect_status /api/leaderboard/endings 200 '"counts"'
+expect_status /api/runs/0123456789abcdef0123456789abcdef 404 'Run not found'
 expect_status /this-page-does-not-exist 404
 expect_status /api/this-route-does-not-exist 404
 

@@ -19,7 +19,7 @@ Guidance for Claude Code **and for every teammate** working in this repository. 
 | [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md) | The finger-gun computer vision |
 | [docs/STACK.md](docs/STACK.md) | Versions, what to add, what we rejected and why |
 
-> **Status:** design approved on 2026-10-09; most of it is not built yet. Anything marked *(planned)* below does not exist until its PR lands. The starter's `items` example and `about` page stay until the contract PR removes them ([build order](docs/ARCHITECTURE.md#ownership-and-build-order)).
+> **Status:** the foundation is built (#12): API contract, Redis, OpenAI plumbing, Phaser and MediaPipe in the build, and every page as a working skeleton. Both minigames are still **placeholders** for their tracks. Anything marked *(planned)* below does not exist until its PR lands ([build status](docs/ARCHITECTURE.md#build-status)).
 
 Stack: **React + TypeScript** outer shell bundled by **esbuild**; a WebGL inner shell for the minigames: **Phaser 4** for both (blackjack, and the shooter, which fakes depth with isometric 2D art); **MediaPipe** hand tracking in the browser; a **FastAPI** backend with **Redis** (no Redux, no client-side store); and **OpenAI** called only from the backend. FastAPI serves both the JSON API and the built frontend from **one origin**, so there is no CORS, no proxy and no API base URL.
 
@@ -45,8 +45,8 @@ Browser fetch POST /api/runs/abc/scores
 Story endpoints: app/routers/story.py → app/services/story.py → app/ai.py → OpenAI (keys only on the server)
 ```
 
-- **Navigation** is plain `<a href="/other-page">` or `window.location.href` (a full page load). Pass state between pages through the query string: the run id is `?run=<id>`, built and read only through `misc/run.ts` *(planned)*. **Do not add `react-router`.**
-- **Two shells, one seam.** React owns everything around a round (menus, character creator, hub, overlays, saving, navigation). Phaser 4 owns the round itself, in both minigames. They meet only through the `MountMinigame` contract in `games/shared/minigame.ts` *(planned)*. Pages never import Phaser; `games/` never fetches, never navigates and never imports React.
+- **Navigation** is plain `<a href="/other-page">` or `window.location.href` (a full page load). Pass state between pages through the query string: the run id is `?run=<id>`, built and read only through `misc/run.ts`. **Do not add `react-router`.**
+- **Two shells, one seam.** React owns everything around a round (menus, character creator, hub, overlays, saving, navigation). Phaser 4 owns the round itself, in both minigames. They meet only through the `MountMinigame` contract in `games/shared/minigame.ts`. Pages never import Phaser; `games/` never fetches, never navigates and never imports React.
 - **No client-side store (no Redux).** Every navigation is a full page load, which wipes in-memory state. The character and the run live on the server; each page loads them through the API.
 - **Computer vision runs in the browser.** MediaPipe tracks the hand on the device; video frames never reach the backend. Details in [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md).
 - **Secrets stay on the server.** Only `backend/app/ai.py` talks to OpenAI.
@@ -69,9 +69,10 @@ make prod-logs  # follow container logs
 make prod-down  # stop the production stack
 make smoke      # read-only end-to-end check of a running app (URL=http://host:port to target another)
 
-# planned
 make redis      # optional: a real Redis on 127.0.0.1:6379 (dev works without it, see "Gotchas")
-make ai-check   # verify every OpenAI key and model; free (LIVE=1 adds a 1-token call per key)
+make ai-check   # verify every OpenAI key and model; free (LIVE=1 adds a 16-token call per key)
+
+# planned
 make art        # generate art and fallback narration offline. SPENDS CREDITS; asks first
 ```
 
@@ -125,8 +126,8 @@ The tree shows the target. *(planned)* marks parts that don't exist yet.
 │   └── PLAYBOOK.md               event plan: roles, schedule, gates, release checklist
 ├── scripts/smoke.sh              end-to-end smoke test (`make smoke`); GET requests only
 ├── Dockerfile                    multi-stage production image (frontend build → Python runtime)
-├── compose.yaml                  production stack, built from source (`make prod`); + redis (planned)
-├── compose.prod.yaml             server stack, runs the GHCR image (used by CD); + redis (planned)
+├── compose.yaml                  production stack, built from source (`make prod`): app + redis
+├── compose.prod.yaml             server stack, runs the GHCR image (used by CD): app + redis
 ├── .dockerignore  .editorconfig  .gitignore
 │
 ├── frontend/
@@ -134,18 +135,18 @@ The tree shows the target. *(planned)* marks parts that don't exist yet.
 │   ├── template.html             HTML shell for every page ({{page}}, {{css}} placeholders)
 │   ├── package.json  tsconfig.json  .prettierrc  .nvmrc
 │   ├── public/                   copied verbatim to dist/static/ → served at /static/<file>
-│   │   └── models/               hand_landmarker.task, downloaded by the build, git-ignored (planned)
+│   │   └── models/               hand_landmarker.task, downloaded by the build, git-ignored
 │   ├── types/assets.d.ts         ambient declarations for *.module.css / images. NO domain types.
 │   ├── dist/                     build output (gitignored, never edit)
 │   └── src/
 │       ├── pages/<page>.tsx      mount files: `mountPage(App)`, nothing else
-│       │                         index · enroll · campus · blackjack · shooter · graduation (planned)
+│       │                         index · enroll · campus · blackjack · shooter · graduation
 │       ├── components/
 │       │   ├── <page>/App.tsx    page root component (always named App)
 │       │   ├── <page>/*.tsx      components used only by that page
-│       │   └── common/           components shared by 2+ pages (Layout, MinigameHost, LegiCard,
-│       │                         Typewriter, ... (planned))
-│       ├── games/                WebGL inner shell: plain TS + Phaser. No React, no fetch. (planned)
+│       │   └── common/           components shared by 2+ pages (Layout, MinigameHost, MinigamePage,
+│       │                         Avatar, MissingRun; LegiCard, Typewriter planned)
+│       ├── games/                WebGL inner shell: plain TS + Phaser. No React, no fetch.
 │       │   ├── shared/           minigame.ts (the MountMinigame contract), createGame.ts (Phaser setup)
 │       │   ├── blackjack/        Phaser 4, 2D: index.ts (mountBlackjack), rules.ts + rules.test.ts,
 │       │   │                     BlackjackScene.ts, config.ts, assets/
@@ -158,14 +159,14 @@ The tree shows the target. *(planned)* marks parts that don't exist yet.
 │       │   ├── CommonInt.ts      EVERY API/domain type (mirrors backend/app/schemas.py)
 │       │   ├── apiClient.ts      one api<Name>() per backend endpoint
 │       │   ├── useApi.ts         data-fetching hook
-│       │   ├── run.ts            readRunId(), runHref() for ?run= (planned)
+│       │   ├── run.ts            readRunId(), runHref() for ?run=
 │       │   ├── mountPage.tsx     createRoot + StrictMode + global CSS
 │       │   └── constants.ts      APP_NAME etc.
 │       └── styles/global.css     reset + design tokens (CSS variables)
 │
 └── backend/
     ├── requirements.txt          runtime deps
-    ├── requirements-dev.txt      + pytest, httpx2, ruff (+ fakeredis, pytest-socket planned)
+    ├── requirements-dev.txt      + pytest, httpx2, ruff, fakeredis, pytest-socket
     ├── pyproject.toml            ruff + pytest config (no deps here)
     ├── .env.example              copy to .env (gitignored); variable names only, never values
     ├── app/
@@ -173,16 +174,16 @@ The tree shows the target. *(planned)* marks parts that don't exist yet.
     │   ├── config.py             Settings (pydantic-settings) from env / .env
     │   ├── schemas.py            EVERY API/domain type (mirrors CommonInt.ts)
     │   ├── frontend.py           serves dist/: pages, bundles, assets, static
-    │   ├── db.py                 get_redis(): the only Redis client (planned)
-    │   ├── ai.py                 the only OpenAI gateway: AI_MODE, key failover, cap (planned)
-    │   ├── prompts.py            all prompt text and structured-output schemas (planned)
+    │   ├── db.py                 get_redis() and every Redis key pattern
+    │   ├── ai.py                 the only OpenAI gateway: AI_MODE, key failover, cap
+    │   ├── prompts.py            all prompt text and structured-output schemas
     │   ├── routers/__init__.py   api_router (prefix /api), includes each feature router
     │   ├── routers/<feature>.py  HTTP layer for one feature: health · runs · leaderboard · story
     │   └── services/<feature>.py data + business logic for one feature (+ endings.py, fallbacks.py)
-    ├── tools/                    ai_check.py, generate_art.py; not shipped in the image (planned)
+    ├── tools/                    ai_check.py (generate_art.py planned); not shipped in the image
     └── tests/
         ├── conftest.py           `client` fixture (FastAPI TestClient); + fakeredis, FakeAI,
-        │                         network blocked (planned)
+        │                         network blocked
         └── test_<feature>.py
 ```
 
@@ -256,11 +257,11 @@ The planned additions and their versions are listed in [docs/STACK.md](docs/STAC
 
 ### Removing the example
 
-The contract PR (first in the [build order](docs/ARCHITECTURE.md#ownership-and-build-order)) deletes `routers/items.py`, `services/items.py`, `tests/test_items.py`, `components/index/ItemCard.*`, `components/index/ItemForm.*`, the `Item*` types in `schemas.py` and `CommonInt.ts`, the `apiListItems/...` functions, the items line in `routers/__init__.py`, and the `about` page (`pages/about.tsx`, `components/about/`, its `NAV_LINKS` entry). Then it rewrites `components/index/App.tsx` as the title screen.
+Done in #12: the starter's `items` feature and the `about` page are gone. Use the `runs` feature (`schemas.py` → `services/runs.py` → `routers/runs.py` → `apiClient.ts` → `tests/test_runs.py`) as the template for new endpoints.
 
 ## Production (Docker)
 
-Production runs as **the app container plus Redis** *(Redis planned)*: the same FastAPI app as in dev, serving the API and a minified frontend build. Docker is for production and demos only; develop with `make dev`.
+Production runs as **the app container plus Redis**: the same FastAPI app as in dev, serving the API and a minified frontend build. Docker is for production and demos only; develop with `make dev`.
 
 ```bash
 docker compose up --build -d     # or: make prod      → http://localhost:8000
@@ -280,7 +281,7 @@ Inside the image the paths mirror the repo (`/app/backend`, `/app/frontend/dist`
 
 - **Configuration:** `compose.yaml` loads `backend/.env` if it exists (optional) and always forces `ENVIRONMENT=production`. Put production secrets in that `.env` on the server, never in the image. `.dockerignore` keeps every `.env` out of the build context.
 - **OpenAI keys:** on the VM they live in the server `.env` (`~/app/.env` with CD, `backend/.env` in a manual clone) as `OPENAI_API_KEYS` with `AI_MODE=live`, never in GitHub. CD doesn't need them. Full rules: [ARCHITECTURE.md → Where the API keys live](docs/ARCHITECTURE.md#where-the-api-keys-live).
-- **Redis** *(planned)*: service `redis` (`redis:8-alpine`, AOF on, named volume `redis-data`), reachable only inside the Compose network. **Never add a `ports:` entry for it.** `app` gets `REDIS_URL=redis://redis:6379/0`.
+- **Redis**: service `redis` (`public.ecr.aws/docker/library/redis:8-alpine`, AOF on, named volume `redis-data`), reachable only inside the Compose network. **Never add a `ports:` entry for it.** `app` gets `REDIS_URL=redis://redis:6379/0`.
 - **Camera:** the shooter needs a secure origin (HTTPS or `localhost`). Options in [ARCHITECTURE.md → Deployment](docs/ARCHITECTURE.md#deployment).
 - **CD:** after CI passes on `main`, [.github/workflows/cd.yml](.github/workflows/cd.yml) pushes the image to `ghcr.io/<owner>/<repo>:latest` and `:<sha>`. When the repo variables `DEPLOY_HOST`/`DEPLOY_USER` (optional `DEPLOY_PORT`) and the secret `DEPLOY_SSH_KEY` are set, it also deploys over SSH using [compose.prod.yaml](compose.prod.yaml) (runs the published image, reads `~/app/.env` on the server) and smoke-tests the live URL. Roll back on the server with `IMAGE=ghcr.io/<owner>/<repo> TAG=<older sha> docker compose -f compose.prod.yaml up -d`.
 - **Health:** the container has a `HEALTHCHECK` on `GET /api/health`; `docker compose ps` shows `healthy` once it is up. Keep that endpoint cheap and dependency-free (it must not touch Redis or OpenAI).
@@ -321,7 +322,7 @@ Inside the image the paths mirror the repo (`/app/backend`, `/app/frontend/dist`
 - **Assets:** images imported in code (`import logoUrl from "./logo.png"`) are hashed into `dist/assets/`. Files that need a stable URL go in `frontend/public/` and are served at `/static/<file>`.
 - **Formatting:** Prettier with **4-space indent and semicolons** (`.prettierrc`); everything else is Prettier defaults. Don't hand-format; run `make format`.
 
-### Game code (`frontend/src/games/`, Phaser) *(planned)*
+### Game code (`frontend/src/games/`, Phaser)
 - **One folder per minigame, one engine for all: Phaser 4.** Blackjack is plain 2D; the shooter fakes depth with isometric art (see [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md)). No 3D engine. `index.ts` exports only the mount function (`mountBlackjack`, `mountShooter`).
 - **Scenes are classes**, one per file, filename = class name (`BlackjackScene.ts`, `ShooterScene.ts`, both extend `Phaser.Scene`). This is the one place where classes are the norm.
 - **Pure logic is separate.** Rules, scoring and gesture math live in plain `.ts` files without engine imports, so they can be unit-tested. Scenes render and route input.
@@ -344,18 +345,18 @@ Inside the image the paths mirror the repo (`/app/backend`, `/app/frontend/dist`
 - **Tests:** `tests/test_<feature>.py`, functions `test_<behaviour>`, using the `client` fixture and asserting on the JSON (camelCase) the frontend actually sees.
 - **Formatting/linting:** `ruff format` + `ruff check` (line length 100). Run `make format`.
 
-### Redis *(planned)*
+### Redis
 - Only `app/db.py` creates the client; services call `db.get_redis()`. With an empty `REDIS_URL` it returns an in-process fakeredis (development and tests only).
 - Values are Pydantic JSON (`model_dump_json()` / `Model.model_validate_json()`). Every key pattern is listed in [ARCHITECTURE.md → Redis data model](docs/ARCHITECTURE.md#redis-data-model); add new ones there in the same PR.
 - Never publish the Redis port, and never point tests at a real Redis.
 
-### OpenAI *(planned)*
+### OpenAI
 - **Only `app/ai.py` imports `openai`.** Prompt text lives in `app/prompts.py`. Every AI feature has fallback content, is cached per run in Redis, and is reached only through `POST` endpoints.
 - **`AI_MODE`** is `off` (default: no calls, fallback content), `fake` (canned content with a delay, no calls) or `live` (real calls). Develop UI in `fake`; use `live` only on purpose.
 - **Keys** go in `OPENAI_API_KEYS` (comma-separated, used in order as a failover chain): `backend/.env` on your laptop, the server `.env` on the VM. Never in frontend code, git, issues, PRs, chat, screenshots or logs. Details: [ARCHITECTURE.md → Where the API keys live](docs/ARCHITECTURE.md#where-the-api-keys-live).
 
 ### Testing: zero credits
-- **pytest** runs with fakeredis, `FakeAI` and the network blocked (pytest-socket) *(planned)*. A test that needs the real API is not a test; it is a manual check you announce to the team.
+- **pytest** runs with fakeredis, `FakeAI` and the network blocked (pytest-socket, in `pyproject.toml`). A test that needs the real API is not a test; it is a manual check you announce to the team.
 - **vitest** *(planned)* covers pure frontend logic only (`rules.ts`, `gesture.ts`, `run.ts`).
 - **The smoke test only sends GETs**, so it can never trigger an OpenAI call.
 - The full strategy is in [ARCHITECTURE.md → Testing strategy](docs/ARCHITECTURE.md#testing-strategy-zero-credits-by-default).
@@ -375,7 +376,7 @@ The full rules are in [docs/BRANCH_RULES.md](docs/BRANCH_RULES.md) (humans) and 
 ## Gotchas
 
 - **The frontend build does not typecheck.** esbuild strips types without checking them. Run `npx tsc --noEmit` (included in `make check`).
-- **Data in development resets on every backend reload** unless you run a real Redis: with an empty `REDIS_URL` the backend uses an in-process fakeredis *(planned; today it is the `items` dict)*, and `uvicorn --reload` restarts the process on every Python save. Use `make redis` *(planned)* and set `REDIS_URL` in `backend/.env` when you need persistence locally.
+- **Data in development resets on every backend reload** unless you run a real Redis: with an empty `REDIS_URL` the backend uses an in-process fakeredis, and `uvicorn --reload` restarts the process on every Python save. Use `make redis` and set `REDIS_URL` in `backend/.env` when you need persistence locally.
 - **The production container runs one uvicorn worker.** Fine for us; with all state in Redis more workers would be safe, but in-process stores (the starter's `items` dict, fakeredis) are per process.
 - **`/docs` (Swagger UI) is not exposed in production.**
 - **You must refresh the browser** after a rebuild (no HMR). Responses are sent `Cache-Control: no-cache`, so a normal refresh is enough.
@@ -384,10 +385,10 @@ The full rules are in [docs/BRANCH_RULES.md](docs/BRANCH_RULES.md) (humans) and 
 - **`StrictMode` double-invokes effects in development.** Effects must be idempotent; `useApi` already handles cancellation. A minigame is mounted, destroyed and mounted again: `destroy()` must really release the Phaser game and the camera.
 - **The camera only works on a secure origin:** `https://...` or `http://localhost`. `http://<vm-ip>:8000` will never get a camera; use HTTPS or an SSH tunnel to localhost (see ARCHITECTURE.md → Deployment).
 - **Browsers block audio until the user clicks on that page.** A click on the previous page doesn't count after a full page load, so the graduation reveal starts with a click (**Open your diploma**) before the narration plays.
-- **The hand model (`hand_landmarker.task`, 7.8 MB) must never be committed:** CI rejects files over 5 MB. The build downloads it into `frontend/public/models/` (git-ignored) *(planned)*.
+- **The hand model (`hand_landmarker.task`, 7.8 MB) must never be committed:** CI rejects files over 5 MB. The build downloads it into `frontend/public/models/` (git-ignored); if the download fails the build still succeeds and the shooter falls back to the mouse.
 - **MediaPipe's `detectForVideo` is synchronous** and runs on the main thread, sharing the GPU with the Phaser scene. If frames drop, follow the performance ladder in SHOOTER_CV.md before anything clever.
 - **Game FPS depends on the player's laptop, not on the VM.** WebGL and hand tracking run in the browser; the VM only serves files. Never judge game performance on the VM or in CI: neither has a GPU, so browsers there fall back to software rendering. Use the `?debug=1` overlay on real laptops with the camera on.
-- **The shooter page downloads about 20 MB on its first visit** (MediaPipe wasm + hand model), much more than either engine. Preload it during the intro screen and serve it compressed (planned, see ARCHITECTURE.md → Deployment).
+- **The shooter page downloads about 20 MB on its first visit** (MediaPipe wasm + hand model), much more than either engine. Responses are gzip-compressed (`main.py`); preloading it during the intro screen is the shooter track's job.
 - **OpenAI calls never happen in tests or CI,** and only in development when you set `AI_MODE=live`. If you see real calls in a test run, stop and fix the test.
 - Pages deleted from `src/pages/` are removed from `dist/` on the next rebuild. If the watcher acts strangely after big file moves, restart it (it wipes `dist/` on startup).
 

@@ -1,1 +1,1 @@
-export const APP_NAME = "Hackathon App";
+export const APP_NAME = "ETH Life";
