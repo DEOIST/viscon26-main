@@ -11,7 +11,7 @@ system context is in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Acceptance criteria (measured on the demo laptop)
 
-Measure with the 3D scene and the camera running together, on the demo laptop
+Measure with the game scene and the camera running together, on the demo laptop
 and on the weakest team laptop. Never measure on the VM or in CI: neither has a
 GPU, so the numbers would describe software rendering, not our game.
 
@@ -59,7 +59,7 @@ gesture.ts (pure functions, unit-tested)
   ▼
 InputSource { aim, tracking, onFire }                 same interface as MouseInput and ReplayInput
   ▼
-ShooterScene (Three.js, 3D): crosshair, ray-cast hit test at the aim from ~100 ms before the trigger, effects
+ShooterScene (Phaser, isometric 2D): crosshair, hit test at the aim from ~100 ms before the trigger, effects
 ```
 
 ## Camera
@@ -232,53 +232,71 @@ export interface InputSource {
 
 `ShooterScene` never knows which source it has.
 
-## 3D rendering with Three.js (what makes it feel like magic)
+## Isometric 2D rendering with Phaser (what makes it feel like magic)
 
-The shooter is a 3D scene with a **fixed camera**: the player stays put and the
-targets come to them, so there are no camera controls to build.
+The shooter is a Phaser 4 scene with a **fixed view** and **isometric art**:
+depth is faked in 2D, the way classic isometric games do it. The player stays
+put and the targets come to them, so there are no camera controls to build, and
+the shooter runs on the same engine and conventions as blackjack.
 
 ```ts
-// games/shooter/ShooterScene.ts (planned): the core of the 3D part
-const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: isSharp });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, isSharp ? 1.5 : 1));
-const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 100); // never moves
+// games/shooter/ShooterScene.ts (planned): the core of the fake depth
+// Every target has a distance z: 1 = far end of the exam hall, 0 = in your face.
+const near = 1 - target.z;
+target.sprite.setScale(Phaser.Math.Linear(FAR_SCALE, NEAR_SCALE, near));
+target.sprite.setPosition(
+    Phaser.Math.Linear(VANISH_X, target.laneX, near), // lanes fan out from the far end
+    Phaser.Math.Linear(VANISH_Y, target.laneY, near),
+);
+target.sprite.setDepth(near); // nearer targets draw on top
+target.sprite.setAlpha(Phaser.Math.Linear(FAR_ALPHA, 1, near)); // haze at the far end
 
-// Hit test: aim in the game area (0..1) → normalized device coordinates → ray into the scene
-const ndc = new THREE.Vector2(at.x * 2 - 1, 1 - at.y * 2);
-raycaster.setFromCamera(ndc, camera);
-const hit = raycaster.intersectObject(targets)[0]; // targets is an InstancedMesh; hit.instanceId says which one
+// games/shooter/hitTest.ts (planned, pure, unit-tested): no engine needed
+// Aim and targets share game-area coordinates (0..1); the nearest target under the aim wins.
+export function hitTest(at: Point, targets: readonly TargetView[]): TargetView | null;
 ```
 
+- **Isometric art carries the depth.** The exam hall, desks and props are
+  pre-drawn isometric sprites at a 2:1 angle (Kenney isometric packs, CC0, or
+  `make art` in the house style). Targets (exam papers, deadline clocks, coffee
+  cups) are drawn at the same angle, with 2–4 frame flutter or spin animations.
+  The code only scales, orders, fades and moves them.
+- **Depth cues:** scale with distance, draw order by distance (`setDepth`), haze
+  toward the far end, a soft blob shadow on the floor under each target, and a
+  slight parallax between background layers when the screen shakes.
+- **Targets fly toward the player** along lanes that fan out from the far end
+  of the hall. A target that reaches `z = 0` without being hit counts as a
+  miss. Targets and shards come from a `Phaser.GameObjects.Group` pool; nothing
+  is created or destroyed mid-round. All sprites live in one texture atlas, so
+  fifty targets still batch into a handful of draw calls.
+- **Hit test:** at the look-back aim point, `hitTest` checks targets nearest
+  first against a circle of `radius × scale`. It is a pure function over plain
+  data, so it is unit-tested without Phaser.
 - **Webcam background.** Start with the mirrored `<video>` element behind the
-  transparent canvas (`alpha: true`) and a CSS filter, so it looks designed
-  rather than like a video call. Upgrade (could): the same video as a
-  `THREE.VideoTexture` on a background plane, mirrored (`wrapS = RepeatWrapping`,
-  `repeat.x = -1`), with a custom shader (duotone, scanlines). That is the WebGL
-  showcase moment.
-- **Targets fly toward the player** from the far end of the room: exam papers
-  (textured planes that flutter), deadline clocks, coffee cups. One
-  `InstancedMesh` per target type, so fifty targets cost a handful of draw
-  calls. Low-poly models (Kenney 3D kits, CC0) or simple shapes with generated
-  textures.
-- **Hits shatter:** the paper bursts into small instanced pieces with
-  velocities that fade out; sparks as `THREE.Points`.
-- **Crosshair and hand skeleton live in screen space:** a 2D overlay canvas above
-  the WebGL canvas, positioned with the same `toGameArea()` mapping as the aim.
-  The neon skeleton drawn from `HandLandmarker.HAND_CONNECTIONS` proves to the
-  judges instantly that the hand is really tracked.
-- **Feel:** muzzle flash at the fingertip, a small camera shake and a 50 ms
-  hit-stop on hits, punchy sound, a combo counter, floating "+10", and a spark
-  where a missed shot landed, so players learn the look-back aim.
-- **Quality setting:** `standard` (pixel ratio 1, no antialiasing, no bloom) and
-  `sharp` (pixel ratio up to 1.5, antialiasing, optional bloom). Use `sharp` on
-  the demo laptop only if it holds 60 fps with the camera on.
-- **Lighting:** one ambient and one directional light; no real-time shadows (fake
-  them with a soft blob texture if needed).
-- **Lifecycle:** `renderer.setAnimationLoop` drives frames and stops while the tab
-  is hidden. On `webglcontextlost`, pause the round and show "Graphics
-  interrupted"; resume on `webglcontextrestored`. `destroy()` stops the loop
-  (`setAnimationLoop(null)`), disposes geometries, materials and textures, calls
-  `renderer.dispose()` and removes the canvas.
+  transparent Phaser canvas (`transparent: true` in the game config) and a CSS
+  filter, so it looks designed rather than like a video call. Upgrade (could):
+  the video as a Phaser video game object with a Phaser 4 filter (duotone,
+  scanlines). That is the WebGL showcase moment.
+- **Hits shatter:** a Phaser particle emitter bursts the paper into small
+  pre-drawn isometric shards with fading velocities, plus sparks.
+- **Crosshair and hand skeleton:** a `Graphics` object on the top depth,
+  positioned with the same `toGameArea()` mapping as the aim. The neon skeleton
+  drawn from `HandLandmarker.HAND_CONNECTIONS` proves to the judges instantly
+  that the hand is really tracked.
+- **Feel:** muzzle flash at the fingertip, a small camera shake
+  (`cameras.main.shake`) and a 50 ms hit-stop on hits, punchy sound, a combo
+  counter, floating "+10", and a spark where a missed shot landed, so players
+  learn the look-back aim.
+- **Quality setting:** `standard` (no antialiasing, half the particles, no glow)
+  and `sharp` (antialiasing, full particles, optional glow filter). Use `sharp`
+  on the demo laptop only if it holds 60 fps with the camera on.
+- **Renderer fallback:** Phaser picks WebGL and falls back to Canvas. Gameplay
+  must never depend on filters or glow, so the shooter stays playable in Canvas
+  mode; test it once with `type: Phaser.CANVAS`.
+- **Lifecycle:** pause the round when the tab is hidden or the window loses
+  focus. On WebGL context loss, pause and show "Graphics interrupted"; resume
+  when the context is restored. `destroy()` stops the input source and calls
+  `game.destroy(true)`, which stops the loop, frees textures and removes the canvas.
 
 ## Performance budget (per camera frame, ~33 ms)
 
@@ -286,13 +304,13 @@ const hit = raycaster.intersectObject(targets)[0]; // targets is an InstancedMes
 |---|---|
 | `detectForVideo`, GPU delegate | about 5–15 ms on a recent laptop (CPU delegate: 20–40 ms); measure |
 | Pose, aim, trigger, filter | < 1 ms |
-| Three.js frame (game logic + render, ≤ 50 draw calls) | < 6 ms |
+| Phaser frame (game logic + render, one atlas, ≤ 50 active sprites) | < 6 ms |
 
-Hand tracking and the 3D scene share one GPU and the main thread.
+Hand tracking and the Phaser scene share one GPU and the main thread.
 `detectForVideo` is synchronous. If frames go over budget on the demo laptop, go
 down this ladder, measuring after each step:
 
-1. Quality `standard`: pixel ratio 1, no antialiasing, no bloom.
+1. Quality `standard`: no antialiasing, half the particles, no glow.
 2. Camera at 480×360.
 3. Detect on every second camera frame (15 Hz) and keep easing the crosshair.
 4. `numHands: 1`.
@@ -303,8 +321,7 @@ down this ladder, measuring after each step:
 
 Shows the landmarks and skeleton, pose state and joint angles, the thumb
 distance `t` with `T_UP` and `T_DOWN` drawn as lines, shots fired, detection time
-in ms, frame times (p50/p95), Three.js draw calls and triangles
-(`renderer.info.render`), the delegate in use (GPU or CPU), the quality setting
+in ms, frame times (p50/p95), active sprites and particles, the delegate in use (GPU or CPU), the quality setting
 and the calibration box. All tunables come from `games/shooter/config.ts`. This
 overlay is also the FPS test: run it on each team laptop with the camera on.
 
@@ -344,5 +361,5 @@ overlay is also the FPS test: run it on each team laptop with the camera on.
 | Owner | Files |
 |---|---|
 | Shooter vision | `games/shooter/input/*` (`HandInput`, `gesture.ts`, filter, recording and replay, fixtures), model and wasm hosting, debug overlay |
-| Shooter game | `games/shooter/ShooterScene.ts` (Three.js scene, targets, ray-cast hits), scoring, juice, `MouseInput`, `config.ts` gameplay values |
+| Shooter game | `games/shooter/ShooterScene.ts` (Phaser scene, isometric art, fake depth), `hitTest.ts`, scoring, juice, `MouseInput`, `config.ts` gameplay values |
 | Shell | `components/shooter/App.tsx`: intro, camera permission UI, result screen, saving the score |

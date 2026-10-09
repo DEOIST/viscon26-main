@@ -21,7 +21,7 @@ Guidance for Claude Code **and for every teammate** working in this repository. 
 
 > **Status:** design approved on 2026-10-09; most of it is not built yet. Anything marked *(planned)* below does not exist until its PR lands. The starter's `items` example and `about` page stay until the contract PR removes them ([build order](docs/ARCHITECTURE.md#ownership-and-build-order)).
 
-Stack: **React + TypeScript** outer shell bundled by **esbuild**; a WebGL inner shell for the minigames: **Phaser 4** for the 2D blackjack and **Three.js** for the 3D shooter; **MediaPipe** hand tracking in the browser; a **FastAPI** backend with **Redis** (no Redux, no client-side store); and **OpenAI** called only from the backend. FastAPI serves both the JSON API and the built frontend from **one origin**, so there is no CORS, no proxy and no API base URL.
+Stack: **React + TypeScript** outer shell bundled by **esbuild**; a WebGL inner shell for the minigames: **Phaser 4** for both (blackjack, and the shooter, which fakes depth with isometric 2D art); **MediaPipe** hand tracking in the browser; a **FastAPI** backend with **Redis** (no Redux, no client-side store); and **OpenAI** called only from the backend. FastAPI serves both the JSON API and the built frontend from **one origin**, so there is no CORS, no proxy and no API base URL.
 
 ## Architecture: read this first
 
@@ -34,7 +34,7 @@ Browser GET /blackjack?run=abc
   → src/pages/blackjack.tsx           mountPage(App)
   → src/components/blackjack/App.tsx  React outer shell: intro, MinigameHost, result screen, navigation
   → src/games/blackjack/index.ts      mountBlackjack(): Phaser 4 inner shell (2D, WebGL canvas)
-  (/shooter works the same way: games/shooter/index.ts mountShooter() = Three.js 3D scene + MediaPipe)
+  (/shooter works the same way: games/shooter/index.ts mountShooter() = Phaser isometric scene + MediaPipe)
 
 Browser fetch POST /api/runs/abc/scores
   → app/routers/runs.py               HTTP layer (validation, status codes)
@@ -46,11 +46,11 @@ Story endpoints: app/routers/story.py → app/services/story.py → app/ai.py �
 ```
 
 - **Navigation** is plain `<a href="/other-page">` or `window.location.href` (a full page load). Pass state between pages through the query string: the run id is `?run=<id>`, built and read only through `misc/run.ts` *(planned)*. **Do not add `react-router`.**
-- **Two shells, one seam.** React owns everything around a round (menus, character creator, hub, overlays, saving, navigation). The game engine owns the round itself: Phaser 4 for the 2D blackjack, Three.js for the 3D shooter. They meet only through the `MountMinigame` contract in `games/shared/minigame.ts` *(planned)*. Pages never import Phaser or Three.js; `games/` never fetches, never navigates and never imports React.
+- **Two shells, one seam.** React owns everything around a round (menus, character creator, hub, overlays, saving, navigation). Phaser 4 owns the round itself, in both minigames. They meet only through the `MountMinigame` contract in `games/shared/minigame.ts` *(planned)*. Pages never import Phaser; `games/` never fetches, never navigates and never imports React.
 - **No client-side store (no Redux).** Every navigation is a full page load, which wipes in-memory state. The character and the run live on the server; each page loads them through the API.
 - **Computer vision runs in the browser.** MediaPipe tracks the hand on the device; video frames never reach the backend. Details in [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md).
 - **Secrets stay on the server.** Only `backend/app/ai.py` talks to OpenAI.
-- **Code shared between pages** (React, `misc/`, common components) is split into `dist/pages/chunks/` by esbuild automatically. Engines are imported only by the page that uses them, so only `/blackjack` downloads Phaser and only `/shooter` downloads Three.js and MediaPipe.
+- **Code shared between pages** (React, `misc/`, common components) is split into `dist/pages/chunks/` by esbuild automatically. Phaser is imported only by the two game pages, so esbuild puts it in one shared chunk that `/blackjack` and `/shooter` reuse from the cache, and only `/shooter` downloads MediaPipe.
 - **Routing is automatic on both sides.** The build turns every `src/pages/<name>.tsx` into `dist/<name>.html`, and FastAPI serves `/<name>` → `dist/<name>.html`. Adding a page needs no backend change.
 
 ## Setup and commands
@@ -145,11 +145,12 @@ The tree shows the target. *(planned)* marks parts that don't exist yet.
 │       │   ├── <page>/*.tsx      components used only by that page
 │       │   └── common/           components shared by 2+ pages (Layout, MinigameHost, LegiCard,
 │       │                         Typewriter, ... (planned))
-│       ├── games/                WebGL inner shell: plain TS + an engine. No React, no fetch. (planned)
+│       ├── games/                WebGL inner shell: plain TS + Phaser. No React, no fetch. (planned)
 │       │   ├── shared/           minigame.ts (the MountMinigame contract), createGame.ts (Phaser setup)
 │       │   ├── blackjack/        Phaser 4, 2D: index.ts (mountBlackjack), rules.ts + rules.test.ts,
 │       │   │                     BlackjackScene.ts, config.ts, assets/
-│       │   └── shooter/          Three.js, 3D: index.ts (mountShooter), ShooterScene.ts, config.ts, assets/
+│       │   └── shooter/          Phaser 4, isometric 2D: index.ts (mountShooter), ShooterScene.ts,
+│       │       │                 hitTest.ts (+ test), config.ts, assets/
 │       │       └── input/        InputSource.ts, HandInput.ts, gesture.ts (+ test), MouseInput.ts,
 │       │                         ReplayInput.ts, fixtures/
 │       ├── assets/               generated art (webp) and fallback narration (mp3) (planned)
@@ -230,7 +231,7 @@ Non-CRUD actions are verbs under the resource: `POST /api/widgets/{widget_id}/pu
 
 ### Add a minigame
 
-1. **Game:** `frontend/src/games/<game>/index.ts` exports `mount<Game>: MountMinigame` (see `games/shared/minigame.ts`). Use Phaser for a 2D game or Three.js for a 3D one. Scenes, `config.ts` and `assets/` sit next to it. Logic that can be pure (rules, scoring) goes into plain `.ts` files with unit tests.
+1. **Game:** `frontend/src/games/<game>/index.ts` exports `mount<Game>: MountMinigame` (see `games/shared/minigame.ts`). Use Phaser through `games/shared/createGame.ts`; fake depth with isometric art instead of a 3D engine. Scenes, `config.ts` and `assets/` sit next to it. Logic that can be pure (rules, scoring) goes into plain `.ts` files with unit tests.
 2. **Page:** `components/<game>/App.tsx` renders the intro, then `<MinigameHost mount={mount<Game>} ... />`, then the result screen; on finish it calls `apiSubmitScore` and returns to `/campus`. Add `pages/<game>.tsx` as in "Add a page".
 3. **Contract:** add the id to `GameId` in `schemas.py` and `CommonInt.ts`. The ending uses the average of all games; update `services/endings.py` and its tests if the rules change.
 4. **Story:** add a `DialogueScene` and its event keys in `app/prompts.py` and `services/fallbacks.py`, and list the keys in GAME_DESIGN.md.
@@ -318,15 +319,15 @@ Inside the image the paths mirror the repo (`/app/backend`, `/app/frontend/dist`
 - **Assets:** images imported in code (`import logoUrl from "./logo.png"`) are hashed into `dist/assets/`. Files that need a stable URL go in `frontend/public/` and are served at `/static/<file>`.
 - **Formatting:** Prettier with **4-space indent and semicolons** (`.prettierrc`); everything else is Prettier defaults. Don't hand-format; run `make format`.
 
-### Game code (`frontend/src/games/`: Phaser 2D, Three.js 3D) *(planned)*
-- **One folder per minigame, one engine per minigame.** Blackjack uses Phaser 4 (2D); the shooter uses Three.js (3D), used directly, not through React Three Fiber. `index.ts` exports only the mount function (`mountBlackjack`, `mountShooter`).
-- **Scenes are classes**, one per file, filename = class name (`BlackjackScene.ts` extends `Phaser.Scene`; `ShooterScene.ts` owns the Three.js scene, camera and renderer). This is the one place where classes are the norm.
+### Game code (`frontend/src/games/`, Phaser) *(planned)*
+- **One folder per minigame, one engine for all: Phaser 4.** Blackjack is plain 2D; the shooter fakes depth with isometric art (see [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md)). No 3D engine. `index.ts` exports only the mount function (`mountBlackjack`, `mountShooter`).
+- **Scenes are classes**, one per file, filename = class name (`BlackjackScene.ts`, `ShooterScene.ts`, both extend `Phaser.Scene`). This is the one place where classes are the norm.
 - **Pure logic is separate.** Rules, scoring and gesture math live in plain `.ts` files without engine imports, so they can be unit-tested. Scenes render and route input.
 - **Tunables** (thresholds, timings, sizes, perk values, quality settings) are `UPPER_SNAKE_CASE` constants in the game's `config.ts`.
-- **Boundaries:** no React, no `fetch`/`apiClient`, no navigation inside `games/`. Talk to the outside only through `MinigameOptions` (`character`, `dialogue`, `onFinish`). Only `components/common/MinigameHost.tsx` calls a mount function; only `games/shared/createGame.ts` creates a `Phaser.Game`; only `games/shooter/` creates a `THREE.WebGLRenderer`.
-- **3D budget (shooter):** fixed camera, low-poly models, one `InstancedMesh` per target type, one ambient + one directional light, no real-time shadows, pixel ratio capped (1 on `standard`, 1.5 on `sharp`), bloom only on `sharp`. See [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md).
-- **Assets:** import them (hashed URLs) and pass the URLs to the engine's loader (Phaser's loader; Three.js `TextureLoader` / `GLTFLoader`). The MediaPipe runtime files are the exception: they are served from `/static/mediapipe/` and `/static/models/`.
-- **Cleanup:** `destroy()` must stop the game loop, timers, input listeners and the camera, release GPU resources (Three.js: dispose geometries, materials, textures and the renderer) and remove the canvas. Calling it twice must be safe.
+- **Boundaries:** no React, no `fetch`/`apiClient`, no navigation inside `games/`. Talk to the outside only through `MinigameOptions` (`character`, `dialogue`, `onFinish`). Only `components/common/MinigameHost.tsx` calls a mount function; only `games/shared/createGame.ts` creates a `Phaser.Game`.
+- **Fake-depth budget (shooter):** fixed view, isometric sprites in one texture atlas, at most ~50 active sprites pooled in a `Group`, depth = scale + draw order + haze, no real-time lighting, glow only on `sharp`. Gameplay must also work in Phaser's Canvas fallback. See [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md).
+- **Assets:** import them (hashed URLs) and pass the URLs to Phaser's loader. The MediaPipe runtime files are the exception: they are served from `/static/mediapipe/` and `/static/models/`.
+- **Cleanup:** `destroy()` must stop the game loop, timers, input listeners and the camera, and destroy the Phaser game (`game.destroy(true)` also removes the canvas). Calling it twice must be safe.
 
 ### Backend (Python / FastAPI)
 - **PEP 8 naming:** `snake_case` functions/variables/modules, `PascalCase` classes, `UPPER_SNAKE_CASE` constants. The `XWHid` class names are an intentional exception (allowed in ruff config).
@@ -378,12 +379,12 @@ The full rules are in [docs/BRANCH_RULES.md](docs/BRANCH_RULES.md) (humans) and 
 - **You must refresh the browser** after a rebuild (no HMR). Responses are sent `Cache-Control: no-cache`, so a normal refresh is enough.
 - **`/{page_name}` is a catch-all** for single-segment paths. `mount_frontend(app)` must stay the **last** line in `main.py`, after every router.
 - **The page bundle is `type="module"`**, so top-level code runs after the DOM is parsed and `import`s are real ES modules. Don't use `require`.
-- **`StrictMode` double-invokes effects in development.** Effects must be idempotent; `useApi` already handles cancellation. A minigame is mounted, destroyed and mounted again: `destroy()` must really release the engine (Phaser game or Three.js renderer) and the camera.
+- **`StrictMode` double-invokes effects in development.** Effects must be idempotent; `useApi` already handles cancellation. A minigame is mounted, destroyed and mounted again: `destroy()` must really release the Phaser game and the camera.
 - **The camera only works on a secure origin:** `https://...` or `http://localhost`. `http://<vm-ip>:8000` will never get a camera; use HTTPS or an SSH tunnel to localhost (see ARCHITECTURE.md → Deployment).
 - **Browsers block audio until the user clicks on that page.** A click on the previous page doesn't count after a full page load, so the graduation reveal starts with a click (**Open your diploma**) before the narration plays.
 - **The hand model (`hand_landmarker.task`, 7.8 MB) must never be committed:** CI rejects files over 5 MB. The build downloads it into `frontend/public/models/` (git-ignored) *(planned)*.
-- **MediaPipe's `detectForVideo` is synchronous** and runs on the main thread, sharing the GPU with the Three.js scene. If frames drop, follow the performance ladder in SHOOTER_CV.md before anything clever.
-- **Game FPS depends on the player's laptop, not on the VM.** WebGL and hand tracking run in the browser; the VM only serves files. Never judge 3D performance on the VM or in CI: neither has a GPU, so browsers there fall back to software rendering. Use the `?debug=1` overlay on real laptops with the camera on.
+- **MediaPipe's `detectForVideo` is synchronous** and runs on the main thread, sharing the GPU with the Phaser scene. If frames drop, follow the performance ladder in SHOOTER_CV.md before anything clever.
+- **Game FPS depends on the player's laptop, not on the VM.** WebGL and hand tracking run in the browser; the VM only serves files. Never judge game performance on the VM or in CI: neither has a GPU, so browsers there fall back to software rendering. Use the `?debug=1` overlay on real laptops with the camera on.
 - **The shooter page downloads about 20 MB on its first visit** (MediaPipe wasm + hand model), much more than either engine. Preload it during the intro screen and serve it compressed (planned, see ARCHITECTURE.md → Deployment).
 - **OpenAI calls never happen in tests or CI,** and only in development when you set `AI_MODE=live`. If you see real calls in a test run, stop and fix the test.
 - Pages deleted from `src/pages/` are removed from `dist/` on the next rebuild. If the watcher acts strangely after big file moves, restart it (it wipes `dist/` on startup).
@@ -393,7 +394,7 @@ The full rules are in [docs/BRANCH_RULES.md](docs/BRANCH_RULES.md) (humans) and 
 - **Git: [AGENTS.md](AGENTS.md) is binding.** Never commit on or push to `main`, work only on an owned task branch, stop at a reviewable PR, and never merge unless explicitly asked to merge that PR. Don't add AI attribution to commits, PRs, issues or code.
 - **Never spend OpenAI credits.** Don't run anything that calls OpenAI (`AI_MODE=live`, `make art`, `make ai-check LIVE=1`, scripts or tests with real keys) unless the user explicitly asks for it in that message. Every automated test must pass with no keys and no network.
 - **Never read, print or write real keys.** Don't display the contents of any `.env` file (laptop or server); put only variable names in `.env.example`.
-- **Respect the boundaries:** Phaser and Three.js only under `games/`; network only through `apiClient.ts`; OpenAI only through `app/ai.py`; Redis only through `app/db.py`; camera frames never leave the browser; no client-side store (no Redux).
+- **Respect the boundaries:** Phaser only under `games/`; network only through `apiClient.ts`; OpenAI only through `app/ai.py`; Redis only through `app/db.py`; camera frames never leave the browser; no client-side store (no Redux).
 - Follow the conventions above exactly. Match the surrounding code over your own defaults (`args` not `props`, function declarations, CSS Modules, no `var`).
 - After any frontend change run `cd frontend && npx tsc --noEmit`; after any backend change run `cd backend && .venv/bin/pytest -q`. Before saying you're done, run `make check` and report the result honestly.
 - When adding an endpoint, do all four steps of "Add an API endpoint" plus a test, in one go, and add it to the contract table in `docs/ARCHITECTURE.md`.

@@ -19,8 +19,8 @@ Browser: one HTML page per scene
 │        │ mountX({ parent, character, dialogue, onFinish })           │
 │  ┌─────▼──────────────────────────────┐     InputSource              │
 │  │ WebGL inner shell  games/<game>/    │◄─── {aim, onFire} ◄── MediaPipe hand tracking
-│  │ blackjack: Phaser 4 (2D)            │                      (webcam, on-device)
-│  │ shooter:   Three.js (3D)            │                              │
+│  │ Phaser 4 (2D): blackjack, shooter   │                      (webcam, on-device)
+│  │ shooter fakes depth: isometric art  │                              │
 │  └────────────────────────────────────┘                              │
 │        misc/apiClient.ts → fetch /api/... (same origin)              │
 └────────┬─────────────────────────────────────────────────────────────┘
@@ -32,8 +32,8 @@ FastAPI   routers → services ─► app/db.py ─► Redis 8   runs, leaderboa
 Three rules hold the design together:
 
 1. **React owns everything around a round; the game engine owns the round**
-   (Phaser 4 for the 2D blackjack, Three.js for the 3D shooter). They meet at one
-   interface, `MountMinigame`. Pages never import Phaser or Three.js; `games/`
+   (Phaser 4 in both minigames; the shooter fakes depth with isometric art). They
+   meet at one interface, `MountMinigame`. Pages never import Phaser; `games/`
    never fetches, never navigates and never imports React.
 2. **The browser never sees a secret and never calls OpenAI.** Only the backend
    does, through `app/ai.py`, with caching, a daily cap and fallbacks.
@@ -62,8 +62,8 @@ the query string, `?run=<id>`; everything else comes from the API.
   which would wipe it. The character and the run live on the server; each page
   loads them with `apiGetRunById`.
 - **Why one page per scene** (decided 2026-10-09):
-  - every scene is its own bundle, so Phaser, Three.js and MediaPipe load only
-    where they are used;
+  - every scene is its own bundle, so Phaser and MediaPipe load only where they
+    are used (Phaser as one chunk shared by the two game pages);
   - teammates own separate folders;
   - leaving the shooter page releases the camera and WebGL automatically;
   - a crash costs one reload, because the state is in Redis;
@@ -91,7 +91,7 @@ enroll ─POST /runs─► playing 0/2 ─POST /scores─► playing 1/2 ─POST
 ## The minigame contract (React ↔ game engine)
 
 The contract does not care which engine draws the round: `mountBlackjack` creates
-a Phaser game, `mountShooter` creates a Three.js renderer and the hand tracker.
+a Phaser game, `mountShooter` creates another Phaser game plus the hand tracker.
 
 ```ts
 // frontend/src/games/shared/minigame.ts (planned)
@@ -387,7 +387,7 @@ cannot spend them, by construction:
 | Endings | pytest | Every tier boundary: 24/25, 44/45, 64/65, 84/85 |
 | Pure frontend logic | vitest *(planned)* | Blackjack rules and scoring, gesture detection on synthetic and recorded landmarks, the One-Euro filter, `run.ts` |
 | Docker smoke | `scripts/smoke.sh` | Read-only GETs only, never a story POST. CI has no keys, so no AI call can happen |
-| Performance (3D + CV) | In-page perf overlay (`?debug=1`), real browser | Frame times (p50/p95), detection time and draw calls, measured on the demo laptop and on the weakest team laptop with the camera on. Never on the VM or in CI: neither has a GPU, so the browser falls back to software rendering and the numbers mean nothing |
+| Performance (game + CV) | In-page perf overlay (`?debug=1`), real browser | Frame times (p50/p95), detection time and draw calls, measured on the demo laptop and on the weakest team laptop with the camera on. Never on the VM or in CI: neither has a GPU, so the browser falls back to software rendering and the numbers mean nothing |
 | Manual, UI | Browser with `AI_MODE=fake` | Loading states, typewriter, audio, all without credits |
 | Manual, live | Browser with `AI_MODE=live` and your own key | Only the story and art owners, on purpose; about 2 ¢ per full playthrough |
 | Pre-demo rehearsal | VM in `live` mode | About 10 full runs, about 20 ¢ |
@@ -409,7 +409,7 @@ announce it to the team first.
 | Hand lost mid-round | Crosshair hidden, "Show your finger gun"; could: the round timer pauses |
 | Saving a score fails | The result stays on screen with **Retry**; we never navigate away with an unsaved score |
 | Redis down | API answers 503 with a readable message; pages show "Campus is closed, try again in a moment" |
-| WebGL unavailable | Blackjack: Phaser falls back to Canvas. Shooter: Three.js needs WebGL2, so the page explains that and lets the player skip back to campus |
+| WebGL unavailable | Phaser falls back to Canvas in both games; gameplay never depends on WebGL-only effects (glow, filters) |
 | WebGL context lost mid-round | The round pauses with "Graphics interrupted"; it resumes when the context is restored, or the player retries |
 | Page crash or refresh | The state is in Redis; reloading continues the run |
 | Unknown or old run id | Redirect to `/` (unknown) or `/graduation` (graduated) |
@@ -453,7 +453,7 @@ announce it to the team first.
 | B. AI and story | `ai.py`, `prompts.py`, `fallbacks.py`, `routers/story.py`, `services/story.py`, `backend/tools/` | Story endpoints that return fallbacks, then `live` |
 | C. Shell and UX | Pages `index`, `enroll`, `campus`, `graduation`; `MinigameHost`, `run.ts`, design tokens, Legi card | Enroll → campus → graduation with stub data |
 | D. Blackjack (Phaser 2D) | `games/blackjack/`, `components/blackjack/` | `rules.ts` with tests, then the scene |
-| E. Shooter game (Three.js 3D) | `games/shooter/ShooterScene.ts` (Three.js scene, camera, targets, ray-cast hits), scoring, juice, `MouseInput` | Playable with the mouse in 3D |
+| E. Shooter game (Phaser, isometric 2D) | `games/shooter/ShooterScene.ts` (Phaser scene, isometric art, fake depth), `hitTest.ts`, scoring, juice, `MouseInput` | Playable with the mouse |
 | F. Shooter vision | `games/shooter/input/`, model and wasm hosting, debug overlay, recordings | The T+6h CV gate ([SHOOTER_CV.md](SHOOTER_CV.md)) |
 
 1. **T → T+2h: contract PR** (A, B and C together): the types in `schemas.py` and
