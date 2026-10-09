@@ -1,72 +1,60 @@
-// Example page: a full round trip through the stack (FastAPI → apiClient → useApi → UI).
-// Replace it with your real home page; delete ItemCard/ItemForm with the items feature.
+// Title screen: the way in (enroll) and the Hall of Fame. SKELETON for the "Screen Welcome"
+// work (issue #6): keep the data flow, restyle freely.
 
-import { useState } from "react";
+import Avatar from "../common/Avatar";
 import Layout from "../common/Layout";
-import ItemCard from "./ItemCard";
-import ItemForm from "./ItemForm";
-import {
-    apiCreateItem,
-    apiDeleteItem,
-    apiGetHealth,
-    apiListItems,
-} from "../../misc/apiClient";
+import { apiListLeaderboard } from "../../misc/apiClient";
+import { DEPARTMENTS, ENDING_TITLES } from "../../misc/character";
 import { useApi } from "../../misc/useApi";
-import type { ItemWHid } from "../../misc/CommonInt";
 import styles from "./App.module.css";
 
 export default function App() {
-    const health = useApi(apiGetHealth);
-    const items = useApi(apiListItems);
-    const [actionError, setActionError] = useState<string | null>(null);
-
-    async function handleCreate(payload: ItemWHid) {
-        const res = await apiCreateItem(payload);
-        setActionError(res.error);
-        if (res.error === null) items.reload();
-        return res.error === null;
-    }
-
-    async function handleDelete(itemId: string) {
-        const res = await apiDeleteItem(itemId);
-        setActionError(res.error);
-        items.reload();
-    }
+    const leaderboard = useApi(() => apiListLeaderboard(10));
 
     return (
-        <Layout title="Home">
-            <p className={styles.status}>
-                Backendd:{" "}
-                {health.loading ? (
-                    "checking…"
-                ) : health.error ? (
-                    <span className={styles.error}>
-                        unreachable ({health.error})
-                    </span>
-                ) : (
-                    <span className={styles.ok}>
-                        {health.data?.status} ({health.data?.environment})
-                    </span>
-                )}
-            </p>
+        <Layout title="Welcome">
+            <section className={styles.hero}>
+                <h1 className={styles.title}>ETH Life</h1>
+                <p className={styles.tagline}>
+                    Create your student, survive casino night and the
+                    Basisprüfung, and find out where your diploma takes you.
+                </p>
+                <a href="/enroll" className={styles.cta}>
+                    Enroll at ETH
+                </a>
+            </section>
 
-            <ItemForm onSubmit={handleCreate} />
-            {actionError && <p className={styles.error}>{actionError}</p>}
-
-            <section className={styles.list}>
-                {items.loading && items.data === null && (
+            <section>
+                <h2>Hall of Fame</h2>
+                {leaderboard.loading && leaderboard.data === null && (
                     <p className={styles.muted}>Loading…</p>
                 )}
-                {items.data?.length === 0 && (
-                    <p className={styles.muted}>No items yet.</p>
+                {leaderboard.error && (
+                    <p className={styles.error}>{leaderboard.error}</p>
                 )}
-                {items.data?.map((item) => (
-                    <ItemCard
-                        key={item.id}
-                        item={item}
-                        onDelete={handleDelete}
-                    />
-                ))}
+                {leaderboard.data?.length === 0 && (
+                    <p className={styles.muted}>
+                        Nobody has graduated yet. Be the first.
+                    </p>
+                )}
+                <ol className={styles.ranking}>
+                    {leaderboard.data?.map((entry) => (
+                        <li key={entry.runId} className={styles.entry}>
+                            <Avatar avatar={entry.avatar} name={entry.name} />
+                            <span>
+                                <strong>{entry.name}</strong>
+                                <br />
+                                <small className={styles.muted}>
+                                    {DEPARTMENTS[entry.department]}
+                                </small>
+                            </span>
+                            <span>{ENDING_TITLES[entry.endingId]}</span>
+                            <span className={styles.score}>
+                                {entry.totalScore}
+                            </span>
+                        </li>
+                    ))}
+                </ol>
             </section>
         </Layout>
     );

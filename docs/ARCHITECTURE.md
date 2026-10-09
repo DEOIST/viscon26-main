@@ -5,9 +5,10 @@ computer-vision deep dive: [SHOOTER_CV.md](SHOOTER_CV.md). Versions and the
 reasons for each tool: [STACK.md](STACK.md). Conventions and recipes:
 [CLAUDE.md](../CLAUDE.md).
 
-> **Status (2026-10-09): design approved, not built yet.** The repo still holds
-> the starter and its `items` example. Files marked *(planned)* do not exist
-> until their PR lands; tick them off in [Build status](#build-status).
+> **Status (2026-10-10): foundation built (#12).** Contract, Redis, OpenAI
+> plumbing, the build and every page work end to end; both minigames are still
+> placeholders. Files marked *(planned)* do not exist until their PR lands; tick
+> them off in [Build status](#build-status).
 
 ## Overview
 
@@ -56,7 +57,7 @@ the query string, `?run=<id>`; everything else comes from the API.
 
 - Pages other than `/` and `/enroll` redirect to `/` when `?run=` is missing or
   unknown. A graduated run sends `/campus`, `/blackjack` and `/shooter` to `/graduation`.
-- Build run URLs with `misc/run.ts` *(planned)*: `readRunId()` and
+- Build run URLs with `misc/run.ts`: `readRunId()` and
   `runHref(path, runId)`. Never concatenate `?run=` by hand.
 - **No client-side store (no Redux).** Every navigation is a full page load,
   which would wipe it. The character and the run live on the server; each page
@@ -94,7 +95,7 @@ The contract does not care which engine draws the round: `mountBlackjack` create
 a Phaser game, `mountShooter` creates another Phaser game plus the hand tracker.
 
 ```ts
-// frontend/src/games/shared/minigame.ts (planned)
+// frontend/src/games/shared/minigame.ts
 import type { Character } from "../../misc/CommonInt";
 
 export interface MinigameResult {
@@ -118,7 +119,7 @@ export type MountMinigame = (options: MinigameOptions) => MinigameHandle;
 
 - `games/blackjack/index.ts` exports `mountBlackjack`, and
   `games/shooter/index.ts` exports `mountShooter`, both typed `MountMinigame`.
-- `components/common/MinigameHost.tsx` *(planned)* is the **only** caller of a
+- `components/common/MinigameHost.tsx` is the **only** caller of a
   mount function. It mounts in an effect and destroys in the cleanup, which also
   survives StrictMode's double mount in development.
 - Games pick dialogue lines locally (a random line for the event, never the same
@@ -244,7 +245,7 @@ the same file names.
   "Storage is unavailable, try again in a moment". `/api/health` stays
   dependency-free.
 
-## Backend layout *(planned)*
+## Backend layout
 
 ```
 backend/
@@ -280,14 +281,14 @@ those into 404 and 409.
 | `ai:calls:{yyyy-mm-dd}` | integer | daily AI call counter, 48 h TTL |
 | `ai:key:{index}:dead` | flag | key number `index` is invalid or out of credit, 1 h TTL (never the key itself) |
 
-- **Container** *(planned)*: `redis:8-alpine` running `redis-server --appendonly yes`
+- **Container**: `public.ecr.aws/docker/library/redis:8-alpine` running `redis-server --appendonly yes`
   (AOF with `fsync` every second, so a crash loses at most about one second of
   writes), a named volume `redis-data:/data`, a `redis-cli ping` healthcheck, and
   **no `ports:` entry**. Redis has no password here; an exposed port gets
   compromised fast.
 - **Development without Docker:** when `REDIS_URL` is empty, `db.py` uses an
   in-process fakeredis. Data then resets on every `--reload`, as before.
-  `make redis` *(planned)* starts a real one on `127.0.0.1:6379` for anyone who
+  `make redis` starts a real one on `127.0.0.1:6379` for anyone who
   wants persistence locally. Production refuses to start without `REDIS_URL`.
 - New keys get a row in this table in the same PR.
 
@@ -392,7 +393,7 @@ cannot spend them, by construction:
 | Manual, live | Browser with `AI_MODE=live` and your own key | Only the story and art owners, on purpose; about 2 ¢ per full playthrough |
 | Pre-demo rehearsal | VM in `live` mode | About 10 full runs, about 20 ¢ |
 
-`make ai-check` *(planned)* verifies every key without spending anything: it
+`make ai-check` verifies every key without spending anything: it
 only lists the models per key (free) and prints `key …abcd: ok / invalid / model missing`.
 `make ai-check LIVE=1` adds one 1-token call per key to detect exhausted credit
 (a fraction of a cent).
@@ -416,10 +417,11 @@ announce it to the team first.
 
 ## Deployment
 
-- `compose.yaml` and `compose.prod.yaml` *(planned)* get a second service,
+- `compose.yaml` and `compose.prod.yaml` run a second service,
   `redis` (see "Redis data model"). `app` gets `REDIS_URL=redis://redis:6379/0`
-  and waits until Redis is healthy. The production files set `AI_MODE=live`;
-  without keys that still means no calls.
+  and waits until Redis is healthy. `AI_MODE` comes only from the server's
+  `.env` (default `off`), never from the Compose files, so a local `make prod`
+  can't spend credits by surprise.
 - Secrets: see "Where the API keys live". CD needs no OpenAI secret; the
   server's `.env` holds them.
 - **The camera needs a secure origin.** In order of preference:
@@ -438,7 +440,7 @@ announce it to the team first.
   desktop): avoid it, it has no GPU and no webcam.
 - **What the VM does carry:** the shooter page's first visit downloads about
   20 MB of MediaPipe files (12.4 MB wasm runtime + 7.8 MB hand model; see
-  STACK.md → Measured download sizes). *(planned)* Compress responses with
+  STACK.md → Measured download sizes). Responses are compressed with
   Starlette's `GZipMiddleware` in `main.py`, and start the download while the
   shooter intro screen is showing. Revalidation (`Cache-Control: no-cache` with
   ETags) already makes later visits cheap.
@@ -472,13 +474,13 @@ announce it to the team first.
 
 ### Build status
 
-- [ ] Contract PR: types, stub routers, client functions, `minigame.ts`, page skeletons, example removed
-- [ ] Redis: `db.py`, Compose service, fakeredis in tests
-- [ ] Runs API, endings, leaderboard
-- [ ] Story API: `ai.py`, `AI_MODE`, fallbacks, cache, daily cap, pytest-socket
-- [ ] Pages: index, enroll, campus, graduation
-- [ ] Blackjack
-- [ ] Shooter with the mouse, then with the camera
+- [x] Contract PR: types, routers, client functions, `minigame.ts`, page skeletons, example removed (#12)
+- [x] Redis: `db.py`, Compose service, fakeredis in tests (#12)
+- [x] Runs API, endings, leaderboard (#12)
+- [x] Story API: `ai.py`, `AI_MODE`, fallbacks, cache, daily cap, pytest-socket, `make ai-check` (#12)
+- [x] Pages: index, enroll, campus, graduation, as working skeletons (#12)
+- [ ] Blackjack (a placeholder scene is wired in)
+- [ ] Shooter with the mouse, then with the camera (a placeholder mouse round is wired in)
 - [ ] Generated art and fallback narration
 - [ ] Deployed on a secure origin
 - [ ] vitest, and adding it to CI (changing `ci.yml` needs an explicit OK from the team)

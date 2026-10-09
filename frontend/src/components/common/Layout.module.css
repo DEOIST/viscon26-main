@@ -38,3 +38,8 @@
     margin: 0 auto;
     padding: var(--space-4) var(--space-3);
 }
+
+.wideMain {
+    composes: main;
+    max-width: 1120px;
+}

@@ -1,10 +1,14 @@
-# syntax=docker/dockerfile:1
 # Production image: stage 1 builds the frontend, stage 2 runs FastAPI, which serves both the
 # API and the built pages. The layout inside the image mirrors the repo (/app/backend,
 # /app/frontend/dist), so app/config.py finds the frontend without extra configuration.
+#
+# Base images come from AWS ECR Public's mirror of the Docker Official Images (same digests as
+# Docker Hub). Docker Hub rate-limits anonymous pulls per IP, and shared IPs (CI runners, the
+# event network) hit that limit. For the same reason there is no `# syntax=` line: it would
+# pull the Dockerfile frontend from Docker Hub on every build.
 
 # --- Stage 1: frontend build -------------------------------------------------------------
-FROM node:26-alpine AS frontend
+FROM public.ecr.aws/docker/library/node:26-alpine AS frontend
 WORKDIR /app/frontend
 
 # Install deps first so this layer is cached until package*.json changes.
@@ -15,7 +19,7 @@ COPY frontend/ ./
 RUN node build.js --prod
 
 # --- Stage 2: runtime --------------------------------------------------------------------
-FROM python:3.14-slim
+FROM public.ecr.aws/docker/library/python:3.14-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

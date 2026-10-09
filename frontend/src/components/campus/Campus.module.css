@@ -1,0 +1,82 @@
+.campus {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.semester {
+    margin: 0;
+    color: var(--color-primary);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.legi,
+.advisor {
+    display: flex;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+}
+
+.legi {
+    align-items: center;
+}
+
+.advisor {
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.advisor p {
+    margin: 0;
+}
+
+.activities {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+}
+
+.activity {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-3);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    color: var(--color-text);
+    text-decoration: none;
+}
+
+.activity:hover {
+    border-color: var(--color-primary);
+}
+
+.primary {
+    align-self: flex-start;
+    padding: var(--space-2) var(--space-4);
+    border: none;
+    border-radius: var(--radius);
+    background: var(--color-primary);
+    color: var(--color-primary-text);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.muted {
+    color: var(--color-muted);
+}
+
+.error {
+    color: var(--color-danger);
+}
