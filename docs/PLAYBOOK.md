@@ -12,6 +12,12 @@ T+1h and kept in the repository (not in chat): `docs/DEMO.md` (the exact demo
 script, inputs and fallback) and `docs/PITCH.md` (the pitch outline and who
 answers which question).
 
+**Chosen idea (2026-10-09): ETH Life**, a game with a webcam finger-gun shooter
+as the core feature. What we build is in [GAME_DESIGN.md](GAME_DESIGN.md); the
+architecture, API contract, six ownership tracks and build order are in
+[ARCHITECTURE.md](ARCHITECTURE.md). Those documents refine the generic gates
+below for this project.
+
 ## Event facts and questions to settle
 
 Checked against official 2026 pages on 6 October 2026:
@@ -37,6 +43,9 @@ GitHub issue titled **"Event facts"**:
 - Permission to reuse this starter, required disclosure and any rules for AI tools.
 - VM credentials/resources, allowed ports, TLS, whether Docker is available, and
   external services.
+- Whether the VM can be reached over HTTPS: the webcam shooter needs a secure
+  origin (HTTPS, or `localhost` through an SSH tunnel; see ARCHITECTURE.md →
+  Deployment).
 
 The public pages do not establish exact submission mechanics, pitch duration or
 AI-assistance rules. A three-minute rehearsal is a practice format. Owners must
@@ -106,7 +115,10 @@ Before leaving, each member has:
 ## Deployment target
 
 The whole app is **one container** (`compose.yaml`, service `app`, port 8000):
-FastAPI serves the API and the built frontend. On the VM:
+FastAPI serves the API and the built frontend. A second, internal `redis`
+service is planned (ARCHITECTURE.md → Deployment); it is never published on a
+host port. OpenAI keys go into `backend/.env` on the VM, never into the repo.
+On the VM:
 
 ```bash
 git clone <repo> && cd <repo> && git checkout <release-sha>
@@ -177,6 +189,9 @@ redeploy wipes it**. By T+8h either prove persistence on the deployment target
 (e.g. SQLite on a named Docker volume, added to `compose.yaml`) or demonstrate a
 sub-two-minute reseed with the product owner's agreement. Do not add multiple
 uvicorn workers to process-local memory stores (CLAUDE.md "Gotchas").
+Decided on 2026-10-09: Redis with AOF on a named volume (ARCHITECTURE.md →
+Redis data model). By T+8h, prove that runs survive `docker compose restart` on
+the deployment target.
 
 Use two-minute updates every three hours: demonstrated result, next acceptance
 check, blocker. Hand off before breaks and stagger primaries with backups. Plan
