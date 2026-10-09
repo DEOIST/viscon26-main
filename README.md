@@ -2,7 +2,7 @@
 
 Our VIScon 2026 game: create your ETH student, bet your stipend at blackjack, shoot exam questions out of the air with a webcam finger gun, and find out what career your scores earn you at graduation.
 
-React + Phaser 4 (WebGL) frontend with in-browser hand tracking (MediaPipe), FastAPI + Redis backend, and an OpenAI-written story, served from a single origin.
+React frontend with WebGL minigames (Phaser 4 in 2D, Three.js in 3D) and in-browser hand tracking (MediaPipe), a FastAPI + Redis backend, and an OpenAI-written story, served from a single origin.
 
 ```bash
 make install   # npm install + Python venv

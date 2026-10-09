@@ -17,10 +17,11 @@ Browser: one HTML page per scene
 │ React outer shell        components/<page>/App.tsx                   │
 │   title · enroll · campus hub · graduation · intro/result overlays   │
 │        │ mountX({ parent, character, dialogue, onFinish })           │
-│  ┌─────▼─────────────────────────────┐      InputSource              │
-│  │ Phaser 4 inner shell games/<game>/ │◄──── {aim, onFire} ◄── MediaPipe hand tracking
-│  │ blackjack · shooter (WebGL canvas) │                       (webcam, on-device)
-│  └───────────────────────────────────┘                               │
+│  ┌─────▼──────────────────────────────┐     InputSource              │
+│  │ WebGL inner shell  games/<game>/    │◄─── {aim, onFire} ◄── MediaPipe hand tracking
+│  │ blackjack: Phaser 4 (2D)            │                      (webcam, on-device)
+│  │ shooter:   Three.js (3D)            │                              │
+│  └────────────────────────────────────┘                              │
 │        misc/apiClient.ts → fetch /api/... (same origin)              │
 └────────┬─────────────────────────────────────────────────────────────┘
          ▼
@@ -30,9 +31,10 @@ FastAPI   routers → services ─► app/db.py ─► Redis 8   runs, leaderboa
 
 Three rules hold the design together:
 
-1. **React owns everything around a round; Phaser owns the round.** They meet at
-   one interface, `MountMinigame`. Pages never import Phaser; `games/` never
-   fetches, never navigates and never imports React.
+1. **React owns everything around a round; the game engine owns the round**
+   (Phaser 4 for the 2D blackjack, Three.js for the 3D shooter). They meet at one
+   interface, `MountMinigame`. Pages never import Phaser or Three.js; `games/`
+   never fetches, never navigates and never imports React.
 2. **The browser never sees a secret and never calls OpenAI.** Only the backend
    does, through `app/ai.py`, with caching, a daily cap and fallbacks.
 3. **Camera frames never leave the browser.** Computer vision runs on the
@@ -56,8 +58,12 @@ the query string, `?run=<id>`; everything else comes from the API.
   unknown. A graduated run sends `/campus`, `/blackjack` and `/shooter` to `/graduation`.
 - Build run URLs with `misc/run.ts` *(planned)*: `readRunId()` and
   `runHref(path, runId)`. Never concatenate `?run=` by hand.
+- **No client-side store (no Redux).** Every navigation is a full page load,
+  which would wipe it. The character and the run live on the server; each page
+  loads them with `apiGetRunById`.
 - **Why one page per scene** (decided 2026-10-09):
-  - every scene is its own bundle, so Phaser and MediaPipe load only where they are used;
+  - every scene is its own bundle, so Phaser, Three.js and MediaPipe load only
+    where they are used;
   - teammates own separate folders;
   - leaving the shooter page releases the camera and WebGL automatically;
   - a crash costs one reload, because the state is in Redis;
@@ -82,7 +88,10 @@ enroll ─POST /runs─► playing 0/2 ─POST /scores─► playing 1/2 ─POST
   Calling it again returns the same run.
 - After graduation, score submissions answer 409.
 
-## The minigame contract (React ↔ Phaser)
+## The minigame contract (React ↔ game engine)
+
+The contract does not care which engine draws the round: `mountBlackjack` creates
+a Phaser game, `mountShooter` creates a Three.js renderer and the hand tracker.
 
 ```ts
 // frontend/src/games/shared/minigame.ts (planned)
@@ -378,6 +387,7 @@ cannot spend them, by construction:
 | Endings | pytest | Every tier boundary: 24/25, 44/45, 64/65, 84/85 |
 | Pure frontend logic | vitest *(planned)* | Blackjack rules and scoring, gesture detection on synthetic and recorded landmarks, the One-Euro filter, `run.ts` |
 | Docker smoke | `scripts/smoke.sh` | Read-only GETs only, never a story POST. CI has no keys, so no AI call can happen |
+| Performance (3D + CV) | In-page perf overlay (`?debug=1`), real browser | Frame times (p50/p95), detection time and draw calls, measured on the demo laptop and on the weakest team laptop with the camera on. Never on the VM or in CI: neither has a GPU, so the browser falls back to software rendering and the numbers mean nothing |
 | Manual, UI | Browser with `AI_MODE=fake` | Loading states, typewriter, audio, all without credits |
 | Manual, live | Browser with `AI_MODE=live` and your own key | Only the story and art owners, on purpose; about 2 ¢ per full playthrough |
 | Pre-demo rehearsal | VM in `live` mode | About 10 full runs, about 20 ¢ |
@@ -399,7 +409,8 @@ announce it to the team first.
 | Hand lost mid-round | Crosshair hidden, "Show your finger gun"; could: the round timer pauses |
 | Saving a score fails | The result stays on screen with **Retry**; we never navigate away with an unsaved score |
 | Redis down | API answers 503 with a readable message; pages show "Campus is closed, try again in a moment" |
-| WebGL unavailable | Phaser tries Canvas; otherwise a "browser not supported" message. Gameplay must not depend on GPU-only effects |
+| WebGL unavailable | Blackjack: Phaser falls back to Canvas. Shooter: Three.js needs WebGL2, so the page explains that and lets the player skip back to campus |
+| WebGL context lost mid-round | The round pauses with "Graphics interrupted"; it resumes when the context is restored, or the player retries |
 | Page crash or refresh | The state is in Redis; reloading continues the run |
 | Unknown or old run id | Redirect to `/` (unknown) or `/graduation` (graduated) |
 
@@ -420,6 +431,17 @@ announce it to the team first.
 
   Judges' own devices need option 1. Decide by T+4h and record it in the
   "Event facts" issue.
+- **The VM never renders anything.** WebGL and hand tracking run in the
+  player's browser on the player's GPU; the VM serves files and the API. Game
+  FPS is therefore a property of the player's laptop. The only setup where the
+  VM's hardware would matter is a browser running *inside* the VM (remote
+  desktop): avoid it, it has no GPU and no webcam.
+- **What the VM does carry:** the shooter page's first visit downloads about
+  20 MB of MediaPipe files (12.4 MB wasm runtime + 7.8 MB hand model; see
+  STACK.md → Measured download sizes). *(planned)* Compress responses with
+  Starlette's `GZipMiddleware` in `main.py`, and start the download while the
+  shooter intro screen is showing. Revalidation (`Cache-Control: no-cache` with
+  ETags) already makes later visits cheap.
 - One uvicorn worker stays. With all state in Redis more would be safe, but we
   don't need them.
 
@@ -430,8 +452,8 @@ announce it to the team first.
 | A. Backend and release | `routers/` + `services/` `runs`, `leaderboard`, `endings.py`, `db.py`, Redis in Compose, deployment, TLS or tunnel | Runs API with Redis in Compose |
 | B. AI and story | `ai.py`, `prompts.py`, `fallbacks.py`, `routers/story.py`, `services/story.py`, `backend/tools/` | Story endpoints that return fallbacks, then `live` |
 | C. Shell and UX | Pages `index`, `enroll`, `campus`, `graduation`; `MinigameHost`, `run.ts`, design tokens, Legi card | Enroll → campus → graduation with stub data |
-| D. Blackjack | `games/blackjack/`, `components/blackjack/` | `rules.ts` with tests, then the scene |
-| E. Shooter game | `games/shooter/ShooterScene.ts`, targets, scoring, juice, `MouseInput` | Playable with the mouse |
+| D. Blackjack (Phaser 2D) | `games/blackjack/`, `components/blackjack/` | `rules.ts` with tests, then the scene |
+| E. Shooter game (Three.js 3D) | `games/shooter/ShooterScene.ts` (Three.js scene, camera, targets, ray-cast hits), scoring, juice, `MouseInput` | Playable with the mouse in 3D |
 | F. Shooter vision | `games/shooter/input/`, model and wasm hosting, debug overlay, recordings | The T+6h CV gate ([SHOOTER_CV.md](SHOOTER_CV.md)) |
 
 1. **T → T+2h: contract PR** (A, B and C together): the types in `schemas.py` and

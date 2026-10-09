@@ -9,8 +9,9 @@ in [SHOOTER_CV.md](SHOOTER_CV.md), the tools in [STACK.md](STACK.md).
 > find out whether you graduate into the C-suite or the McDonald's at Zürich HB.
 
 **The wow moment, protect it at all costs:** a judge makes a finger gun, sees
-their own hand tracked on screen with a neon skeleton, and shoots flying exam
-questions out of the air. No controller, no install, nothing leaves the laptop.
+their own hand tracked on screen with a neon skeleton, and shoots exam questions
+that fly at them in 3D out of the air. No controller, no install, nothing leaves
+the laptop.
 Everything else in the game frames that moment.
 
 ## Player journey
@@ -90,9 +91,10 @@ You bet your semester stipend of 1 000 CHF at the casino.
 ## Minigame 2: Finger-gun shooter ("Basisprüfung")
 
 The Basisprüfung, ETH's first-year exam block, attacks: exam questions fly
-across the screen over your own mirrored webcam image. Make a finger gun, aim
-with your index finger, drop your thumb to shoot. The technical design is in
-[SHOOTER_CV.md](SHOOTER_CV.md).
+toward you in a 3D scene (Three.js) layered over your own mirrored webcam
+image. Make a finger gun, aim with your index finger, drop your thumb to shoot.
+The technical design is in [SHOOTER_CV.md](SHOOTER_CV.md). Blackjack stays 2D
+(Phaser).
 
 - **Controls:** finger gun via the webcam (hand tracking in the browser). The
   mouse (aim + click) is the automatic fallback when the camera is unavailable;
@@ -108,9 +110,9 @@ with your index finger, drop your thumb to shoot. The technical design is in
   first-time player scores about 70.
 - **Proctor lines** (AI dialogue event keys): `intro`, `streak`, `miss`,
   `halfway`, `boss`, `end`.
-- **Juice is part of the feature, not polish:** muzzle flash at your fingertip,
-  screen shake, hit-stop, particles, sound, combo counter, and the neon hand
-  skeleton over your hand.
+- **Juice is part of the feature, not polish:** papers that shatter when hit,
+  muzzle flash at your fingertip, camera shake, hit-stop, particles, sound,
+  combo counter, and the neon hand skeleton over your hand.
 
 ## Endings
 
@@ -156,16 +158,18 @@ pre-generated mp3 for that ending. The player never sees an error.
 
 ## Art and audio direction
 
-One style for everything, so generated art, UI and game sprites match:
+One style for everything, so generated art, UI, the 2D blackjack sprites and
+the 3D shooter targets match:
 
 - **Image prompt style prefix** (kept with the art tool): flat vector
   illustration, bold outlines, ETH-inspired deep blue with a warm accent
   palette, playful and slightly satirical, no text, no logos.
 - **Generated offline** (`make art`, reviewed by a human before committing):
   8 avatars, 5 ending scenes, backgrounds for campus, casino and exam hall,
-  5 fallback narrations.
-- **Third-party:** Kenney.nl (CC0) for cards, chips, UI, crosshairs, particles;
-  jsfxr for sound effects; one display font plus the system UI font (check licenses).
+  textures for the 3D targets (exam papers, clocks), 5 fallback narrations.
+- **Third-party:** Kenney.nl (CC0) for cards, chips, UI, crosshairs, particles
+  and low-poly 3D models; jsfxr for sound effects; one display font plus the
+  system UI font (check licenses).
 - Credit third-party assets in `frontend/public/CREDITS.md` (planned).
 - Check the event rules on AI-generated assets and disclose their use in the README.
 
@@ -175,7 +179,7 @@ One style for everything, so generated art, UI and game sprites match:
 |---|---|
 | **Must** | Character creation (all 5 fields; avatars may start as placeholders) · campus hub · blackjack · shooter with webcam finger gun, calibration and mouse fallback · scoring → ending · graduation reveal with fallback epilogue · runs stored in Redis · deployed and demoable with the camera |
 | **Should** | AI dialogue packs · AI epilogue · narrator voice · generated art · Hall of Fame and ending stats · archetype perks · hand skeleton overlay and juice · name moderation |
-| **Could** | Boss paper · open-palm reload · dual-wield (two hands) · webcam shader filter in Phaser · blackjack split · round timer pauses while the hand is lost · per-department stats |
+| **Could** | Boss paper · open-palm reload · dual-wield (two hands) · webcam shader effect (Three.js video texture) · bloom on the `sharp` quality setting · blackjack split · round timer pauses while the hand is lost · per-department stats |
 | **Won't (this event)** | Accounts or login · multiplayer · phone support · walkable campus · runtime image generation |
 
 ## Demo script hook (draft for `docs/DEMO.md`)

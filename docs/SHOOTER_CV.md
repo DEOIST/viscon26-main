@@ -11,6 +11,10 @@ system context is in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Acceptance criteria (measured on the demo laptop)
 
+Measure with the 3D scene and the camera running together, on the demo laptop
+and on the weakest team laptop. Never measure on the VM or in CI: neither has a
+GPU, so the numbers would describe software rendering, not our game.
+
 | What | Target |
 |---|---|
 | Intentional shots detected | ≥ 95 % (20 deliberate thumb drops → at least 19 shots) |
@@ -55,7 +59,7 @@ gesture.ts (pure functions, unit-tested)
   ▼
 InputSource { aim, tracking, onFire }                 same interface as MouseInput and ReplayInput
   ▼
-ShooterScene (Phaser): crosshair, hit test at the aim from ~100 ms before the trigger, effects
+ShooterScene (Three.js, 3D): crosshair, ray-cast hit test at the aim from ~100 ms before the trigger, effects
 ```
 
 ## Camera
@@ -166,7 +170,7 @@ when no hand is visible.
    adaptive low-pass filter, smooth when the hand is slow and responsive when it
    is fast. Start values per axis: `minCutoff = 1.2`, `beta = 0.02`,
    `dCutoff = 1.0`.
-5. Detection runs at camera rate (~30 Hz). Phaser renders at 60 fps and eases
+5. Detection runs at camera rate (~30 Hz). The scene renders at 60 fps and eases
    the crosshair toward the latest filtered point, so it glides instead of stepping.
 6. Optional (`AIM_EXTRAPOLATION`, default 0): push the crosshair slightly ahead
    of the fingertip along the 2D direction PIP→tip, so it reads as "where the gun points".
@@ -228,18 +232,53 @@ export interface InputSource {
 
 `ShooterScene` never knows which source it has.
 
-## Rendering and juice (what makes it feel like magic)
+## 3D rendering with Three.js (what makes it feel like magic)
 
-- The mirrored webcam video fills the screen **behind** a transparent Phaser
-  canvas, with a CSS filter (contrast, saturation or duotone) so it looks
-  designed rather than like a video call. Could: draw the video as a Phaser
-  texture with a WebGL shader (scanlines, pixelation).
-- A neon hand skeleton drawn from `HandLandmarker.HAND_CONNECTIONS` proves to
-  the judges instantly that the hand is really tracked.
-- Crosshair on the fingertip; muzzle flash and a small recoil on fire; screen
-  shake and a 50 ms hit-stop on hits; particles; punchy sound; combo counter;
-  floating "+10".
-- A spark where a missed shot landed, so players learn the look-back aim.
+The shooter is a 3D scene with a **fixed camera**: the player stays put and the
+targets come to them, so there are no camera controls to build.
+
+```ts
+// games/shooter/ShooterScene.ts (planned): the core of the 3D part
+const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: isSharp });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, isSharp ? 1.5 : 1));
+const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 100); // never moves
+
+// Hit test: aim in the game area (0..1) → normalized device coordinates → ray into the scene
+const ndc = new THREE.Vector2(at.x * 2 - 1, 1 - at.y * 2);
+raycaster.setFromCamera(ndc, camera);
+const hit = raycaster.intersectObject(targets)[0]; // targets is an InstancedMesh; hit.instanceId says which one
+```
+
+- **Webcam background.** Start with the mirrored `<video>` element behind the
+  transparent canvas (`alpha: true`) and a CSS filter, so it looks designed
+  rather than like a video call. Upgrade (could): the same video as a
+  `THREE.VideoTexture` on a background plane, mirrored (`wrapS = RepeatWrapping`,
+  `repeat.x = -1`), with a custom shader (duotone, scanlines). That is the WebGL
+  showcase moment.
+- **Targets fly toward the player** from the far end of the room: exam papers
+  (textured planes that flutter), deadline clocks, coffee cups. One
+  `InstancedMesh` per target type, so fifty targets cost a handful of draw
+  calls. Low-poly models (Kenney 3D kits, CC0) or simple shapes with generated
+  textures.
+- **Hits shatter:** the paper bursts into small instanced pieces with
+  velocities that fade out; sparks as `THREE.Points`.
+- **Crosshair and hand skeleton live in screen space:** a 2D overlay canvas above
+  the WebGL canvas, positioned with the same `toGameArea()` mapping as the aim.
+  The neon skeleton drawn from `HandLandmarker.HAND_CONNECTIONS` proves to the
+  judges instantly that the hand is really tracked.
+- **Feel:** muzzle flash at the fingertip, a small camera shake and a 50 ms
+  hit-stop on hits, punchy sound, a combo counter, floating "+10", and a spark
+  where a missed shot landed, so players learn the look-back aim.
+- **Quality setting:** `standard` (pixel ratio 1, no antialiasing, no bloom) and
+  `sharp` (pixel ratio up to 1.5, antialiasing, optional bloom). Use `sharp` on
+  the demo laptop only if it holds 60 fps with the camera on.
+- **Lighting:** one ambient and one directional light; no real-time shadows (fake
+  them with a soft blob texture if needed).
+- **Lifecycle:** `renderer.setAnimationLoop` drives frames and stops while the tab
+  is hidden. On `webglcontextlost`, pause the round and show "Graphics
+  interrupted"; resume on `webglcontextrestored`. `destroy()` stops the loop
+  (`setAnimationLoop(null)`), disposes geometries, materials and textures, calls
+  `renderer.dispose()` and removes the canvas.
 
 ## Performance budget (per camera frame, ~33 ms)
 
@@ -247,23 +286,27 @@ export interface InputSource {
 |---|---|
 | `detectForVideo`, GPU delegate | about 5–15 ms on a recent laptop (CPU delegate: 20–40 ms); measure |
 | Pose, aim, trigger, filter | < 1 ms |
-| Phaser frame | < 8 ms |
+| Three.js frame (game logic + render, ≤ 50 draw calls) | < 6 ms |
 
-`detectForVideo` is synchronous and runs on the main thread. If it pushes frames
-over budget on the demo laptop, go down this ladder, measuring after each step:
+Hand tracking and the 3D scene share one GPU and the main thread.
+`detectForVideo` is synchronous. If frames go over budget on the demo laptop, go
+down this ladder, measuring after each step:
 
-1. Camera at 480×360.
-2. Detect on every second camera frame (15 Hz) and keep easing the crosshair.
-3. `numHands: 1`.
-4. Move detection into a Web Worker (transfer frames as `ImageBitmap`). The most
-   work; only if steps 1–3 are not enough.
+1. Quality `standard`: pixel ratio 1, no antialiasing, no bloom.
+2. Camera at 480×360.
+3. Detect on every second camera frame (15 Hz) and keep easing the crosshair.
+4. `numHands: 1`.
+5. Move detection into a Web Worker (transfer frames as `ImageBitmap`). The most
+   work; only if steps 1–4 are not enough.
 
 ## Debug overlay and tuning (`?debug=1` or `D`)
 
 Shows the landmarks and skeleton, pose state and joint angles, the thumb
 distance `t` with `T_UP` and `T_DOWN` drawn as lines, shots fired, detection time
-in ms, fps, the delegate in use (GPU or CPU) and the calibration box. All
-tunables come from `games/shooter/config.ts`.
+in ms, frame times (p50/p95), Three.js draw calls and triangles
+(`renderer.info.render`), the delegate in use (GPU or CPU), the quality setting
+and the calibration box. All tunables come from `games/shooter/config.ts`. This
+overlay is also the FPS test: run it on each team laptop with the camera on.
 
 ## Testing without a camera (and without credits)
 
@@ -301,5 +344,5 @@ tunables come from `games/shooter/config.ts`.
 | Owner | Files |
 |---|---|
 | Shooter vision | `games/shooter/input/*` (`HandInput`, `gesture.ts`, filter, recording and replay, fixtures), model and wasm hosting, debug overlay |
-| Shooter game | `games/shooter/ShooterScene.ts`, targets, scoring, juice, `MouseInput`, `config.ts` gameplay values |
+| Shooter game | `games/shooter/ShooterScene.ts` (Three.js scene, targets, ray-cast hits), scoring, juice, `MouseInput`, `config.ts` gameplay values |
 | Shell | `components/shooter/App.tsx`: intro, camera permission UI, result screen, saving the score |
