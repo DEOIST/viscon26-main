@@ -126,7 +126,22 @@ SLAP_MIN_DISTANCE = 0.35  # frame widths
 SLAP_MIN_SPEED = 1.5  # frame widths per second, between the last two frames before vanishing
 SLAP_COOLDOWN_S = 0.6  # one slap per swing
 SLAP_SHOT_BLOCK_S = 0.3
+# A very fast slap blurs the hand away before any frame shows it moving. Two signals that don't
+# need the hand: the share of pixels that changed sharply around where the hand was last seen
+# (CvSession measures it, `motion`), and the hand coming back far from where it vanished.
+SLAP_MIN_MOTION = 0.35  # share of the area around the last hand that changed sharply
+SLAP_REAPPEAR_S = 0.6
+SLAP_REAPPEAR_DISTANCE = 0.3  # frame widths
 Slap = Literal["left", "right"]  # on screen (the camera image is mirrored)
+
+
+@dataclass(frozen=True)
+class Motion:
+    """How much changed around the player's last known hand since the previous frame."""
+
+    share: float  # 0..1 of that area changed sharply
+    dx: float  # where the change is, relative to the hand: > 0 toward the image's right
+
 
 # Minimum time between two shots of the player. The ASVZ-athlete perk lowers it per stream
 # ({"type": "settings"}); re-cocking the thumb is still required for every shot.
@@ -515,9 +530,15 @@ class PlayerGun:
         self._palms: deque[tuple[float, float, float]] = deque()
         self._palms_of: int | None = None  # whose palms they are
         self._last_slap_s: float | None = None
+        self._vanished: tuple[float, float, float] | None = None  # (t, x, y) when the hand went
 
     def update(
-        self, detections: Sequence[Hand], width: int, height: int, timestamp_ms: float
+        self,
+        detections: Sequence[Hand],
+        width: int,
+        height: int,
+        timestamp_ms: float,
+        motion: Motion | None = None,
     ) -> GestureFrame:
         hands, duplicates = drop_duplicate_hands(detections)
         readings = self._tracks.update(hands, width, height, timestamp_ms / 1000, self.trigger)
@@ -542,13 +563,15 @@ class PlayerGun:
                 tracked,
                 duplicates,
                 self._player_id,
-                slap=self._slap_on_vanishing(t),
+                slap=self._slap_on_vanishing(t, motion),
             )
 
         player = tracked[ids.index(self._player_id)]
         reading = player.reading
         self._last_seen_ms = timestamp_ms
-        slap = self._slap_on_moving(self._player_id, reading.palm, t)
+        slap = self._slap_on_reappearing(reading.palm, t) or self._slap_on_moving(
+            self._player_id, reading.palm, t
+        )
         if self._trigger_calibration is not None:
             self._trigger_calibration.add(reading)
         if self._neutral is None and not self._calibrate(reading):
@@ -605,15 +628,34 @@ class PlayerGun:
             return None
         return self._slap(t, x - far[1])
 
-    def _slap_on_vanishing(self, t: float) -> Slap | None:
-        """A slap when the hand blurred out of view while moving fast (checked once per loss)."""
-        if len(self._palms) < 2:
+    def _slap_on_vanishing(self, t: float, motion: Motion | None) -> Slap | None:
+        """A slap when the hand blurred out of view: it was moving fast, or the area around it
+        changed sharply (checked on the first frame without it)."""
+        if not self._palms:
             return None
-        (t0, x0, y0), (t1, x1, y1) = self._palms[-2], self._palms[-1]
+        (t1, x1, y1) = self._palms[-1]
+        self._vanished = (t, x1, y1)
+        fast = None
+        if len(self._palms) >= 2:
+            (t0, x0, y0) = self._palms[-2]
+            if t1 > t0 and math.hypot(x1 - x0, y1 - y0) / (t1 - t0) >= SLAP_MIN_SPEED:
+                fast = x1 - x0
         self._palms.clear()
-        if t1 <= t0 or math.hypot(x1 - x0, y1 - y0) / (t1 - t0) < SLAP_MIN_SPEED:
+        if fast is not None:
+            return self._slap(t, fast)
+        if motion is not None and motion.share >= SLAP_MIN_MOTION:
+            return self._slap(t, motion.dx)
+        return None
+
+    def _slap_on_reappearing(self, palm: tuple[float, float], t: float) -> Slap | None:
+        """A slap when the hand comes back soon, far from where it vanished."""
+        vanished, self._vanished = self._vanished, None
+        if vanished is None or t - vanished[0] > SLAP_REAPPEAR_S:
             return None
-        return self._slap(t, x1 - x0)
+        dx, dy = palm[0] - vanished[1], palm[1] - vanished[2]
+        if math.hypot(dx, dy) < SLAP_REAPPEAR_DISTANCE:
+            return None
+        return self._slap(t, dx)
 
     def _slap(self, t: float, dx: float) -> Slap | None:
         if self._last_slap_s is not None and t - self._last_slap_s < SLAP_COOLDOWN_S:
