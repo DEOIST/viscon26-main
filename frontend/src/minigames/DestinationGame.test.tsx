@@ -80,11 +80,11 @@ describe("independent destination minigame adapter", () => {
         );
         const options = mount.mock.calls[0][0] as MinigameOptions;
         expect(options).toMatchObject({
-            gameId: "blackjack",
+            gameId: "shooter",
             playerName: "Ada",
             major: "D-INFK",
             ectsPoints: 60,
-            completedGameIds: ["shooter"],
+            completedGameIds: ["blackjack"],
             character: {
                 ...defaultPlayer.character,
                 name: "Ada",

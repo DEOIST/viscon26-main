@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => {
                         env.API_PROXY_TARGET ||
                         "http://127.0.0.1:8000",
                     changeOrigin: false,
+                    ws: true, // level 1's camera stream: WebSocket /api/cv/stream
                 },
             },
         },

@@ -7,8 +7,8 @@ import type { GameId } from "../misc/CommonInt";
 import type { MinigameProps } from "../types";
 
 const DESTINATION_IDS: Record<string, GameId> = {
-    "year-1-slot": "blackjack",
-    "year-2-slot": "shooter",
+    "year-1-slot": "shooter", // level 1 (frontend/level1/)
+    "year-2-slot": "blackjack",
 };
 
 export default function DestinationGame(args: MinigameProps) {

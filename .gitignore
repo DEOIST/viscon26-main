@@ -16,6 +16,8 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
+# Level 1 camera recordings (the R key, development servers only)
+backend/captures/
 
 # Secrets
 .env
