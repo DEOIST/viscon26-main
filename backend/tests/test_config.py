@@ -37,3 +37,20 @@ def test_unknown_ai_mode_is_rejected(monkeypatch: pytest.MonkeyPatch):
 
     with pytest.raises(ValidationError):
         Settings(_env_file=None)
+
+
+def test_graduation_preview_defaults_to_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("GRADUATION_PREVIEW", raising=False)
+
+    assert Settings(_env_file=None).graduation_preview is False
+
+
+@pytest.mark.parametrize(
+    "value, enabled", [("on", True), ("off", False), ("true", True), ("false", False)]
+)
+def test_graduation_preview_parses_environment_switch(
+    monkeypatch: pytest.MonkeyPatch, value: str, enabled: bool
+) -> None:
+    monkeypatch.setenv("GRADUATION_PREVIEW", value)
+
+    assert Settings(_env_file=None).graduation_preview is enabled
