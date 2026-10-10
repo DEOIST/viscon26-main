@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { GAMES, TOTAL_ECTS, YEARS } from "../config";
+import { GAMES, YEARS } from "../config";
 import { isYearComplete, isYearUnlocked } from "../store";
 import type { Game, Player, Progress } from "../types";
 import { Avatar } from "./Avatar";
@@ -11,13 +11,18 @@ import {
     reducedMotion,
     useAnimatedNumber,
 } from "../misc/motion";
+import { creditSummary } from "../misc/credits";
 import { fill, TEXT } from "../misc/text";
+import CreditTranscript from "./common/CreditTranscript";
 import styles from "./GameWorkspace.module.css";
 
 export interface CompletionFeedback {
     id: number;
     delta: number;
     unlockedYears: number[];
+    gameId: string;
+    gameTitle: string;
+    score: number;
 }
 
 const T = TEXT.workspace;
@@ -182,25 +187,14 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                 <span className={styles.department}>D-INFK</span>
                 <small>{T.anonymousStudent}</small>
             </div>
-            <div className={styles.progress}>
-                <div>
-                    <span>{T.degreeProgress}</span>
-                    <strong>
-                        {displayedEcts} / {TOTAL_ECTS}
-                    </strong>
-                </div>
-                <progress
-                    value={displayedEcts}
-                    max={TOTAL_ECTS}
-                    aria-label={T.progressLabel}
-                />
-                <small>
-                    {fill(T.progressSummary, {
-                        completed: args.progress.completedGameIds.length,
-                        total: GAMES.length,
-                    })}
-                </small>
-            </div>
+            <CreditTranscript
+                compact
+                summary={creditSummary(
+                    args.progress.completedGameIds,
+                    args.progress.scores,
+                )}
+                highlight={feedback?.gameId}
+            />
             <nav
                 className={styles.studentActions}
                 aria-label={T.studentActions}
@@ -520,7 +514,11 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                             className={styles.ectsPopup}
                             role="status"
                         >
-                            {fill(T.ectsGained, { ects: feedback.delta })}
+                            {fill(TEXT.credits.gained, {
+                                ects: feedback.delta,
+                                game: feedback.gameTitle,
+                                score: feedback.score,
+                            })}
                         </span>
                     )}
                     <p aria-live="polite">

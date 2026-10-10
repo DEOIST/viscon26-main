@@ -1,4 +1,6 @@
 import { useRef, useState, type FormEvent } from "react";
+import CreditTranscript from "./common/CreditTranscript";
+import { creditSummary } from "../misc/credits";
 import {
     COLORS,
     DEPARTMENT,
@@ -560,6 +562,7 @@ interface GraduationScreenArgs {
     player: Player;
     ects: number;
     completedGameIds: string[];
+    scores?: Record<string, number>;
     graduatedAt: string | null;
     preview?: boolean;
     onReturn: () => void;
@@ -615,6 +618,15 @@ export function GraduationScreen(args: GraduationScreenArgs) {
                         {fill(text.ectsEarned, { ects: args.ects })}
                     </strong>
                 </p>
+                <div className={diplomaStyles.credits}>
+                    <CreditTranscript
+                        final={!args.preview}
+                        summary={creditSummary(
+                            args.completedGameIds,
+                            args.scores ?? {},
+                        )}
+                    />
+                </div>
                 <p className={diplomaStyles.copy}>
                     {args.preview ? TEXT.common.previewNotice : text.copy}
                 </p>
@@ -658,6 +670,7 @@ export function GraduationScreen(args: GraduationScreenArgs) {
                     player={args.player}
                     ects={args.ects}
                     completedGameIds={args.completedGameIds}
+                    scores={args.scores}
                     graduatedAt={args.graduatedAt}
                     preview={args.preview}
                     submissionError={args.submissionError}
