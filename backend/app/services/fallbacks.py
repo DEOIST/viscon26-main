@@ -1,8 +1,7 @@
 """Pre-written story content for when the AI can't answer (AI_MODE=off, outage, cap).
 
-Templated with the character, so even the fallback feels personal. The placeholders are `{name}`,
-`{department}` (the full name) and `{dept}` (ETH's short form, e.g. D-INFK, for lines that must
-stay short); names can't contain braces (schemas.CharacterName).
+Templated with the character, so even the fallback feels personal. `{name}` and `{department}`
+are the only placeholders; names can't contain braces (schemas.CharacterName).
 """
 
 from app.prompts import DEPARTMENT_NAMES, DIALOGUE_EVENTS
@@ -71,19 +70,6 @@ _SCENE_LINES: dict[DialogueScene, dict[str, tuple[str, ...]]] = {
             "Pens down! The exam is over.",
             "Time's up, {name}. Results in six to eight weeks.",
         ),
-        # Printed on the flying targets: at most prompts.MAX_QUESTION_LENGTH characters.
-        "questions": (
-            "Prove that 1 + 1 = 2.",
-            "Is P equal to NP? Explain.",
-            "Derive the Mensa menu.",
-            "Integrate e^x without crying.",
-            "What is a monad? (2 points)",
-            "Define 'ECTS' in one word.",
-            "Name three free study spots.",
-            "Solve for x. Show your work.",
-            "Big-O of a group project?",
-            "Why {dept}? Discuss.",
-        ),
     },
 }
 
@@ -134,7 +120,5 @@ def epilogue_text(run: Run) -> str:
 
 def _fill(template: str, run: Run) -> str:
     return template.format(
-        name=run.character.name,
-        department=DEPARTMENT_NAMES[run.character.department],
-        dept=f"D-{run.character.department.upper()}",  # ETH's short form, e.g. D-INFK
+        name=run.character.name, department=DEPARTMENT_NAMES[run.character.department]
     )

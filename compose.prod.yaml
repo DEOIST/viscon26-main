@@ -1,30 +1,45 @@
-# Server-side stack used by .github/workflows/cd.yml: runs the image CD published to GHCR
-# instead of building locally. The deploy job copies this file to ~/app/ on the server.
-#
-#   IMAGE=ghcr.io/<owner>/<repo> TAG=<sha> docker compose -f compose.prod.yaml up -d
-#
-# For local production runs use compose.yaml (`make prod`), which builds from source.
-# The server's ~/app/.env holds AI_MODE=live and OPENAI_API_KEYS (docs/ARCHITECTURE.md).
-
+# Deployment image serves the built Vite shell and legacy pages from FastAPI.
 services:
   app:
     image: ${IMAGE:?set IMAGE to ghcr.io/<owner>/<repo>}:${TAG:-latest}
     ports:
       - "${APP_PORT:-8000}:8000"
     env_file:
-      # Production settings on the server, next to this file (see backend/.env.example).
       - path: .env
         required: false
     environment:
       ENVIRONMENT: production
       REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: ""
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-eth_simulator}
+      POSTGRES_USER: ${POSTGRES_USER:-eth_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET to a unique value of at least 32 characters}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?set ALLOWED_ORIGINS to the public application origin}
     depends_on:
+      db:
+        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
-
+  db:
+    image: public.ecr.aws/docker/library/postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-eth_simulator}
+      POSTGRES_USER: ${POSTGRES_USER:-eth_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
   redis:
-    # Never add `ports:`: Redis has no password here, and an exposed port gets compromised fast.
     image: public.ecr.aws/docker/library/redis:8-alpine
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
@@ -35,6 +50,6 @@ services:
       timeout: 3s
       retries: 10
     restart: unless-stopped
-
 volumes:
+  postgres_data:
   redis-data:

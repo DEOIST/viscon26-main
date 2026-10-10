@@ -1810,17 +1810,10 @@
     accent-color: var(--primary);
 }
 .shell .gameMount {
-    position: relative; /* holds the shooter's hidden camera video (a frame source) */
-    /* 16:9 like the games' 1280×720, so the box is exactly the canvas. No taller than the
-       window below the page header and the host toolbar (about 290px): the HUD stays in view. */
-    width: min(100%, calc((100vh - 290px) * 16 / 9));
-    aspect-ratio: 16 / 9;
-    margin: 0 auto;
-    overflow: hidden;
+    width: 100%;
+    min-height: 360px;
 }
 .shell .gameMount canvas {
-    position: relative;
-    z-index: 1;
     display: block;
     max-width: 100%;
 }

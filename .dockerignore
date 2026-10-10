@@ -2,12 +2,16 @@
 .git
 .DS_Store
 *.md
+.local
+.local-conflict-resolution
+**/.local
 
 **/node_modules
 frontend/dist
 
 backend/.venv
 backend/tests
+backend/level1/tests
 backend/captures
 **/__pycache__
 **/.pytest_cache

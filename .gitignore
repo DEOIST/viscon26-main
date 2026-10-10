@@ -16,7 +16,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
-# Camera recordings of the shooter's finger-detection engine (development only)
+# Level 1 camera recordings (the R key, development servers only)
 backend/captures/
 
 # Secrets

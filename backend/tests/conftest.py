@@ -1,6 +1,8 @@
 """Shared fixtures. Every test runs with an in-process fakeredis, AI_MODE=off and no OpenAI keys,
 and pytest-socket blocks the network (see pyproject.toml), so no test can spend API credits."""
 
+import socket
+import sys
 from collections.abc import Callable, Iterator
 
 import pytest
@@ -21,6 +23,23 @@ CHARACTER = {
     "skinColor": "#E4B48F",
     "eyeColor": "#4B3024",
 }
+
+if sys.platform == "win32":
+    # Windows has no AF_UNIX socketpair: the event loop under TestClient builds its self-pipe from
+    # a loopback TCP pair, which --disable-socket blocks. Let only socketpair() use real sockets.
+    _real_socket = socket.socket  # captured before pytest-socket guards each test
+    _real_socketpair = socket.socketpair
+
+    def _loopback_socketpair(
+        *args: object, **kwargs: object
+    ) -> tuple[socket.socket, socket.socket]:
+        guarded, socket.socket = socket.socket, _real_socket
+        try:
+            return _real_socketpair(*args, **kwargs)
+        finally:
+            socket.socket = guarded
+
+    socket.socketpair = _loopback_socketpair
 
 
 @pytest.fixture(autouse=True)

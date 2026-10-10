@@ -6,7 +6,7 @@ Fields are snake_case in Python and camelCase in JSON (see `CamelModel`).
 """
 
 from datetime import datetime
-from typing import Annotated, Literal, Self
+from typing import Annotated, Literal
 
 from pydantic import (
     BaseModel,
@@ -15,7 +15,6 @@ from pydantic import (
     StringConstraints,
     ValidationInfo,
     field_validator,
-    model_validator,
 )
 from pydantic.alias_generators import to_camel
 
@@ -60,7 +59,8 @@ class Character(CamelModel):
     name: CharacterName
     pronouns: Pronouns
     department: DepartmentId
-    archetype: ArchetypeId
+    # Compatibility with older runs; the current character builder never sets this field.
+    archetype: ArchetypeId | None = None
     # Preset portrait id such as "a3"; the frontend owns the list of portraits.
     avatar: str = Field(pattern=r"^a[1-8]$")
     hair_color: str = "#70432E"
@@ -140,76 +140,65 @@ class Epilogue(CamelModel):
     source: AiSource
 
 
-# --- cv (finger-detection engine) ---
-
-# calibrating: the player's hand is in view, and the engine waits for the finger gun to be held
-# still to learn its neutral position (docs/SHOOTER_CV.md → Aim).
-Tracking = Literal["ok", "noPose", "lost", "calibrating"]
+# --- account shell ---
 
 
-class CvStatus(CamelModel):
-    available: bool
-    reason: str | None  # why it isn't available
-    active_sessions: int
-    max_sessions: int
+class Credentials(CamelModel):
+    model_config = ConfigDict(extra="forbid")
+    identifier: str = Field(min_length=3, max_length=48, pattern=r"^[a-zA-Z0-9_.-]+$")
+    password: str = Field(min_length=10, max_length=128)
 
 
-class CvFrame(CamelModel):
-    """One processed camera frame, sent over /api/cv/stream. Points are [x, y] in the game
-    area (0..1, mirrored like the video); landmarks may lie outside 0..1."""
+class ProfileInput(CamelModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    name: str = Field(min_length=1, max_length=24)
+    hair_color: str
+    skin_color: str
+    eye_color: str
+    major: Literal["Computer Science", "D-INFK", "infk"] = "Computer Science"
+    onboarding_stage: Literal["acceptance", "main"]
 
-    type: Literal["frame"] = "frame"
-    tracking: Tracking
-    aim: tuple[float, float] | None
-    fired_at: tuple[float, float] | None  # set on the frame a shot fires
-    landmarks: list[tuple[float, float]] | None  # 21 points, for drawing the hand
-    thumb_angle: float | None  # degrees from straight up (cocked < 32, fires > 55), for tuning
-    processing_ms: float
-
-
-# Client → server control messages on /api/cv/stream. JSON numbers only (no booleans, NaN or
-# infinity): strict floats.
-CV_MAX_COOLDOWN_MS = 2000
-CV_MIN_BOX_SPAN = 0.1  # narrower boxes make aiming twitchy and landmarks blow up
-CameraCoordinate = Annotated[float, Field(ge=0, le=1, strict=True, allow_inf_nan=False)]
+    @field_validator("hair_color", "skin_color", "eye_color")
+    @classmethod
+    def preset_color(cls, value: str, info: ValidationInfo) -> str:
+        group = {"hair_color": "hair", "skin_color": "skin", "eye_color": "eyes"}[info.field_name]
+        if value not in {color["value"] for color in CONFIG["colors"][group]}:
+            raise ValueError("Choose a preset color")
+        return value
 
 
-class CvBoxMessage(CamelModel):
-    """Map this region of the mirrored camera image (x0, y0, x1, y1) onto the game area."""
-
-    type: Literal["box"]
-    box: tuple[CameraCoordinate, CameraCoordinate, CameraCoordinate, CameraCoordinate]
-
-    @model_validator(mode="after")
-    def _has_an_area(self) -> Self:
-        x0, y0, x1, y1 = self.box
-        if x1 - x0 < CV_MIN_BOX_SPAN or y1 - y0 < CV_MIN_BOX_SPAN:
-            raise ValueError(f"x0 < x1 and y0 < y1, at least {CV_MIN_BOX_SPAN} apart")
-        return self
+class ShellCharacter(CamelModel):
+    hair_color: str
+    skin_color: str
+    eye_color: str
 
 
-class CvSettingsMessage(CamelModel):
-    """Per-player trigger settings; the ASVZ-athlete perk shortens the cooldown."""
-
-    type: Literal["settings"]
-    cooldown_ms: float = Field(ge=0, le=CV_MAX_COOLDOWN_MS, strict=True, allow_inf_nan=False)
-
-
-class CvRecordMessage(CamelModel):
-    """Start or stop saving the camera frames with the engine's measurements (development only,
-    docs/SHOOTER_CV.md → Recording)."""
-
-    type: Literal["record"]
-    on: bool = Field(strict=True)
+class ShellProfile(CamelModel):
+    name: str
+    character: ShellCharacter
+    major: str
+    onboarding_stage: Literal["acceptance", "main"]
 
 
-class CvRecenterMessage(CamelModel):
-    """Calibrate the aim's neutral position again (the C key)."""
+class ShellProgress(CamelModel):
+    completed_game_ids: list[str] = Field(default_factory=list)
+    graduated: bool = False
+    ects: int = 0
 
-    type: Literal["recenter"]
+
+class AccountIdentity(CamelModel):
+    id: int
 
 
-CvControlMessage = Annotated[
-    CvBoxMessage | CvSettingsMessage | CvRecordMessage | CvRecenterMessage,
-    Field(discriminator="type"),
-]
+class ShellSession(CamelModel):
+    user: AccountIdentity | None
+    csrf_token: str
+    profile: ShellProfile | None
+    progress: ShellProgress
+
+
+class ScoreboardEntry(CamelModel):
+    name: str
+    major: str
+    ects: int
+    graduated: bool

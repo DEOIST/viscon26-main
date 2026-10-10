@@ -92,17 +92,16 @@ You bet your semester stipend of 1 000 CHF at the casino.
 
 The Basisprüfung, ETH's first-year exam block, attacks: exam questions fly
 toward you out of an isometric exam hall (2D art that fakes depth, in Phaser),
-down a dark exam-hall corridor that flashes with every shot. Make a finger gun, aim with your
+layered over your own mirrored webcam image. Make a finger gun, aim with your
 index finger, drop your thumb to shoot. The technical design is in
 [SHOOTER_CV.md](SHOOTER_CV.md). Both minigames use Phaser.
 
-- **Controls:** finger gun via the webcam (hand tracking on our server, #13).
-  The mouse (aim + click) is the automatic fallback when the camera or the
-  engine is unavailable; the operator can force it with `M`.
-- **Flow:** a warm-up doubles as the tutorial (shoot 3 practice papers:
-  centre, top-left, bottom-right; nothing counts yet, `Enter` skips it), then a
-  3-second countdown and a 60-second round with a rising spawn rate. Could: a
-  boss "Analysis I" paper in the last 10 seconds.
+- **Controls:** finger gun via the webcam (hand tracking in the browser). The
+  mouse (aim + click) is the automatic fallback when the camera is unavailable;
+  the operator can force it with `M`.
+- **Flow:** calibration doubles as the tutorial (shoot 3 practice targets:
+  centre, top-left, bottom-right), then a 60-second round with a rising spawn
+  rate. Could: a boss "Analysis I" paper in the last 10 seconds.
 - **Targets:** exam question (1 hit, 10 points), deadline clock (fast, 25
   points), coffee (+3 seconds). Could: "F grade" decoys (−15 if shot), open-palm
   reload with a 6-shot magazine.
@@ -110,8 +109,7 @@ index finger, drop your thumb to shoot. The technical design is in
   `score = clamp(round(100 × points / PAR), 0, 100)`, with `PAR` tuned so a good
   first-time player scores about 70.
 - **Proctor lines** (AI dialogue event keys): `intro`, `streak`, `miss`,
-  `halfway`, `boss`, `end`; plus `questions`: about 12 short exam questions for
-  the player's department (at most 40 characters each), printed on the papers.
+  `halfway`, `boss`, `end`.
 - **Juice is part of the feature, not polish:** papers that shatter when hit,
   muzzle flash at your fingertip, camera shake, hit-stop, particles, sound,
   combo counter, and the neon hand skeleton over your hand.
@@ -181,7 +179,7 @@ isometric shooter art match:
 
 | Priority | Items |
 |---|---|
-| **Must** | Character creation (all 5 fields; avatars may start as placeholders) · campus hub · blackjack · shooter with webcam finger gun, warm-up and mouse fallback · scoring → ending · graduation reveal with fallback epilogue · runs stored in Redis · deployed and demoable with the camera |
+| **Must** | Character creation (all 5 fields; avatars may start as placeholders) · campus hub · blackjack · shooter with webcam finger gun, calibration and mouse fallback · scoring → ending · graduation reveal with fallback epilogue · runs stored in Redis · deployed and demoable with the camera |
 | **Should** | AI dialogue packs · AI epilogue · narrator voice · generated art · Hall of Fame and ending stats · archetype perks · hand skeleton overlay and juice · name moderation |
 | **Could** | Boss paper · open-palm reload · dual-wield (two hands) · webcam shader effect (Phaser filter on the video) · glow on the `sharp` quality setting · blackjack split · round timer pauses while the hand is lost · per-department stats |
 | **Won't (this event)** | Accounts or login · multiplayer · phone support · walkable campus · runtime image generation |
@@ -191,7 +189,7 @@ isometric shooter art match:
 1. A judge enrolls (name, department, archetype, avatar): about 20 s.
 2. Campus: the advisor greets them by name and department ("the game knows me").
 3. Blackjack: 2–3 hands; the operator can cash out to keep time.
-4. Shooter: three practice papers, then 60 s of finger-gun shooting. **This is the wow.**
+4. Shooter: calibration, then 60 s of finger-gun shooting. **This is the wow.**
 5. Graduation: open the diploma; the career and a personal epilogue are read aloud.
 
 About 3 minutes in total. Fallbacks: mouse mode (`M`), pre-written epilogue,

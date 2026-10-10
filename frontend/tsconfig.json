@@ -14,7 +14,14 @@
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "noFallthroughCasesInSwitch": true,
-        "forceConsistentCasingInFileNames": true
+        "forceConsistentCasingInFileNames": true,
+        "types": ["vite/client", "vitest/globals", "node"]
     },
-    "include": ["src", "types"]
+    "include": [
+        "src",
+        "level1",
+        "types",
+        "vite.config.ts",
+        "../shared/game-config.json"
+    ]
 }

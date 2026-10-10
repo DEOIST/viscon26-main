@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, useState } from "react";
 import ShellLayout from "./ShellLayout";
 import RunStatus from "./RunStatus";
 import MinigameHost from "./MinigameHost";
@@ -14,7 +14,6 @@ import { shellClass } from "../../misc/shellStyles";
 
 interface MinigamePageArgs {
     gameId: GameId;
-    introExtra?: ReactNode; // e.g. the shooter's camera and engine status
 }
 export default function MinigamePage(args: MinigamePageArgs) {
     const state = useRun();
@@ -115,7 +114,6 @@ export default function MinigamePage(args: MinigamePageArgs) {
                         ) : !started ? (
                             <div className={shellClass("placeholder")}>
                                 <p>{game.description}</p>
-                                {args.introExtra}
                                 {!game.implemented && (
                                     <p>
                                         This is a preview. Results do not change

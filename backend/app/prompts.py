@@ -52,11 +52,8 @@ DIALOGUE_EVENTS: dict[DialogueScene, tuple[str, ...]] = {
         "broke",
         "cashOut",
     ),
-    # "questions" are printed on the flying targets, so they must be short.
-    "shooter": ("intro", "streak", "miss", "halfway", "boss", "end", "questions"),
+    "shooter": ("intro", "streak", "miss", "halfway", "boss", "end"),
 }
-
-MAX_QUESTION_LENGTH = 40
 
 DIALOGUE_SPEAKERS: dict[DialogueScene, str] = {
     "campus": "Dr. Gradient, the player's study advisor, greeting them on campus",
@@ -96,16 +93,11 @@ class DialogueOutput(BaseModel):
 
 
 def dialogue_instructions(scene: DialogueScene) -> str:
-    if scene == "campus":
-        advice = "For the event 'advisor' write exactly 3 lines spoken in order on this visit."
-    elif scene == "shooter":
-        advice = (
-            "Write 2 or 3 alternative lines per event. For the event 'questions' write 12 short, "
-            "funny first-year exam questions for the player's department, at most "
-            f"{MAX_QUESTION_LENGTH} characters each; they are printed on targets the player shoots."
-        )
-    else:
-        advice = "Write 2 or 3 alternative lines per event."
+    advice = (
+        "For the event 'advisor' write exactly 3 lines spoken in order on this visit."
+        if scene == "campus"
+        else "Write 2 or 3 alternative lines per event."
+    )
     return (
         f"{_RULES} Write short spoken lines (at most 18 words each) for "
         f"{DIALOGUE_SPEAKERS[scene]}. {advice} React to the player's character and progress."
@@ -128,7 +120,7 @@ def _player_data(run: Run) -> str:
             "name": character.name,
             "pronouns": character.pronouns,
             "department": DEPARTMENT_NAMES[character.department],
-            "archetype": ARCHETYPE_NAMES[character.archetype],
+            **({"archetype": ARCHETYPE_NAMES[character.archetype]} if character.archetype else {}),
             "scores": run.scores,
             "totalScore": run.total_score,
             "career": run.ending.title if run.ending else None,

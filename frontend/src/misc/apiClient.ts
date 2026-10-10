@@ -4,7 +4,6 @@
 
 import type {
     ApiResult,
-    CvStatus,
     DialoguePack,
     DialogueRequest,
     EndingStats,
@@ -129,11 +128,4 @@ export async function apiGenerateEpilogueSpeech(
     } catch (err) {
         return { data: null, status: 0, error: errorMessage(err) };
     }
-}
-
-// --- cv ---
-// The frame stream itself is a WebSocket owned by the shooter (games/shooter/input/cvStream.ts).
-
-export function apiGetCvStatus() {
-    return request<CvStatus>("GET", "/cv/status");
 }

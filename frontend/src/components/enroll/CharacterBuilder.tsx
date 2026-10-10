@@ -4,12 +4,6 @@ import Avatar from "../common/Avatar";
 import Icon from "../common/Icon";
 import Swatches from "./Swatches";
 import { COLORS } from "../../misc/shellConfig";
-import {
-    ARCHETYPES,
-    AVATARS,
-    DEPARTMENTS,
-    PRONOUN_OPTIONS,
-} from "../../misc/character";
 import type { Character } from "../../misc/CommonInt";
 import { shellClass } from "../../misc/shellStyles";
 
@@ -58,15 +52,12 @@ export default function CharacterBuilder(args: CharacterBuilderArgs) {
                         />
                     </div>
                     <h2>{args.character.name.trim() || "Future legend"}</h2>
-                    <p>{DEPARTMENTS[args.character.department]}</p>
+                    <p>D-INFK</p>
                     <span className={shellClass("badge neutral")}>
                         <Icon name="cap" size={15} />
                         Incoming student
                     </span>
                     <div className={shellClass("id-bottom")}>
-                        <span>
-                            {ARCHETYPES[args.character.archetype].label}
-                        </span>
                         <span>
                             VALID UNTIL YOU GRADUATE.
                             <br />
@@ -108,93 +99,11 @@ export default function CharacterBuilder(args: CharacterBuilderArgs) {
                                 underscores and dashes.
                             </small>
                         </div>
-                        <div className={shellClass("form-grid")}>
-                            <div className={shellClass("field")}>
-                                <label htmlFor="pronouns">Pronouns</label>
-                                <select
-                                    id="pronouns"
-                                    value={args.character.pronouns}
-                                    onChange={(event) =>
-                                        handleChange(
-                                            "pronouns",
-                                            event.target
-                                                .value as Character["pronouns"],
-                                        )
-                                    }
-                                >
-                                    {PRONOUN_OPTIONS.map((value) => (
-                                        <option key={value} value={value}>
-                                            {value}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className={shellClass("field")}>
-                                <label htmlFor="avatar">Avatar</label>
-                                <select
-                                    id="avatar"
-                                    value={args.character.avatar}
-                                    onChange={(event) =>
-                                        handleChange(
-                                            "avatar",
-                                            event.target.value,
-                                        )
-                                    }
-                                >
-                                    {AVATARS.map((value) => (
-                                        <option key={value} value={value}>
-                                            {value.toUpperCase()}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
                         <div className={shellClass("field")}>
                             <label htmlFor="department">Department</label>
-                            <select
-                                id="department"
-                                value={args.character.department}
-                                onChange={(event) =>
-                                    handleChange(
-                                        "department",
-                                        event.target
-                                            .value as Character["department"],
-                                    )
-                                }
-                            >
-                                {Object.entries(DEPARTMENTS).map(
-                                    ([value, label]) => (
-                                        <option key={value} value={value}>
-                                            {label}
-                                        </option>
-                                    ),
-                                )}
+                            <select id="department" value="infk" disabled>
+                                <option value="infk">D-INFK</option>
                             </select>
-                        </div>
-                        <div className={shellClass("field")}>
-                            <label htmlFor="archetype">Archetype</label>
-                            <select
-                                id="archetype"
-                                value={args.character.archetype}
-                                onChange={(event) =>
-                                    handleChange(
-                                        "archetype",
-                                        event.target
-                                            .value as Character["archetype"],
-                                    )
-                                }
-                            >
-                                {Object.entries(ARCHETYPES).map(
-                                    ([value, item]) => (
-                                        <option key={value} value={value}>
-                                            {item.label}
-                                        </option>
-                                    ),
-                                )}
-                            </select>
-                            <small>
-                                {ARCHETYPES[args.character.archetype].perk}
-                            </small>
                         </div>
                         <Swatches
                             label="Hair color"

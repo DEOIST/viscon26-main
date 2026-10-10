@@ -4,7 +4,10 @@ pydantic>=2.13,<3
 pydantic-settings>=2.15,<3
 redis>=8.1
 openai>=3.27
-# Finger-detection engine (issue #13): hand landmarks, JPEG decoding, pixel arrays.
+SQLAlchemy>=2.0.43,<3
+psycopg[binary]>=3.2.9,<4
+pwdlib[argon2]>=0.2.1,<1
+# Level 1, the finger-detection engine (backend/level1/): hand landmarks, JPEG decoding, pixels.
 mediapipe>=1.1
 pillow>=12
 numpy>=2

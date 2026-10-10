@@ -44,7 +44,7 @@ export interface Character {
     name: string; // 1â€“20 chars: letters (accents allowed), digits, space, . ' _ -
     pronouns: Pronouns;
     department: DepartmentId;
-    archetype: ArchetypeId;
+    archetype?: ArchetypeId | null; // Compatibility with existing saved runs only.
     avatar: string; // preset id "a1"â€¦"a8" (misc/character.ts)
     hairColor: string;
     skinColor: string;
@@ -120,46 +120,4 @@ export interface DialoguePack {
 export interface Epilogue {
     text: string;
     source: AiSource;
-}
-
-// --- cv (finger-detection engine, issue #13) ---
-
-// calibrating: the hand is in view and the engine waits for the finger gun to be held still.
-export type Tracking = "ok" | "noPose" | "lost" | "calibrating";
-export type GamePoint = [number, number]; // [x, y] in the game area, 0..1
-
-export interface CvStatus {
-    available: boolean;
-    reason: string | null; // why it isn't available
-    activeSessions: number;
-    maxSessions: number;
-}
-
-// One processed camera frame from /api/cv/stream (WebSocket, see backend/app/routers/cv.py).
-export interface CvFrame {
-    type: "frame";
-    tracking: Tracking;
-    aim: GamePoint | null;
-    firedAt: GamePoint | null; // set on the frame a shot fires
-    landmarks: GamePoint[] | null; // 21 points for drawing the hand; may lie outside 0..1
-    thumbAngle: number | null; // degrees from straight up (cocked < 32, fires > 55), for tuning
-    processingMs: number;
-}
-
-// Control messages the browser sends on /api/cv/stream (CvBoxMessage, CvSettingsMessage in
-// schemas.py; the engine answers a bad one with {type: "error", detail}).
-export interface CvBoxMessage {
-    type: "box";
-    box: [number, number, number, number]; // mirrored camera image 0..1; each side ≥ 0.1
-}
-export interface CvSettingsMessage {
-    type: "settings";
-    cooldownMs: number; // 0–2000
-}
-export interface CvRecenterMessage {
-    type: "recenter"; // calibrate the aim's neutral position again
-}
-export interface CvRecordMessage {
-    type: "record";
-    on: boolean; // development servers only: saves the frames to backend/captures/
 }

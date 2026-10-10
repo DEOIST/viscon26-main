@@ -5,11 +5,10 @@ computer-vision deep dive: [SHOOTER_CV.md](SHOOTER_CV.md). Versions and the
 reasons for each tool: [STACK.md](STACK.md). Conventions and recipes:
 [CLAUDE.md](../CLAUDE.md).
 
-> **Status (2026-10-10): foundation built (#12); the shooter and its
-> finger-detection engine are built (#13).** Contract, Redis, OpenAI plumbing,
-> the build and every page work end to end; blackjack is still a placeholder.
-> Files marked *(planned)* do not exist until their PR lands; tick them off in
-> [Build status](#build-status).
+> **Status (2026-10-10): foundation built (#12).** Contract, Redis, OpenAI
+> plumbing, the build and every page work end to end; both minigames are still
+> placeholders. Files marked *(planned)* do not exist until their PR lands; tick
+> them off in [Build status](#build-status).
 
 ## Overview
 
@@ -20,16 +19,15 @@ Browser: one HTML page per scene
 │   title · enroll · campus hub · graduation · intro/result overlays   │
 │        │ mountX({ parent, character, dialogue, onFinish })           │
 │  ┌─────▼──────────────────────────────┐     InputSource              │
-│  │ WebGL inner shell  games/<game>/   │◄─── {aim, tracking, shots}   │
-│  │ Phaser 4 (2D): blackjack, shooter  │     camera or mouse          │
-│  │ shooter fakes depth                │       ▲ webcam JPEG frames   │
-│  └────────────────────────────────────┘       │ (shooter only)       │
-│        misc/apiClient.ts → fetch /api/...     │ WebSocket            │
-└────────┬──────────────────────────────────────┼──────────────────────┘
-         ▼   same origin                        ▼
+│  │ WebGL inner shell  games/<game>/    │◄─── {aim, onFire} ◄── MediaPipe hand tracking
+│  │ Phaser 4 (2D): blackjack, shooter   │                      (webcam, on-device)
+│  │ shooter fakes depth: isometric art  │                              │
+│  └────────────────────────────────────┘                              │
+│        misc/apiClient.ts → fetch /api/... (same origin)              │
+└────────┬─────────────────────────────────────────────────────────────┘
+         ▼
 FastAPI   routers → services ─► app/db.py ─► Redis 8   runs, leaderboard, AI cache, budget
-                             ├► app/ai.py ─► OpenAI    the only place that holds the keys
-                             └► services/cv.py ─► MediaPipe (CPU)   finger detection, /api/cv/stream
+                             └► app/ai.py ─► OpenAI    the only place that holds the keys
 ```
 
 Three rules hold the design together:
@@ -40,10 +38,8 @@ Three rules hold the design together:
    never fetches, never navigates and never imports React.
 2. **The browser never sees a secret and never calls OpenAI.** Only the backend
    does, through `app/ai.py`, with caching, a daily cap and fallbacks.
-3. **Camera frames go only to our own server, and only for finger detection**
-   (#13). `/api/cv/stream` analyses them in memory and never stores or logs
-   them; only landmarks, the aim and shots go back. Details in
-   [SHOOTER_CV.md](SHOOTER_CV.md).
+3. **Camera frames never leave the browser.** Computer vision runs on the
+   device; the backend only receives a score from 0 to 100.
 
 ## Pages and navigation
 
@@ -56,7 +52,7 @@ the query string, `?run=<id>`; everything else comes from the API.
 | `/enroll` | `components/enroll/App.tsx` | Character creator | `apiCreateRun`, then `/campus?run=…` |
 | `/campus` | `components/campus/App.tsx` | Story hub | `apiGetRunById`, `apiGenerateDialogue` (`campus`), `apiGraduateRun`, then `/graduation?run=…` |
 | `/blackjack` | `components/blackjack/App.tsx` | Shell around `mountBlackjack` | `apiGetRunById`, `apiGenerateDialogue` (`blackjack`), `apiSubmitScore`, then `/campus?run=…` |
-| `/shooter` | `components/shooter/App.tsx` | Shell around `mountShooter`, finger-tracker status | as blackjack, with scene `shooter`; `apiGetCvStatus`; the game opens `/api/cv/stream` |
+| `/shooter` | `components/shooter/App.tsx` | Shell around `mountShooter`, camera permission UI | as blackjack, with scene `shooter` |
 | `/graduation` | `components/graduation/App.tsx` | Diploma reveal | `apiGetRunById`, `apiGraduateRun`, `apiGenerateEpilogue`, `apiGenerateEpilogueSpeech`, `apiGetEndingStats` |
 
 - Pages other than `/` and `/enroll` redirect to `/` when `?run=` is missing or
@@ -67,8 +63,8 @@ the query string, `?run=<id>`; everything else comes from the API.
   which would wipe it. The character and the run live on the server; each page
   loads them with `apiGetRunById`.
 - **Why one page per scene** (decided 2026-10-09):
-  - every scene is its own bundle, so Phaser loads only where it is used (as
-    one chunk shared by the two game pages);
+  - every scene is its own bundle, so Phaser and MediaPipe load only where they
+    are used (Phaser as one chunk shared by the two game pages);
   - teammates own separate folders;
   - leaving the shooter page releases the camera and WebGL automatically;
   - a crash costs one reload, because the state is in Redis;
@@ -96,8 +92,7 @@ enroll ─POST /runs─► playing 0/2 ─POST /scores─► playing 1/2 ─POST
 ## The minigame contract (React ↔ game engine)
 
 The contract does not care which engine draws the round: `mountBlackjack` creates
-a Phaser game, `mountShooter` creates another Phaser game plus its camera client
-for the finger-detection engine (`SwitchableInput`).
+a Phaser game, `mountShooter` creates another Phaser game plus the hand tracker.
 
 ```ts
 // frontend/src/games/shared/minigame.ts
@@ -130,9 +125,8 @@ export type MountMinigame = (options: MinigameOptions) => MinigameHandle;
 - Games pick dialogue lines locally (a random line for the event, never the same
   one twice in a row) and make no network calls. When `dialogue` is `null` they
   use their own short built-in lines.
-- The React page owns everything outside the round: instructions, the
-  finger-tracker status (the browser asks for the camera when the round starts),
-  the result screen, saving the score and navigation.
+- The React page owns everything outside the round: instructions, the camera
+  permission screen, the result screen, saving the score and navigation.
 
 ## API contract
 
@@ -207,34 +201,6 @@ interface Epilogue {
     text: string;
     source: AiSource;
 }
-
-// --- cv (finger detection; protocol in SHOOTER_CV.md → Wire protocol) ---
-type Tracking = "ok" | "noPose" | "lost" | "calibrating";
-type GamePoint = [number, number]; // game area 0..1, x already mirrored
-interface CvStatus {
-    available: boolean;
-    reason: string | null; // why it isn't available
-    activeSessions: number;
-    maxSessions: number;
-}
-interface CvFrame {
-    type: "frame";
-    tracking: Tracking;
-    aim: GamePoint | null;
-    firedAt: GamePoint | null; // set on the frame a shot fires
-    landmarks: GamePoint[] | null; // 21 points for drawing the hand
-    thumbAngle: number | null; // degrees from straight up
-    processingMs: number;
-}
-// client → server control messages on the stream
-interface CvBoxMessage {
-    type: "box";
-    box: [number, number, number, number]; // mirrored camera image 0..1, each side ≥ 0.1
-}
-interface CvSettingsMessage {
-    type: "settings";
-    cooldownMs: number; // 0–2000
-}
 ```
 
 ### Endpoints
@@ -251,14 +217,10 @@ interface CvSettingsMessage {
 | Epilogue | `POST /api/runs/{run_id}/epilogue` | `generate_epilogue` | `apiGenerateEpilogue` | 200 `Epilogue` · 404 · 409 not graduated |
 | Narration | `POST /api/runs/{run_id}/epilogue/speech` | `generate_epilogue_speech` | `apiGenerateEpilogueSpeech` | 200 `audio/mpeg` · 404 · 409 no epilogue yet · 503 narrator unavailable |
 | Health | `GET /api/health` | `get_health` (exists) | `apiGetHealth` | 200; touches no dependency |
-| Finger-detection status | `GET /api/cv/status` | `get_cv_status` | `apiGetCvStatus` | 200 `CvStatus` |
-| Finger-detection stream | WebSocket `/api/cv/stream` | `stream_cv` | `ServerHandInput` (`games/shooter/input/`) | JPEG frames and `CvBoxMessage`/`CvSettingsMessage` in, `CvFrame` out; closes 1013 busy, 1011 unavailable, 4000 idle; limits in SHOOTER_CV.md → The engine |
 
 Routers: `routers/runs.py` (prefix `/runs`), `routers/leaderboard.py` (prefix
-`/leaderboard`), `routers/story.py` (prefix `/runs`, tag `story`),
-`routers/cv.py` (prefix `/cv`). Services have the same file names. The stream
-is the one exception to the naming chain: a WebSocket is an input device, not a
-fetch, so its client lives in `games/shooter/input/`, not in `apiClient.ts`.
+`/leaderboard`), `routers/story.py` (prefix `/runs`, tag `story`). Services have
+the same file names.
 
 **Contract rules**
 
@@ -282,8 +244,6 @@ fetch, so its client lives in `games/shooter/input/`, not in `apiClient.ts`.
 - If Redis is unreachable, an exception handler in `main.py` answers 503
   "Storage is unavailable, try again in a moment". `/api/health` stays
   dependency-free.
-- The CV endpoints touch neither Redis nor OpenAI, and nothing about a camera
-  frame is stored.
 
 ## Backend layout
 
@@ -295,15 +255,13 @@ backend/
 │   ├── ai.py              the only module that imports openai: AI_MODE, key failover,
 │   │                      daily cap, timeouts, usage logging
 │   ├── prompts.py         all prompt text and structured-output schemas
-│   ├── routers/           health (exists) · runs · leaderboard · story · cv
-│   └── services/          runs · leaderboard · story · cv (MediaPipe sessions, frames)
+│   ├── routers/           health (exists) · runs · leaderboard · story
+│   └── services/          runs · leaderboard · story
 │                          endings.py    pure: scores → ending (no router of its own)
 │                          fallbacks.py  pre-written dialogue and epilogues
-│                          gesture.py    pure: landmarks → pose, aim, shots (no router)
-├── tools/                 ai_check.py · cv_check.py · generate_art.py (command line; not in the image)
+├── tools/                 ai_check.py · generate_art.py (command line; not in the image)
 └── tests/                 conftest (fakeredis, FakeAI, network blocked) · test_runs ·
-                           test_endings · test_leaderboard · test_story · test_ai ·
-                           test_gesture · test_cv · test_cv_mediapipe (+ hands.py, fixtures/)
+                           test_endings · test_leaderboard · test_story · test_ai
 ```
 
 Services stay free of FastAPI imports. They return `None` for "not found" and
@@ -428,11 +386,9 @@ cannot spend them, by construction:
 | AI plumbing (`ai.py`) | pytest with a fake OpenAI client object | Key order, dead-key marking, daily cap, timeout → fallback, error mapping, all without the network |
 | Story features | pytest with `FakeAI` | A cache hit doesn't call `FakeAI` again (assert the call count); fallback content when `FakeAI` raises; 404 and 409 rules |
 | Endings | pytest | Every tier boundary: 24/25, 44/45, 64/65, 84/85 |
-| Finger detection | pytest | Gesture rules on synthetic hands and replayed webcam recordings; the WebSocket contract with a scripted detector; the real model on photos (skipped without the model) |
-| Frontend logic | vitest (in `make check`) | Shooter depth, hit test, score, spawn, box fitting, `cvStream`, `FramePacer`, and the input lifecycle against a fake camera and WebSocket; next: blackjack rules, `run.ts` |
+| Pure frontend logic | vitest *(planned)* | Blackjack rules and scoring, gesture detection on synthetic and recorded landmarks, the One-Euro filter, `run.ts` |
 | Docker smoke | `scripts/smoke.sh` | Read-only GETs only, never a story POST. CI has no keys, so no AI call can happen |
-| Performance (game) | Real browser on the demo laptop and the weakest team laptop, camera on | Game frame rate. Never in a browser on the VM or in CI: neither has a GPU, so the browser falls back to software rendering and the numbers mean nothing |
-| Performance (CV) | `make cv-check URL=<server>` | Engine time and round trip per frame against the server the demo will use |
+| Performance (game + CV) | In-page perf overlay (`?debug=1`), real browser | Frame times (p50/p95), detection time and draw calls, measured on the demo laptop and on the weakest team laptop with the camera on. Never on the VM or in CI: neither has a GPU, so the browser falls back to software rendering and the numbers mean nothing |
 | Manual, UI | Browser with `AI_MODE=fake` | Loading states, typewriter, audio, all without credits |
 | Manual, live | Browser with `AI_MODE=live` and your own key | Only the story and art owners, on purpose; about 2 ¢ per full playthrough |
 | Pre-demo rehearsal | VM in `live` mode | About 10 full runs, about 20 ¢ |
@@ -450,10 +406,8 @@ announce it to the team first.
 | Failure | What the player sees |
 |---|---|
 | OpenAI down, out of credit, or no keys | Pre-written dialogue and epilogue (templated), pre-generated narration mp3 |
-| Camera denied, busy or missing; finger-detection engine busy, unavailable or idle | Mouse mode, a short message with the reason, the round continues |
-| Hand lost mid-round | Crosshair hidden, "Show your hand to the camera" |
-| Camera unplugged mid-round | Mouse mode at once, with the reason |
-| A malicious frame or message on the CV stream | Refused with an error message; the stream and the server keep running (SHOOTER_CV.md → The engine) |
+| Camera denied, busy or missing; model not loaded | Mouse mode, a short message, the round continues |
+| Hand lost mid-round | Crosshair hidden, "Show your finger gun"; could: the round timer pauses |
 | Saving a score fails | The result stays on screen with **Retry**; we never navigate away with an unsaved score |
 | Redis down | API answers 503 with a readable message; pages show "Campus is closed, try again in a moment" |
 | WebGL unavailable | Phaser falls back to Canvas in both games; gameplay never depends on WebGL-only effects (glow, filters) |
@@ -479,19 +433,17 @@ announce it to the team first.
 
   Judges' own devices need option 1. Decide by T+4h and record it in the
   "Event facts" issue.
-- **The VM never renders anything.** WebGL runs in the player's browser on the
-  player's GPU, so game FPS is a property of the player's laptop. Avoid a
-  browser running *inside* the VM (remote desktop): it has no GPU and no webcam.
-- **The VM does run finger detection** (#13): about one CPU core per camera
-  player at 30 frames per second, capped by `CV_MAX_SESSIONS` (default 4). Each
-  player uploads one ~46 KB JPEG per camera frame (640 px, about 11 Mbit/s) and waits
-  for the answer, so the round trip shapes the aim's latency. The best demo
-  setup runs `make prod` on the demo laptop itself; otherwise measure the VM
-  with `make cv-check URL=...` from the venue (SHOOTER_CV.md → Demo setup).
-- **Downloads:** the browser no longer loads MediaPipe; the hand model (7.8 MB)
-  stays on the server. Responses are compressed with Starlette's
-  `GZipMiddleware` in `main.py`; revalidation (`Cache-Control: no-cache` with
-  ETags) makes later visits cheap.
+- **The VM never renders anything.** WebGL and hand tracking run in the
+  player's browser on the player's GPU; the VM serves files and the API. Game
+  FPS is therefore a property of the player's laptop. The only setup where the
+  VM's hardware would matter is a browser running *inside* the VM (remote
+  desktop): avoid it, it has no GPU and no webcam.
+- **What the VM does carry:** the shooter page's first visit downloads about
+  20 MB of MediaPipe files (12.4 MB wasm runtime + 7.8 MB hand model; see
+  STACK.md → Measured download sizes). Responses are compressed with
+  Starlette's `GZipMiddleware` in `main.py`, and start the download while the
+  shooter intro screen is showing. Revalidation (`Cache-Control: no-cache` with
+  ETags) already makes later visits cheap.
 - One uvicorn worker stays. With all state in Redis more would be safe, but we
   don't need them.
 
@@ -504,7 +456,7 @@ announce it to the team first.
 | C. Shell and UX | Pages `index`, `enroll`, `campus`, `graduation`; `MinigameHost`, `run.ts`, design tokens, Legi card | Enroll → campus → graduation with stub data |
 | D. Blackjack (Phaser 2D) | `games/blackjack/`, `components/blackjack/` | `rules.ts` with tests, then the scene |
 | E. Shooter game (Phaser, isometric 2D) | `games/shooter/ShooterScene.ts` (Phaser scene, isometric art, fake depth), `hitTest.ts`, scoring, juice, `MouseInput` | Playable with the mouse |
-| F. Shooter vision | `services/gesture.py`, `services/cv.py`, `routers/cv.py`, `games/shooter/input/`, model hosting | The finger-detection engine and its camera client (#13, [SHOOTER_CV.md](SHOOTER_CV.md)) |
+| F. Shooter vision | `games/shooter/input/`, model and wasm hosting, debug overlay, recordings | The T+6h CV gate ([SHOOTER_CV.md](SHOOTER_CV.md)) |
 
 1. **T → T+2h: contract PR** (A, B and C together): the types in `schemas.py` and
    `CommonInt.ts`; stub routers that return fixed data; the `apiClient.ts`
@@ -528,7 +480,7 @@ announce it to the team first.
 - [x] Story API: `ai.py`, `AI_MODE`, fallbacks, cache, daily cap, pytest-socket, `make ai-check` (#12)
 - [x] Pages: index, enroll, campus, graduation, as working skeletons (#12)
 - [ ] Blackjack (a placeholder scene is wired in)
-- [x] Shooter: finger-detection engine in the backend, camera and mouse input, warm-up, 60-second round (#13)
+- [ ] Shooter with the mouse, then with the camera (a placeholder mouse round is wired in)
 - [ ] Generated art and fallback narration
 - [ ] Deployed on a secure origin
-- [ ] vitest in CI: it runs in `make check` since #13; adding it to `ci.yml` needs an explicit OK from the team
+- [ ] vitest, and adding it to CI (changing `ci.yml` needs an explicit OK from the team)

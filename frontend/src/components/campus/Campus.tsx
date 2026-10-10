@@ -9,7 +9,7 @@ import {
     apiGetRunById,
     apiGraduateRun,
 } from "../../misc/apiClient";
-import { ARCHETYPES, DEPARTMENTS, GAME_IDS, GAMES } from "../../misc/character";
+import { DEPARTMENTS, GAME_IDS, GAMES } from "../../misc/character";
 import { runHref } from "../../misc/run";
 import { useApi } from "../../misc/useApi";
 import styles from "./Campus.module.css";
@@ -63,10 +63,6 @@ export default function Campus(args: CampusArgs) {
                     <strong>{character.name}</strong>
                     <div className={styles.muted}>
                         {DEPARTMENTS[character.department]}
-                    </div>
-                    <div className={styles.muted}>
-                        {ARCHETYPES[character.archetype].label}:{" "}
-                        {ARCHETYPES[character.archetype].perk}
                     </div>
                     <div className={styles.muted}>
                         Student no. {run.data.id.slice(0, 8)}

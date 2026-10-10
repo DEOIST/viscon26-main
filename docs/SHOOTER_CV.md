@@ -6,9 +6,11 @@ webcam in a noisy venue. Gameplay rules are in
 [GAME_DESIGN.md](GAME_DESIGN.md#minigame-2-finger-gun-shooter-basisprüfung);
 system context is in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-> **Status (2026-10-10): built (#13).** The finger-detection engine runs in the
-> Python backend; the shooter scene (warm-up, countdown, 60-second round) is
-> playable with the finger gun and with the mouse. Values marked "start value"
+> **Status (2026-10-10): built (#13), as level 1.** The game lives in
+> `frontend/level1/` (mounted by the outer shell through `src/games/registry.ts`)
+> and its finger-detection engine in `backend/level1/` (registered in
+> `app/routers/__init__.py`). The shooter scene (warm-up, countdown, 60-second
+> round) is playable with the finger gun and with the mouse. Values marked "start value"
 > are starting points to tune at the venue; values marked "measured" come from
 > [Measurements](#measurements). [Not built yet](#not-built-yet) lists what is left.
 
@@ -23,7 +25,7 @@ server the demo will use. CI has no camera; it only proves that the engine loads
 | False shots | ≤ 1 per 30 s of aiming without shooting |
 | Aim jitter at rest | crosshair moves < 1 % of the screen width while the hand is still |
 | Input-to-feedback latency | < 150 ms from thumb drop to muzzle flash (film the screen and hand with a 240 fps phone video) |
-| Engine rate | one answer per camera frame (~30 per second); `make cv-check URL=<server>` round trip ≤ 60 ms |
+| Engine rate | one answer per camera frame (~30 per second); `python -m level1.cv_check <server>` round trip ≤ 60 ms |
 | Game frame rate | 60 fps on the demo laptop with the camera on |
 | New player | understands the gesture within the 3 practice papers, without coaching |
 | Recovery | camera denied or lost, engine busy, unavailable or idle → mouse mode within 2 s; the round continues |
@@ -34,9 +36,9 @@ The team decided in issue #13 to run finger detection in the Python backend.
 This replaces the earlier plan of MediaPipe in the browser
 ([DECISIONS.md](DECISIONS.md)). What we get:
 
-- **One engine, tested in Python.** The gesture rules (`services/gesture.py`)
+- **One engine, tested in Python.** The gesture rules (`backend/level1/gesture.py`)
   are pure functions with pytest coverage, next to the MediaPipe wrapper
-  (`services/cv.py`) and a test that runs the real model on a real photo.
+  (`backend/level1/cv.py`) and a test that runs the real model on a real photo.
 - **A light browser.** The browser only captures the camera, encodes a small
   JPEG per frame and draws the game. No 12 MB wasm runtime to download, no hand
   model competing with Phaser for the GPU and the main thread.
@@ -47,10 +49,10 @@ What it costs, and how we contain it:
 
 | Cost | Containment |
 |---|---|
-| Network latency on every frame | Exactly one frame in flight (`FramePacer`), 640 px JPEGs (46 KB measured), the answer ~1 KB. Run the server close to the player: the demo laptop's own `make prod` is best; check a VM with `make cv-check URL=...` |
+| Network latency on every frame | Exactly one frame in flight (`FramePacer`), 640 px JPEGs (46 KB measured), the answer ~1 KB. Run the server close to the player: the demo laptop's own `make prod` is best; check a VM with `python -m level1.cv_check <url>` |
 | Server CPU: about one core per tracked player at 30 frames per second | `CV_MAX_SESSIONS` (default 4) caps it; further players get mouse mode (close code 1013). Streams that send nothing for `CV_IDLE_TIMEOUT_SECONDS` (default 20) are closed (4000), which frees the slot of a hidden tab |
 | Upload bandwidth: about 11 Mbit/s per player (46 KB per 640 px frame from a real hand recording, 30 per second). 320 px frames would be a quarter of that, but made the aim shakier and fired false shots ([Camera](#camera-browser)) | Fine on a laptop next to its own server; on venue wifi to a VM, measure first |
-| Camera frames reach our server | Decoded in memory, never stored or logged; only landmarks and the aim go back. The shooter intro screen says so. The one exception is a developer's [recording](#recording-debugging-gestures), which only a server in development mode accepts |
+| Camera frames reach our server | Decoded in memory, never stored or logged; only landmarks and the aim go back. The one exception is a developer's [recording](#recording-debugging-gestures), which only a server in development mode accepts |
 
 We use MediaPipe's **HandLandmarker** and our own geometry, not its
 GestureRecognizer: GestureRecognizer has no finger-gun gesture, adds a
@@ -59,17 +61,17 @@ classifier, and we need continuous fingertip positions anyway.
 ## Pipeline
 
 ```
-Browser: input/ServerHandInput.ts                     Server: one FastAPI process
+Browser: frontend/level1/input/ServerHandInput.ts                     Server: one FastAPI process
 getUserMedia 640×480 ~30 fps, never shown (the scene draws its own backdrop)
   │ requestVideoFrameCallback → FramePacer: one frame in flight, never the same frame twice
   ▼
-640 px wide JPEG (quality 0.8) ── binary WebSocket message ──► /api/cv/stream   (routers/cv.py)
+640 px wide JPEG (quality 0.8) ── binary WebSocket message ──► /api/cv/stream   (backend/level1/router.py)
                                                                  │ decode_frame: Pillow, ≤ 1280×960
                                                                  ▼
                                                                HandLandmarker, VIDEO mode, CPU, ≤ 2 hands
                                                                  │ per hand: 21 image landmarks (0..1)
                                                                  ▼
-                                                               PlayerGun        (services/gesture.py)
+                                                               PlayerGun        (backend/level1/gesture.py)
                                                                  ├ drop duplicate detections of one hand
                                                                  ├ GunTracks: one GunTracker per hand, stable
                                                                  │ across frames; the largest is the player
@@ -89,12 +91,12 @@ hand skeleton, hit test at firedAt, effects
 `GET /api/cv/status` → `CvStatus`: `{available, reason, activeSessions,
 maxSessions}`. It starts a detector once per process to prove that MediaPipe,
 its system libraries and the model all work (~2 s the first time; only success
-is remembered, so a failed start is retried). The shooter intro screen calls it,
-which also warms the engine up. In development the reason names the error (for
+is remembered, so a failed start is retried); calling it before a round also
+warms the engine up, otherwise the first stream pays the ~2 s. In development the reason names the error (for
 example a missing `.so` file); in production it points to the server log, which
 has the full traceback (`make prod-logs`).
 
-WebSocket `/api/cv/stream` (`routers/cv.py`, `input/cvStream.ts`):
+WebSocket `/api/cv/stream` (`backend/level1/router.py`, `input/cvStream.ts`):
 
 | Direction | Message | Answer |
 |---|---|---|
@@ -104,7 +106,7 @@ WebSocket `/api/cv/stream` (`routers/cv.py`, `input/cvStream.ts`):
 | client → server | `{"type": "settings", "cooldownMs": 175}` (`CvSettingsMessage`): 0–2000, the athlete perk | the same message |
 | server → client | `{"type": "error", "detail": "..."}` for a bad frame or message; the stream continues | |
 
-Control messages are validated by their schemas in `app/schemas.py` (JSON
+Control messages are validated by their schemas in `backend/level1/schemas.py` (JSON
 numbers only: no booleans, NaN or infinity) and may be at most 1024 characters
 long. Close codes: **1013** engine busy (all `CV_MAX_SESSIONS` slots taken),
 **1011** engine unavailable (no model, or MediaPipe can't start), **4000** no
@@ -112,7 +114,7 @@ camera frames for `CV_IDLE_TIMEOUT_SECONDS` (control messages don't count). The
 client turns every close into mouse mode with a readable reason (`closeMessage`).
 
 ```ts
-// frontend/src/misc/CommonInt.ts (mirrors backend/app/schemas.py)
+// frontend/level1/input/cvStream.ts (mirrors backend/level1/schemas.py)
 type Tracking = "ok" | "noPose" | "lost";
 type GamePoint = [number, number]; // game area 0..1, x already mirrored
 interface CvFrame {
@@ -165,11 +167,10 @@ interface CvFrame {
 - **The model** (`hand_landmarker.task`, float16, 7.8 MB) is downloaded by the
   frontend build into the git-ignored `frontend/public/models/` (CI rejects
   files over 5 MB), copied to `dist/static/models/`, and read by the server from
-  `CV_MODEL_PATH` (default: that file in `frontend/dist`). Its SHA-256 is pinned
-  in `build.js`: a file on disk that fails the check is downloaded again, and a
-  download that fails it stops the build. The Docker image gets the model
-  through the frontend build stage.
-- **System libraries.** In `python:3.14-slim` MediaPipe needs `libxcb1`,
+  `CV_MODEL_PATH` (default: that file in `frontend/dist`, else the one in
+  `frontend/public/models/`, so `make dev` works after one build). The Docker
+  image gets the model through the frontend build stage.
+- **System libraries.** In `python:3.12-slim` MediaPipe needs `libxcb1`,
   `libgl1`, `libglib2.0-0` (to import OpenCV) and `libegl1`, `libgles2` (when a
   detector starts), even though the server never opens a window; the x86_64
   and arm64 wheels need the same ones. Without them the engine reports itself
@@ -213,10 +214,10 @@ angles don't depend on the camera's aspect ratio. MediaPipe's metric "world"
 landmarks are not used: they are unreliable when the index finger points
 straight at the camera, which is exactly how players aim.
 
-The rules in `services/gesture.py` are tuned on two recordings of real play in
-the game (`tests/fixtures/captures/play_*.jsonl`, 41 s, every frame's
+The rules in `backend/level1/gesture.py` are tuned on two recordings of real play in
+the game (`backend/level1/tests/fixtures/captures/play_*.jsonl`, 41 s, every frame's
 landmarks, with the frames where the thumb was visibly down labeled by eye) and
-checked on photos (`tests/fixtures/aim*.jpg`, `shoot1.jpg`). `test_gesture.py`
+checked on photos (`backend/level1/tests/fixtures/aim*.jpg`, `shoot1.jpg`). `test_gesture.py`
 replays the recordings: every labeled drop must fire, nothing else may. Re-run
 the tests whenever a threshold changes, and record new play (see
 [Recording](#recording-debugging-gestures)) when players report misfires.
@@ -335,7 +336,7 @@ Players drop the thumb two ways, and the trigger watches both:
   fires when the thumb is down, above **55°** or shorter than **70 %**, for **2
   frames in a row**, and must be cocked again before the next shot.
 - **Measured on four recordings of play** (63 drops labeled by eye, both
-  kinds, `tests/fixtures/captures/`): every drop caught, no false shot. The
+  kinds, `backend/level1/tests/fixtures/captures/`): every drop caught, no false shot. The
   angle alone at 55° missed 21 forward drops; at 40° it fired on hands that
   only rolled; with the old label handling it fired on thumb/index swaps.
   Rolling the hand to point sideways tilts the thumb but keeps its length, so
@@ -350,8 +351,8 @@ Players drop the thumb two ways, and the trigger watches both:
 - **Aim look-back:** the thumb drop drags the aim in the frames before a shot
   registers, so the shot lands where the gun pointed **0.2 s** earlier. `aim`
   keeps following the hand, so the crosshair never jumps.
-- Every threshold is a constant in `services/gesture.py`; the gameplay values
-  (round length, points, perks) live in `games/shooter/config.ts`.
+- Every threshold is a constant in `backend/level1/gesture.py`; the gameplay values
+  (round length, points, perks) live in `frontend/level1/config.ts`.
 
 **Known limitation:** the player must hold the gun upright (thumb toward the
 ceiling).
@@ -362,7 +363,7 @@ ceiling).
 |---|---|
 | Hand out of view ≤ 300 ms | The last aim stays (grey); the hand keeps its track and its cocked thumb, so a shot that blurred out of tracking still fires on the way back |
 | Hand out of view > 300 ms | Crosshair hidden, "Show your hand to the camera"; the hand comes back as a new, uncocked track |
-| Camera denied, busy or missing; page not on `https://` or `localhost` | Mouse mode with the reason, the round continues; the intro screen warns about the origin |
+| Camera denied, busy or missing; page not on `https://` or `localhost` | Mouse mode with the reason, the round continues; the shell shows the reason |
 | Camera unplugged or its permission revoked mid-round | Mouse mode at once (the track's `ended` event) |
 | Engine busy (1013), unavailable (1011) or the connection lost | Mouse mode with the reason |
 | No frames for 20 s, e.g. a hidden tab (4000) | The server frees the slot; the client switches to mouse mode |
@@ -390,7 +391,7 @@ Docker image):
   ring and pinky, the 21 `landmarks`), and the `duplicates` that were dropped.
 
 The landmarks make a recording replayable through `PlayerGun` without the
-model, the way `test_gesture.py` replays `tests/fixtures/captures/play_*.jsonl`
+model, the way `test_gesture.py` replays `backend/level1/tests/fixtures/captures/play_*.jsonl`
 (made from two such recordings, landmarks only);
 the JPEGs allow running the model again, e.g. at another frame size.
 
@@ -402,7 +403,7 @@ must never store camera frames, so `make prod` and the VM answer
 ## Input abstraction
 
 ```ts
-// frontend/src/games/shooter/input/InputSource.ts
+// frontend/src/frontend/level1/input/InputSource.ts
 export interface InputSource {
     readonly mode: "camera" | "mouse";
     readonly aim: AimPoint | null; // game area 0..1
@@ -460,13 +461,13 @@ on the same engine and conventions as blackjack.
 Measured on 2026-10-10 on an Apple M4 laptop: natively, and in the production
 image (linux/arm64 in Docker Desktop, CPU only), with `pointing_up.jpg` and a
 browser whose camera was replaced by that photo. A cloud VM will differ:
-measure it with `make cv-check URL=...`.
+measure it with `python -m level1.cv_check <url>`.
 
 | What | Native | Production image |
 |---|---|---|
 | Engine time per 320 px frame (median) | 8.9 ms | 19.3 ms |
 | Engine time per 640 px frame of a real hand (median / p95), 2026-10-10 after the switch to 640 px | 9.7 / 12.9 ms | not measured |
-| `make cv-check` round trip on localhost (median) | 10.7 ms | 26.1 ms |
+| `level1.cv_check` round trip on localhost (median) | 10.7 ms | 26.1 ms |
 | Four players at once, round trip each (median / p95) | | 26 / ≤ 32 ms |
 | First detector in a process (cold start) | ~1.8 s | |
 | Stream ready once warm (connect + detector start) | 185 ms | 45 ms |
@@ -479,14 +480,14 @@ soon as an answer arrived; now the camera is the limit.
 ## Testing without a camera (and without credits)
 
 - **pytest** (`make check`): `test_gesture.py` (synthetic hands from
-  `tests/hands.py` for pose, aim, calibration, tracks, duplicates, both drop
+  `backend/level1/tests/hands.py` for pose, aim, calibration, tracks, duplicates, both drop
   styles, label swaps, cooldown and look-back, plus four replayed recordings
   of play that must fire exactly the labeled shots with a smooth aim),
   `test_cv.py` (the HTTP and WebSocket contract with a scripted detector:
   frames, errors, limits, busy, unavailable, idle, settings, recording and its
   refusal in production),
   `test_cv_mediapipe.py` (the real model through the stream on
-  `tests/fixtures/`: the aim photos read as cocked guns, the aim follows the
+  `backend/level1/tests/fixtures/`: the aim photos read as cocked guns, the aim follows the
   finger, aim → shoot fires one shot; skipped when the model hasn't been
   downloaded).
 - **vitest** (`make check`): `depth`, `hitTest`, `score`, `spawn`, `box`,
@@ -494,7 +495,7 @@ soon as an answer arrived; now the camera is the limit.
   input lifecycle against a fake browser (camera, video, WebSocket): fallback
   on an insecure origin, an unplugged camera or a busy engine, the box
   handshake, `M`, and destroy during start-up.
-- **`make cv-check [URL=https://host]`** streams the photo to a running server
+- **`.venv/bin/python -m level1.cv_check [URL]`** (from `backend/`) streams the photo to a running server
   and prints the engine time and round trip. Use it on the VM before the demo.
 - **The browser without a camera:** replace `navigator.mediaDevices.getUserMedia`
   before the page loads (Playwright `page.addInitScript`) with a function that
@@ -509,7 +510,7 @@ soon as an answer arrived; now the camera is the limit.
 - [ ] **Where the engine runs.** Best: the demo laptop runs `make prod` and
   opens `http://localhost:8000` (localhost is a secure origin, and the network
   is out of the loop). With the VM: its `https://` URL (or an SSH tunnel to
-  localhost), and `make cv-check URL=<that url>` must show a round trip well
+  localhost), and `python -m level1.cv_check <that url>` must show a round trip well
   under 60 ms from the venue.
 - [ ] `curl <url>/api/cv/status` says `"available": true`.
 - [ ] Light from the front (face the window or a lamp, never sit with a window
@@ -536,7 +537,7 @@ soon as an answer arrived; now the camera is the limit.
 
 | Owner | Files |
 |---|---|
-| Shooter vision (engine) | `backend/app/services/gesture.py`, `services/cv.py`, `routers/cv.py`, their tests, `backend/tools/cv_check.py`, the Dockerfile's system libraries |
-| Shooter vision (client) | `games/shooter/input/*` (`ServerHandInput`, `FramePacer`, `box.ts`, `SwitchableInput`, `MouseInput`, `cvStream.ts`) |
-| Shooter game | `games/shooter/ShooterScene.ts`, `depth.ts`, `hitTest.ts`, `score.ts`, `spawn.ts`, `effects.ts`, `handOverlay.ts`, `config.ts` |
-| Shell | `components/shooter/App.tsx`, `CvStatusNote.tsx`: intro, engine status, result and saving the score (`MinigamePage`) |
+| Shooter vision (engine) | `backend/level1/`: `gesture.py`, `cv.py`, `router.py`, `schemas.py`, `config.py`, `cv_check.py`, `tests/`; the Dockerfile's system libraries |
+| Shooter vision (client) | `frontend/level1/input/*` (`ServerHandInput`, `FramePacer`, `box.ts`, `SwitchableInput`, `MouseInput`, `cvStream.ts`) |
+| Shooter game | `frontend/level1/`: `index.ts` (`mountShooter`), `ShooterScene.ts`, `Backdrop.ts`, `depth.ts`, `hitTest.ts`, `score.ts`, `spawn.ts`, `glide.ts`, `effects.ts`, `handOverlay.ts`, `config.ts` |
+| Shell (from main) | `src/minigames/DestinationGame.tsx` mounts the game into the play area via `src/games/registry.ts`; intro, results and credit are the shell's |

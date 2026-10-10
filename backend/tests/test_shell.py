@@ -12,13 +12,6 @@ def connected_games(monkeypatch):
         monkeypatch.setitem(game, "implemented", True)
 
 
-@pytest.fixture
-def preview_games(monkeypatch):
-    """Every game a preview, whatever shared/game-config.json currently ships."""
-    for game in GAMES.values():
-        monkeypatch.setitem(game, "implemented", False)
-
-
 def enroll(client, name="Ada"):
     character = {
         "name": name,
@@ -44,7 +37,7 @@ def test_character_and_progress_survive_page_reads(client):
     assert run["scores"] == {}
 
 
-def test_previews_cannot_award_credits_or_graduate(client, preview_games):
+def test_previews_cannot_award_credits_or_graduate(client):
     run = enroll(client)
     for game in GAMES:
         response = client.post(f"/api/runs/{run['id']}/scores", json={"game": game, "score": 100})
@@ -52,13 +45,6 @@ def test_previews_cannot_award_credits_or_graduate(client, preview_games):
     assert client.post(f"/api/runs/{run['id']}/graduate").status_code == 409
     assert client.get(f"/api/runs/{run['id']}").json()["ectsPoints"] == 0
     assert client.get("/api/leaderboard").json() == []
-
-
-def test_the_shooter_ships_as_a_real_game(client):
-    run = enroll(client)
-    response = client.post(f"/api/runs/{run['id']}/scores", json={"game": "shooter", "score": 80})
-    assert response.status_code == 200
-    assert response.json()["ectsPoints"] == GAMES["shooter"]["ects"]
 
 
 def test_independent_games_replay_and_idempotent_graduation(client, connected_games):

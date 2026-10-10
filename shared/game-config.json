@@ -76,10 +76,54 @@
         },
         {
             "id": "shooter",
-            "title": "Basispr\u00fcfung",
+            "title": "Basisprüfung",
             "description": "Shoot the exam questions with your finger gun.",
             "ects": 90,
-            "implemented": true
+            "implemented": false
+        }
+    ],
+    "years": [
+        {
+            "id": 1,
+            "title": "Year 1",
+            "description": "Find your feet. Then find the lecture hall.",
+            "ects": 60,
+            "games": [
+                {
+                    "id": "year-1-slot",
+                    "title": "Casino night",
+                    "ects": 60,
+                    "implemented": false
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "title": "Year 2",
+            "description": "You and the library are getting serious.",
+            "ects": 60,
+            "games": [
+                {
+                    "id": "year-2-slot",
+                    "title": "Basisprüfung",
+                    "ects": 60,
+                    "implemented": false
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "title": "Year 3",
+            "description": "The finish line has excellent documentation.",
+            "ects": 60,
+            "games": [
+                {
+                    "id": "year-3-slot",
+                    "title": "Year 3 minigame slot",
+                    "ects": 60,
+                    "implemented": false
+                }
+            ]
         }
     ]
 }

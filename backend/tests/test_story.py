@@ -1,14 +1,11 @@
 from collections.abc import Callable
-from datetime import UTC, datetime
 
 import openai
 import pytest
 from fastapi.testclient import TestClient
 
 from app.config import settings
-from app.prompts import DEPARTMENT_NAMES, MAX_QUESTION_LENGTH, DialogueEntry, DialogueOutput
-from app.schemas import Character, Run
-from app.services import fallbacks
+from app.prompts import DialogueEntry, DialogueOutput
 from app.services import story as story_service
 from tests.fake_openai import (
     REQUEST,
@@ -32,7 +29,7 @@ BLACKJACK_EVENTS = {
     "broke",
     "cashOut",
 }
-SHOOTER_EVENTS = {"intro", "streak", "miss", "halfway", "boss", "end", "questions"}
+SHOOTER_EVENTS = {"intro", "streak", "miss", "halfway", "boss", "end"}
 
 
 def _dialogue(client: TestClient, run_id: str, scene: str):
@@ -259,44 +256,3 @@ def test_narration_for_an_unknown_run_is_404(client: TestClient):
     res = client.post("/api/runs/0123456789abcdef0123456789abcdef/epilogue/speech")
 
     assert res.status_code == 404
-
-
-def test_the_shooter_pack_has_exam_questions_short_enough_for_a_target(
-    client: TestClient, make_run: Callable[..., dict]
-):
-    run = make_run(department="math")
-
-    questions = _dialogue(client, run["id"], "shooter").json()["lines"]["questions"]
-
-    assert len(questions) >= 8
-    assert all(0 < len(question) <= 40 for question in questions)
-
-
-@pytest.mark.parametrize("department", sorted(DEPARTMENT_NAMES))
-def test_fallback_exam_questions_fit_a_target_in_every_department(department: str):
-    run = Run(
-        id="r1",
-        created_at=datetime.now(UTC),
-        character=Character(
-            name="Ada", pronouns="they", department=department, archetype="nerd", avatar="a1"
-        ),
-    )
-
-    questions = fallbacks.dialogue_lines(run, "shooter")["questions"]
-
-    assert all(0 < len(question) <= MAX_QUESTION_LENGTH for question in questions)
-
-
-def test_ai_exam_questions_longer_than_a_target_are_dropped(
-    client: TestClient, make_run: Callable[..., dict], monkeypatch: pytest.MonkeyPatch
-):
-    run = make_run()
-    too_long = "Prove that every bounded sequence of real numbers has a convergent subsequence"
-    output = DialogueOutput(
-        entries=[DialogueEntry(event="questions", lines=["Is P = NP?", too_long])]
-    )
-    use_live_clients(monkeypatch, FakeOpenAI(parse=(parsed_response(output),)))
-
-    questions = _dialogue(client, run["id"], "shooter").json()["lines"]["questions"]
-
-    assert questions == ["Is P = NP?"]
