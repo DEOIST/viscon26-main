@@ -103,3 +103,7 @@ export const INTERRUPTER_MIN_DELAY_MS = 6500;
 export const INTERRUPTER_MAX_DELAY_MS = 11000;
 export const INTERRUPTER_STAY_MS = 4500;
 export const INTERRUPTER_POINTS = 15;
+// A slower swipe saves a code card when the swept hand touches the card anywhere, not only the
+// flame tip: in game pixels at scale 1, a circle around the card's centre (the card is 236×130).
+export const CODE_SWIPE_RADIUS = 90;
+export const FUSE_SWIPE_RADIUS = 20; // around the flame, which can burn beyond the card

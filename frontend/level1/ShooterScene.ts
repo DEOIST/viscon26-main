@@ -18,6 +18,8 @@ import {
     APPROACH_SECONDS,
     BUG_MISSED_PENALTY,
     CODE_LOST_PENALTY,
+    CODE_SWIPE_RADIUS,
+    FUSE_SWIPE_RADIUS,
     INTERRUPTER_POINTS,
     COUNTDOWN_SECONDS,
     PRACTICE_MAX_SECONDS,
@@ -457,15 +459,17 @@ export default class ShooterScene extends Scene {
         const burning = this.targets.filter((target) => {
             if (target.kind !== "deadline") return false;
             if (!slide) return true;
-            const fire = target.view.getData("fire") as AimPoint;
+            const { x, y, scaleX, scaleY } = target.view;
+            const fire = target.view.getData("fire") as AimPoint | undefined;
             return (
-                fire &&
-                swipeHits(
-                    slide,
-                    target.view.x + fire.x * target.view.scaleX,
-                    target.view.y + fire.y * target.view.scaleY,
-                    20 * target.view.scaleX,
-                )
+                swipeHits(slide, x, y, CODE_SWIPE_RADIUS * scaleX) ||
+                (!!fire &&
+                    swipeHits(
+                        slide,
+                        x + fire.x * scaleX,
+                        y + fire.y * scaleY,
+                        FUSE_SWIPE_RADIUS * scaleX,
+                    ))
             );
         });
         for (const target of burning) {

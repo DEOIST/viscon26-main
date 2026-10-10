@@ -37,8 +37,10 @@ Tracking loss gets 350 ms of grace before dropping; changing input mode also dro
 ## Slaps and gentle swipes
 
 Fast slaps retain the broad effect: save all currently burning code and knock out the
-visible interrupter, without aiming. Slow slides affect only contacted fuse tips and
-interrupter bodies. Neither gesture throws a held bug.
+visible interrupter, without aiming. Slow slides affect only the code cards and
+interrupter bodies they touch: anywhere on a card (90 px around its centre at scale 1,
+`CODE_SWIPE_RADIUS`) or its flame (20 px), since the flame tip alone was too small to hit
+with a hand. Neither gesture throws a held bug.
 
 - Landmark movement uses the centroid of **all 21 hand points**.
 - Gentle slides require a non-pinching hand, lateral movement of 18% of camera width
