@@ -11,6 +11,7 @@
 // esbuild strips types WITHOUT checking them. Run `npx tsc --noEmit` to typecheck.
 
 import * as esbuild from "esbuild";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -25,6 +26,10 @@ const TEMPLATE = fs.readFileSync(path.join(ROOT, "template.html"), "utf8");
 const HAND_MODEL_URL =
     "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
 const HAND_MODEL_PATH = path.join(PUBLIC_DIR, "models", "hand_landmarker.task");
+// Pinned so a tampered or truncated file never reaches the server's native runtime. Change it
+// together with the URL (`shasum -a 256 hand_landmarker.task`).
+const HAND_MODEL_SHA256 =
+    "fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1";
 
 const flags = process.argv.slice(2);
 const watch = flags.includes("-w") || flags.includes("--watch");
@@ -69,22 +74,42 @@ function copyPublic() {
 
 // The hand model (7.8 MB) is above CI's 5 MB file limit, so it is downloaded once into the
 // git-ignored public/models/ instead of being committed. Without it the engine reports itself
-// unavailable and the shooter uses the mouse.
+// unavailable and the shooter uses the mouse; a file that fails the checksum stops the build.
 async function ensureHandModel() {
-    if (fs.existsSync(HAND_MODEL_PATH)) return;
+    if (fs.existsSync(HAND_MODEL_PATH)) {
+        if (sha256(fs.readFileSync(HAND_MODEL_PATH)) === HAND_MODEL_SHA256)
+            return;
+        console.warn(
+            "[build] the hand model on disk fails its checksum; downloading it again",
+        );
+        fs.rmSync(HAND_MODEL_PATH);
+    }
+    let model;
     try {
         const res = await fetch(HAND_MODEL_URL, {
             signal: AbortSignal.timeout(60_000),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        fs.mkdirSync(path.dirname(HAND_MODEL_PATH), { recursive: true });
-        fs.writeFileSync(HAND_MODEL_PATH, Buffer.from(await res.arrayBuffer()));
-        console.log("[build] downloaded the MediaPipe hand model");
+        model = Buffer.from(await res.arrayBuffer());
     } catch (err) {
         console.warn(
             `[build] could not download the hand model (${err.message}); the shooter falls back to the mouse`,
         );
+        return;
     }
+    if (sha256(model) !== HAND_MODEL_SHA256)
+        throw new Error(
+            "[build] the downloaded hand model doesn't match its pinned SHA-256; refusing to use it",
+        );
+    fs.mkdirSync(path.dirname(HAND_MODEL_PATH), { recursive: true });
+    fs.writeFileSync(HAND_MODEL_PATH, model);
+    console.log(
+        "[build] downloaded the MediaPipe hand model (checksum verified)",
+    );
+}
+
+function sha256(buffer) {
+    return crypto.createHash("sha256").update(buffer).digest("hex");
 }
 
 function afterBuildPlugin(pages) {

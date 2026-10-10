@@ -14,13 +14,20 @@ for CV_IDLE_TIMEOUT_SECONDS (e.g. a hidden tab), which frees the slot for the ne
 """
 
 import asyncio
-import json
+import time
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.concurrency import run_in_threadpool
+from pydantic import TypeAdapter, ValidationError
 
 from app.config import settings
-from app.schemas import CvStatus
+from app.schemas import (
+    CV_MAX_COOLDOWN_MS,
+    CV_MIN_BOX_SPAN,
+    CvControlMessage,
+    CvSettingsMessage,
+    CvStatus,
+)
 from app.services import cv as cv_service
 
 router = APIRouter(prefix="/cv", tags=["cv"])
@@ -28,7 +35,8 @@ router = APIRouter(prefix="/cv", tags=["cv"])
 BUSY = 1013
 UNAVAILABLE = 1011
 IDLE = 4000
-MAX_COOLDOWN_MS = 2000
+MAX_CONTROL_CHARS = 1024  # control messages are ~60 characters; parsing runs on the event loop
+_CONTROL_MESSAGE: TypeAdapter[CvControlMessage] = TypeAdapter(CvControlMessage)
 
 
 @router.get("/status")
@@ -39,34 +47,47 @@ def get_cv_status() -> CvStatus:
 @router.websocket("/stream")
 async def stream_cv(websocket: WebSocket) -> None:
     await websocket.accept()
-    try:
-        session = await run_in_threadpool(cv_service.open_session)
-    except cv_service.EngineBusyError:
-        await websocket.close(code=BUSY, reason="The finger-detection engine is busy")
-        return
-    except cv_service.EngineUnavailableError as error:
-        await websocket.close(code=UNAVAILABLE, reason=str(error)[:120])
+    session = await _open_session(websocket)
+    if session is None:
         return
     try:
         await websocket.send_json({"type": "ready", "box": list(session.box)})
-        while True:
-            try:
-                message = await asyncio.wait_for(
-                    websocket.receive(), timeout=settings.cv_idle_timeout_seconds
-                )
-            except TimeoutError:
-                await websocket.close(code=IDLE, reason="No camera frames for a while")
-                break
-            if message["type"] == "websocket.disconnect":
-                break
-            if message.get("bytes") is not None:
-                await websocket.send_json(await _frame_reply(session, message["bytes"]))
-            else:
-                await websocket.send_json(_control_reply(session, message.get("text")))
+        await _serve(websocket, session)
     except WebSocketDisconnect:
         pass
     finally:
         await run_in_threadpool(session.close)
+
+
+async def _open_session(websocket: WebSocket) -> cv_service.CvSession | None:
+    try:
+        return await run_in_threadpool(cv_service.open_session)
+    except cv_service.EngineBusyError:
+        await websocket.close(code=BUSY, reason="The finger-detection engine is busy")
+    except cv_service.EngineUnavailableError as error:
+        await websocket.close(code=UNAVAILABLE, reason=str(error)[:120])
+    return None
+
+
+async def _serve(websocket: WebSocket, session: cv_service.CvSession) -> None:
+    """Answer every message until the player leaves. Only camera frames count as activity: a
+    stream without frames for CV_IDLE_TIMEOUT_SECONDS (a hidden tab, or a client that only
+    chatters) is closed to free its slot."""
+    last_frame = time.monotonic()
+    while True:
+        idle_left = settings.cv_idle_timeout_seconds - (time.monotonic() - last_frame)
+        try:
+            message = await asyncio.wait_for(websocket.receive(), timeout=max(idle_left, 0))
+        except TimeoutError:
+            await websocket.close(code=IDLE, reason="No camera frames for a while")
+            return
+        if message["type"] == "websocket.disconnect":
+            return
+        if message.get("bytes") is not None:
+            last_frame = time.monotonic()
+            await websocket.send_json(await _frame_reply(session, message["bytes"]))
+        else:
+            await websocket.send_json(_control_reply(session, message.get("text")))
 
 
 async def _frame_reply(session: cv_service.CvSession, frame: bytes) -> dict:
@@ -80,38 +101,33 @@ async def _frame_reply(session: cv_service.CvSession, frame: bytes) -> dict:
 
 
 def _control_reply(session: cv_service.CvSession, text: str | None) -> dict:
+    if text is not None and len(text) > MAX_CONTROL_CHARS:
+        return _error("Message too large")
     try:
-        message = json.loads(text or "")
-    except json.JSONDecodeError:
-        return _error("Messages must be JSON")
-    if not isinstance(message, dict):
-        return _error("Unknown message")
-    if message.get("type") == "settings":
-        return _settings_reply(session, message.get("cooldownMs"))
-    if message.get("type") != "box":
-        return _error("Unknown message")
-    box = message.get("box")
-    if not _is_valid_box(box):
-        return _error("A box is [x0, y0, x1, y1] with 0 ≤ x0 < x1 ≤ 1 and 0 ≤ y0 < y1 ≤ 1")
-    session.set_box(tuple(float(value) for value in box))
+        message = _CONTROL_MESSAGE.validate_json(text or "")
+    except ValidationError as error:
+        return _error(_control_error(error))
+    if isinstance(message, CvSettingsMessage):
+        session.set_cooldown(message.cooldown_ms)
+        return {"type": "settings", "cooldownMs": message.cooldown_ms}
+    session.set_box(message.box)
     return {"type": "ready", "box": list(session.box)}
 
 
-def _settings_reply(session: cv_service.CvSession, cooldown: object) -> dict:
-    is_number = isinstance(cooldown, int | float) and not isinstance(cooldown, bool)
-    if not is_number or not 0 <= cooldown <= MAX_COOLDOWN_MS:
-        return _error(f"cooldownMs must be a number from 0 to {MAX_COOLDOWN_MS}")
-    session.set_cooldown(float(cooldown))
-    return {"type": "settings", "cooldownMs": cooldown}
-
-
-def _is_valid_box(box: object) -> bool:
-    if not isinstance(box, list) or len(box) != 4:
-        return False
-    if not all(isinstance(value, int | float) for value in box):
-        return False
-    x0, y0, x1, y1 = box
-    return 0 <= x0 < x1 <= 1 and 0 <= y0 < y1 <= 1
+def _control_error(error: ValidationError) -> str:
+    """One readable sentence per message type; the schemas in app/schemas.py hold the rules."""
+    first = error.errors()[0]
+    if first["type"] == "json_invalid":
+        return "Messages must be JSON"
+    message_type = first["loc"][0] if first["loc"] else None
+    if message_type == "box":
+        return (
+            "A box is [x0, y0, x1, y1] with 0 ≤ x0 < x1 ≤ 1 and 0 ≤ y0 < y1 ≤ 1, "
+            f"each side at least {CV_MIN_BOX_SPAN}"
+        )
+    if message_type == "settings":
+        return f"cooldownMs must be a number from 0 to {CV_MAX_COOLDOWN_MS}"
+    return "Unknown message"
 
 
 def _error(detail: str) -> dict:

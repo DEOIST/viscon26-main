@@ -7,6 +7,7 @@ never stored. A session cap protects the server's CPU: about one core per player
 """
 
 import io
+import logging
 import threading
 import time
 from pathlib import Path
@@ -27,6 +28,11 @@ from app.services.gesture import (
     to_game_area,
 )
 
+log = logging.getLogger(__name__)
+
+# Frames are 320 px wide in practice. A side of 32767 px or more aborts OpenCV inside MediaPipe
+# (a native crash that kills the whole process), so each side is limited, not only the area.
+MAX_FRAME_SIDE = 1280
 MAX_FRAME_PIXELS = 1280 * 960
 _lock = threading.Lock()
 _active_sessions = 0
@@ -68,6 +74,8 @@ class MediaPipeDetector:
     def detect(self, rgb: np.ndarray, timestamp_ms: int) -> list[Hand]:
         import mediapipe as mp
 
+        if max(rgb.shape[:2]) > MAX_FRAME_SIDE:  # last line of defence before native code
+            raise FrameError("Frame too large")
         image = mp.Image(image_format=mp.ImageFormat.SRGB, data=np.ascontiguousarray(rgb))
         result = self._landmarker.detect_for_video(image, timestamp_ms)
         return [
@@ -129,9 +137,13 @@ class CvSession:
         if self._closed:
             return
         self._closed = True
-        self._detector.close()
-        with _lock:
-            _active_sessions -= 1
+        try:
+            self._detector.close()
+        except Exception:
+            log.exception("A hand detector failed to close")
+        finally:  # the slot must come back, or the engine shrinks until a restart
+            with _lock:
+                _active_sessions -= 1
 
 
 def get_cv_status() -> CvStatus:
@@ -160,6 +172,7 @@ def open_session() -> CvSession:
     except Exception as error:
         with _lock:
             _active_sessions -= 1
+        log.exception("The hand model failed to load")
         raise EngineUnavailableError(
             f"The hand model failed to load: {type(error).__name__}"
         ) from error
@@ -168,8 +181,10 @@ def open_session() -> CvSession:
 
 def decode_frame(jpeg: bytes) -> np.ndarray:
     try:
-        image = Image.open(io.BytesIO(jpeg))  # reads the header only
-        if image.width * image.height > MAX_FRAME_PIXELS:
+        # Reads the header only. JPEG only: the camera never sends anything else, and every other
+        # parser Pillow has is attack surface for anonymous clients.
+        image = Image.open(io.BytesIO(jpeg), formats=["JPEG"])
+        if max(image.size) > MAX_FRAME_SIDE or image.width * image.height > MAX_FRAME_PIXELS:
             raise FrameError("Frame too large")
         return np.asarray(image.convert("RGB"))
     except Image.DecompressionBombError as error:  # a few bytes that claim gigapixels
@@ -194,6 +209,9 @@ def _engine_error(model_path: Path) -> str | None:
     try:
         _make_detector(model_path).close()
     except Exception as error:  # missing system libraries raise OSError, not ImportError
+        log.warning("The finger-detection engine can't start", exc_info=True)
+        if settings.environment == "production":  # anyone can read the status: no internals
+            return "MediaPipe can't start; the server log has the details"
         return f"MediaPipe can't start: {type(error).__name__}: {error}"
     _working_models.add(model_path)
     return None

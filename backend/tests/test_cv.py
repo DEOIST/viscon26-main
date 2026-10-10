@@ -3,7 +3,7 @@ MediaPipe (tests/test_cv_mediapipe.py runs the real model)."""
 
 import io
 import struct
-import zlib
+import time
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -41,16 +41,20 @@ def jpeg(width: int = 64, height: int = 48) -> bytes:
     return buffer.getvalue()
 
 
-def png_claiming(width: int, height: int) -> bytes:
-    """A PNG that claims a size but carries no pixels: tiny on the wire, huge if decoded."""
+def jpeg_claiming(width: int, height: int) -> bytes:
+    """A JPEG header that claims a size but carries no pixels: tiny on the wire, huge if decoded."""
+    components = bytes([3, 1, 0x22, 0, 2, 0x11, 1, 3, 0x11, 1])  # count, then id/sampling/table
+    # The length counts itself (2), precision (1), height (2), width (2) and the components.
+    start_of_frame = b"\xff\xc0" + struct.pack(">HBHH", 7 + len(components), 8, height, width)
+    scan = bytes([3, 1, 0, 2, 0x11, 3, 0x11, 0, 63, 0])
+    start_of_scan = b"\xff\xda" + struct.pack(">H", 2 + len(scan)) + scan
+    return b"\xff\xd8" + start_of_frame + components + start_of_scan
 
-    def chunk(kind: bytes, data: bytes) -> bytes:
-        return (
-            struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
-        )
 
-    header = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
-    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", b"")
+def png(width: int = 64, height: int = 48) -> bytes:
+    buffer = io.BytesIO()
+    Image.new("RGB", (width, height), (200, 180, 160)).save(buffer, format="PNG")
+    return buffer.getvalue()
 
 
 @pytest.fixture
@@ -119,6 +123,21 @@ def test_status_reports_an_engine_whose_native_library_cannot_load(
 
     assert status["available"] is False
     assert "libEGL.so.1" in status["reason"]
+
+
+def test_in_production_the_status_keeps_the_error_details_in_the_log(
+    client: TestClient, model_file: Path, monkeypatch: pytest.MonkeyPatch
+):
+    def broken(_model_path: Path):
+        raise OSError("libEGL.so.1: cannot open shared object file")
+
+    monkeypatch.setattr(cv_service, "_make_detector", broken)
+    monkeypatch.setattr(settings, "environment", "production")
+
+    reason = client.get("/api/cv/status").json()["reason"]
+
+    assert "libEGL" not in reason
+    assert "server log" in reason
 
 
 def test_a_failed_engine_start_is_retried_on_the_next_check(
@@ -241,9 +260,31 @@ def test_huge_frame_dimensions_are_refused(client: TestClient, detectors):
 def test_a_frame_claiming_absurd_dimensions_is_refused(client: TestClient, detectors):
     with client.websocket_connect("/api/cv/stream") as ws:
         ws.receive_json()
-        ws.send_bytes(png_claiming(20_000, 20_000))  # trips Pillow's own decompression-bomb guard
+        ws.send_bytes(jpeg_claiming(20_000, 20_000))  # trips Pillow's own decompression-bomb guard
 
         assert ws.receive_json() == {"type": "error", "detail": "Frame too large"}
+
+
+@pytest.mark.parametrize(("width", "height"), [(32_767, 1), (1, 32_767), (1_400, 10)])
+def test_a_frame_too_long_on_one_side_is_refused(
+    client: TestClient, detectors, width: int, height: int
+):
+    # Few pixels in total, but a side of 32767 or more aborts OpenCV inside MediaPipe: a native
+    # crash that would take the whole server down. It must never reach the detector.
+    with client.websocket_connect("/api/cv/stream") as ws:
+        ws.receive_json()
+        ws.send_bytes(jpeg(width, height))
+
+        assert ws.receive_json() == {"type": "error", "detail": "Frame too large"}
+
+
+def test_frames_must_be_jpeg(client: TestClient, detectors):
+    # Pillow can parse dozens of formats; the camera only ever sends JPEG, so only JPEG is opened.
+    with client.websocket_connect("/api/cv/stream") as ws:
+        ws.receive_json()
+        ws.send_bytes(png())
+
+        assert ws.receive_json() == {"type": "error", "detail": "Unreadable frame"}
 
 
 def test_calibration_changes_the_box(client: TestClient, detectors):
@@ -267,15 +308,47 @@ def test_calibration_changes_the_box(client: TestClient, detectors):
         {"type": "box", "box": [0.6, 0.35, 0.4, 0.55]},  # x1 < x0
         {"type": "box", "box": [0.1, 0.1, 1.5, 0.9]},  # outside the image
         {"type": "box", "box": [0.1, 0.2]},
+        {"type": "box", "box": [0, 0, True, 1]},  # a boolean is not a coordinate
+        {"type": "box", "box": [0, 0, 5e-324, 1]},  # no area: landmarks would become infinite
+        {"type": "box", "box": [0.2, 0.15, 0.25, 0.75]},  # too narrow to aim with
+        {"type": "settings", "cooldownMs": True},
         {"type": "dance"},
+        ["box", [0.2, 0.15, 0.8, 0.75]],
     ],
 )
-def test_bad_control_messages_are_refused(client: TestClient, detectors, message: dict):
+def test_bad_control_messages_are_refused(client: TestClient, detectors, message):
     with client.websocket_connect("/api/cv/stream") as ws:
         ws.receive_json()
         ws.send_json(message)
 
         assert ws.receive_json()["type"] == "error"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "not json",
+        '{"type": "box", "box": [NaN, 0.1, 0.9, 0.9]}',
+        '{"type": "settings", "cooldownMs": Infinity}',
+    ],
+)
+def test_malformed_control_text_is_refused(client: TestClient, detectors, text: str):
+    with client.websocket_connect("/api/cv/stream") as ws:
+        ws.receive_json()
+        ws.send_text(text)
+
+        assert ws.receive_json()["type"] == "error"
+
+
+def test_an_oversized_control_message_is_refused_unread(client: TestClient, detectors):
+    # Parsing runs on the event loop: a megabyte of JSON would stall every player's stream.
+    padded = {"type": "box", "box": [0.2, 0.15, 0.8, 0.75], "padding": "x" * 5_000}
+
+    with client.websocket_connect("/api/cv/stream") as ws:
+        ws.receive_json()
+        ws.send_json(padded)
+
+        assert ws.receive_json() == {"type": "error", "detail": "Message too large"}
 
 
 def test_a_full_engine_closes_new_streams_with_1013(
@@ -313,6 +386,36 @@ def test_an_idle_stream_is_closed_to_free_its_slot(
             ws.receive_json()
 
     assert closed.value.code == 4000
+    assert client.get("/api/cv/status").json()["activeSessions"] == 0
+
+
+def test_control_messages_alone_do_not_keep_a_stream_alive(
+    client: TestClient, detectors, monkeypatch: pytest.MonkeyPatch
+):
+    # Only camera frames count as activity, or a client could hold a slot with chatter.
+    monkeypatch.setattr(settings, "cv_idle_timeout_seconds", 0.3)
+
+    with client.websocket_connect("/api/cv/stream") as ws:
+        ws.receive_json()
+        with pytest.raises(WebSocketDisconnect) as closed:
+            for _ in range(20):  # two seconds of control messages, no frames
+                ws.send_json({"type": "settings", "cooldownMs": 100})
+                ws.receive_json()
+                time.sleep(0.1)
+
+    assert closed.value.code == 4000
+
+
+def test_a_detector_that_fails_to_close_still_frees_its_slot(client: TestClient, detectors):
+    class BrokenClose(ScriptedDetector):
+        def close(self) -> None:
+            self.closed = True
+            raise RuntimeError("native close failed")
+
+    detectors.append(BrokenClose())
+    with client.websocket_connect("/api/cv/stream") as ws:
+        ws.receive_json()
+
     assert client.get("/api/cv/status").json()["activeSessions"] == 0
 
 

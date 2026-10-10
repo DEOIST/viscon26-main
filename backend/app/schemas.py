@@ -8,9 +8,9 @@ Fields are snake_case in Python and camelCase in JSON (see `CamelModel`).
 """
 
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 from pydantic.alias_generators import to_camel
 
 
@@ -142,3 +142,34 @@ class CvFrame(CamelModel):
     landmarks: list[tuple[float, float]] | None  # 21 points, for drawing the hand
     thumb_distance: float | None  # metres, for the debug overlay
     processing_ms: float
+
+
+# Client → server control messages on /api/cv/stream. JSON numbers only (no booleans, NaN or
+# infinity): strict floats.
+CV_MAX_COOLDOWN_MS = 2000
+CV_MIN_BOX_SPAN = 0.1  # narrower boxes make aiming twitchy and landmarks blow up
+CameraCoordinate = Annotated[float, Field(ge=0, le=1, strict=True, allow_inf_nan=False)]
+
+
+class CvBoxMessage(CamelModel):
+    """Map this region of the mirrored camera image (x0, y0, x1, y1) onto the game area."""
+
+    type: Literal["box"]
+    box: tuple[CameraCoordinate, CameraCoordinate, CameraCoordinate, CameraCoordinate]
+
+    @model_validator(mode="after")
+    def _has_an_area(self) -> Self:
+        x0, y0, x1, y1 = self.box
+        if x1 - x0 < CV_MIN_BOX_SPAN or y1 - y0 < CV_MIN_BOX_SPAN:
+            raise ValueError(f"x0 < x1 and y0 < y1, at least {CV_MIN_BOX_SPAN} apart")
+        return self
+
+
+class CvSettingsMessage(CamelModel):
+    """Per-player trigger settings; the ASVZ-athlete perk shortens the cooldown."""
+
+    type: Literal["settings"]
+    cooldown_ms: float = Field(ge=0, le=CV_MAX_COOLDOWN_MS, strict=True, allow_inf_nan=False)
+
+
+CvControlMessage = Annotated[CvBoxMessage | CvSettingsMessage, Field(discriminator="type")]

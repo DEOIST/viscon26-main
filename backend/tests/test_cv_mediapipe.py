@@ -7,6 +7,7 @@ The photo is pointing_up.jpg from MediaPipe's test assets (Apache License 2.0).
 
 from pathlib import Path
 
+import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
@@ -42,3 +43,14 @@ def test_the_real_model_finds_the_pointing_hand_and_its_pose(client: TestClient)
 
 def test_the_engine_reports_available_with_the_real_model(client: TestClient):
     assert cv_service.get_cv_status().available is True
+
+
+def test_the_detector_refuses_an_oversized_frame_before_native_code():
+    # A side of 32767 px would abort the process inside OpenCV; 2000 px shows the guard works
+    # without risking that crash if it ever regresses.
+    detector = cv_service.MediaPipeDetector(MODEL)
+    try:
+        with pytest.raises(cv_service.FrameError):
+            detector.detect(np.zeros((1, 2_000, 3), dtype=np.uint8), 1)
+    finally:
+        detector.close()

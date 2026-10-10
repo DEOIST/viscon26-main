@@ -57,6 +57,9 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --start-interval=2s --retries=3 \
     CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2)"]
 
-# One worker on purpose: in-memory state (the example store) is per process, so several
-# workers would each see different data. Raise --workers only once state lives in a database.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+# One worker on purpose: in-process state is per worker (the finger-detection engine's session
+# count, see CLAUDE.md → Gotchas). --ws-max-size: a WebSocket message (a camera frame) is at most
+# CV_MAX_FRAME_BYTES (200 KB); 1 MiB instead of uvicorn's 16 MiB default keeps oversized messages
+# from ever being buffered. Keep it above CV_MAX_FRAME_BYTES.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", \
+     "--ws-max-size", "1048576"]

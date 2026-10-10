@@ -19,7 +19,7 @@ if settings.environment == "production":
 else:
     app = FastAPI(title=settings.app_name)
 
-# The shooter page downloads ~20 MB of MediaPipe files; compressing them matters on venue wifi.
+# Phaser alone is about 1.4 MB of JavaScript; compressing it matters on venue wifi.
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 
