@@ -1,10 +1,12 @@
 // The finger-gun shooter ("Basisprüfung", docs/GAME_DESIGN.md). Exam questions fly at the player
-// with fake depth (depth.ts) over the mirrored webcam image; the player aims and shoots through
-// the finger-detection engine or the mouse (input/). Phases: warm-up (three practice papers),
+// with fake depth (depth.ts) down a dark corridor that reacts to every shot (Backdrop.ts); the
+// player aims and shoots through the finger-detection engine or the mouse (input/). Phases: warm-up (three practice papers),
 // countdown, a 60-second round, then the score. The juice is part of the feature.
 
 import { Scene } from "phaser";
+import Backdrop from "./Backdrop";
 import { drawHandOverlay } from "./handOverlay";
+import { glideAim } from "./glide";
 import { floatText, muzzleFlash, shatter, textStyle } from "./effects";
 import { pickLine } from "../shared/minigame";
 import { GAME_HEIGHT, GAME_WIDTH } from "../shared/createGame";
@@ -19,12 +21,13 @@ import {
     TARGET_RADIUS,
     type TargetKind,
 } from "./config";
-import { HORIZON_Y, project } from "./depth";
+import { project } from "./depth";
 import { hitTest } from "./hitTest";
 import { shooterScore, shotPoints } from "./score";
 import { pickTargetKind, spawnIntervalMs } from "./spawn";
 import type { GameObjects } from "phaser";
 import type { MinigameResult } from "../shared/minigame";
+import type { AimPoint } from "./input/InputSource";
 import type SwitchableInput from "./input/SwitchableInput";
 
 interface ShooterSceneArgs {
@@ -53,6 +56,10 @@ const BUILT_IN_QUESTIONS = [
     "Why?",
 ];
 const PAPER = 0xfdfcf7;
+const HIT_FLASH = 0xf2c14e;
+const MISS_FLASH = 0xff4d4d;
+const START_FLASH = 0xffffff;
+const FINAL_STRETCH_SECONDS = 10;
 const TARGET_COLORS: Record<TargetKind, number> = {
     question: PAPER,
     deadline: 0xe5484d,
@@ -75,7 +82,9 @@ export default class ShooterScene extends Scene {
     private practiceTarget: GameObjects.Container | null = null;
     private phase: Phase = "practice";
     private lastLine: string | undefined;
+    private backdrop!: Backdrop;
     private overlay!: GameObjects.Graphics;
+    private shownAim: AimPoint | null = null;
     private subtitle!: GameObjects.Text;
     private hud!: GameObjects.Text;
     private hint!: GameObjects.Text;
@@ -87,16 +96,7 @@ export default class ShooterScene extends Scene {
     }
 
     create() {
-        // A dark wash so the papers read well over the webcam image.
-        this.add.rectangle(
-            GAME_WIDTH / 2,
-            GAME_HEIGHT / 2,
-            GAME_WIDTH,
-            GAME_HEIGHT,
-            0x0b0d14,
-            0.35,
-        );
-        this.drawExamHall();
+        this.backdrop = new Backdrop(this);
         this.overlay = this.add.graphics().setDepth(2000);
         this.subtitle = this.add
             .text(GAME_WIDTH / 2, 20, "", textStyle(30, "#f5f5f5"))
@@ -128,7 +128,18 @@ export default class ShooterScene extends Scene {
     }
 
     update(_time: number, delta: number) {
-        drawHandOverlay(this.overlay, this.args.input);
+        const { input } = this.args;
+        this.backdrop.update(delta, {
+            streak: this.streak,
+            isFinalStretch:
+                this.phase === "playing" &&
+                this.secondsLeft <= FINAL_STRETCH_SECONDS,
+        });
+        this.shownAim =
+            input.mode === "camera"
+                ? glideAim(this.shownAim, input.aim, delta)
+                : input.aim;
+        drawHandOverlay(this.overlay, input, this.shownAim);
         this.hint.setText(this.hintText());
         this.updateHud();
         const shots = this.args.input.takeShots(); // always drained, so none pile up
@@ -186,9 +197,15 @@ export default class ShooterScene extends Scene {
     private practiceShot(x: number, y: number) {
         muzzleFlash(this, x, y);
         const target = this.practiceTarget;
-        if (!target) return;
-        const distance = Math.hypot(x - target.x, y - target.y);
-        if (distance > PRACTICE_RADIUS * target.scale) return;
+        const isHit =
+            target !== null &&
+            Math.hypot(x - target.x, y - target.y) <=
+                PRACTICE_RADIUS * target.scale;
+        if (!target || !isHit) {
+            this.backdrop.pulse(x, y, MISS_FLASH, 0.35);
+            return;
+        }
+        this.backdrop.pulse(target.x, target.y, HIT_FLASH, 0.9);
         shatter(this, target.x, target.y, PAPER);
         this.removePracticeTarget();
         this.practiceIndex += 1;
@@ -225,6 +242,12 @@ export default class ShooterScene extends Scene {
                 }
                 this.banner.setText("");
                 this.phase = "playing";
+                this.backdrop.pulse(
+                    GAME_WIDTH / 2,
+                    GAME_HEIGHT / 2,
+                    START_FLASH,
+                    1,
+                );
                 this.time.addEvent({
                     delay: 1000,
                     loop: true,
@@ -239,13 +262,15 @@ export default class ShooterScene extends Scene {
         this.secondsLeft -= 1;
         if (this.secondsLeft === Math.floor(ROUND_SECONDS / 2))
             this.say("halfway", "Halfway there.");
-        if (this.secondsLeft === 10) this.say("boss", "Final stretch!");
+        if (this.secondsLeft === FINAL_STRETCH_SECONDS)
+            this.say("boss", "Final stretch!");
         if (this.secondsLeft <= 0) this.endRound();
     }
 
     private endRound() {
         this.phase = "over";
         this.banner.setText("Pens down!");
+        this.backdrop.pulse(GAME_WIDTH / 2, GAME_HEIGHT / 2, HIT_FLASH, 1);
         this.say("end", "Time's up!");
         this.time.delayedCall(1400, () =>
             this.args.finish({
@@ -357,12 +382,14 @@ export default class ShooterScene extends Scene {
         this.points += gained;
         if (!target) {
             this.streak = 0;
+            this.backdrop.pulse(x, y, MISS_FLASH, 0.45);
             floatText(this, x, y, `${gained}`, "#ff8a8a");
             if ((this.shots - this.hits) % 3 === 1) this.say("miss", "Missed!");
             return;
         }
         this.hits += 1;
         this.streak += 1;
+        this.backdrop.pulse(target.view.x, target.view.y, HIT_FLASH, 1);
         if (target.kind === "coffee") this.secondsLeft += COFFEE_BONUS_SECONDS;
         floatText(this, target.view.x, target.view.y, `+${gained}`, "#f2c14e");
         this.cameras.main.shake(90, 0.004);
@@ -386,6 +413,8 @@ export default class ShooterScene extends Scene {
     private hintText(): string {
         const { input } = this.args;
         if (input.mode === "mouse" && input.notice) return input.notice;
+        if (input.mode === "camera" && input.tracking === "calibrating")
+            return "Hold your finger gun still, pointing at the centre";
         if (input.mode === "camera" && input.tracking === "noPose")
             return "Make a finger gun 👉  thumb up, drop it to shoot";
         if (input.mode === "camera" && input.tracking === "lost")
@@ -399,7 +428,7 @@ export default class ShooterScene extends Scene {
         const { input } = this.args;
         const device =
             input.mode === "camera"
-                ? `✋ ${input.latencyMs === null ? "…" : `${Math.round(input.latencyMs)} ms`}`
+                ? `✋ ${input.latencyMs === null ? "…" : `${Math.round(input.latencyMs)} ms`}${input.recording ? "   ● REC (R to stop)" : ""}`
                 : "🖱 mouse";
         this.hud.setText(
             `Points ${this.points}   Hits ${this.hits}/${this.shots}   ${Math.max(0, this.secondsLeft)} s   ${device}`,
@@ -415,23 +444,5 @@ export default class ShooterScene extends Scene {
         );
         this.lastLine = line;
         this.subtitle.setText(line);
-    }
-
-    // Faint perspective lines: the exam hall's desks running towards the horizon.
-    private drawExamHall() {
-        const hall = this.add.graphics();
-        hall.lineStyle(2, 0xffffff, 0.08);
-        const horizon = HORIZON_Y * GAME_HEIGHT;
-        for (let lane = -6; lane <= 6; lane += 1)
-            hall.lineBetween(
-                GAME_WIDTH / 2 + lane * 30,
-                horizon,
-                GAME_WIDTH / 2 + lane * 230,
-                GAME_HEIGHT,
-            );
-        for (let row = 1; row <= 5; row += 1) {
-            const y = horizon + (GAME_HEIGHT - horizon) * (row / 5) ** 2;
-            hall.lineBetween(0, y, GAME_WIDTH, y);
-        }
     }
 }

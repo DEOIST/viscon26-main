@@ -1,5 +1,5 @@
 .host {
-    position: relative; /* the shooter's webcam video sits behind the canvas */
+    position: relative; /* holds the shooter's hidden camera video (a frame source) */
     width: 100%;
     aspect-ratio: 16 / 9;
     background: #111318;

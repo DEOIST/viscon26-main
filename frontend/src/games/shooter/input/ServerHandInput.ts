@@ -1,6 +1,7 @@
-// The finger-detection engine's client (issue #13): webcam → small JPEG frames →
-// /api/cv/stream → aim, tracking, hand landmarks and shots. FramePacer decides when the next
-// frame goes out (one in flight, never the same camera frame twice). Frames are never stored.
+// The finger-detection engine's client (issue #13): webcam → JPEG frames → /api/cv/stream →
+// aim, tracking, hand landmarks and shots. FramePacer decides when the next frame goes out (one
+// in flight, never the same camera frame twice). The camera image itself is never shown, and
+// frames are never stored, except in a recording a developer starts with R (development only).
 
 import FramePacer from "./FramePacer";
 import { FALLBACK_FRAME_MS, FRAME_WIDTH, JPEG_QUALITY } from "../config";
@@ -9,6 +10,8 @@ import { boxForAspect, isSameBox } from "./box";
 import { cameraErrorMessage, closeMessage, cvStreamUrl } from "./cvStream";
 import type {
     CvBoxMessage,
+    CvRecenterMessage,
+    CvRecordMessage,
     CvSettingsMessage,
     GamePoint,
     Tracking,
@@ -23,6 +26,7 @@ export default class ServerHandInput implements InputSource {
     tracking: Tracking = "lost";
     landmarks: AimPoint[] | null = null;
     latencyMs: number | null = null; // round trip of the last frame, for the debug overlay
+    recording = false; // the engine confirmed it saves this stream's frames
     private shots: AimPoint[] = [];
     private video: HTMLVideoElement | null = null;
     private stream: MediaStream | null = null;
@@ -49,6 +53,19 @@ export default class ServerHandInput implements InputSource {
     // an insecure origin), and the owner must already hold this input when it is.
     start() {
         void this.run();
+    }
+
+    // Development servers save every frame with what the engine measured (backend/captures/),
+    // to find out why a shot fired or the aim shook. Production servers refuse.
+    toggleRecording() {
+        if (this.socket?.readyState !== WebSocket.OPEN) return;
+        this.sendControl({ type: "record", on: !this.recording });
+    }
+
+    // The engine learns the aim's neutral position again the next time the gun is held still.
+    recenter() {
+        if (this.socket?.readyState !== WebSocket.OPEN) return;
+        this.sendControl({ type: "recenter" });
     }
 
     takeShots(): AimPoint[] {
@@ -117,13 +134,19 @@ export default class ServerHandInput implements InputSource {
                 message.landmarks?.map((point) => toAim(point)!) ?? null;
             if (message.firedAt) this.shots.push(toAim(message.firedAt)!);
             this.pacer.done();
+        } else if (message.type === "record") {
+            if (message.dir) console.info(`Recording frames to ${message.dir}`);
+            else if (!this.recording)
+                console.warn("Recording needs a server in development mode");
+            this.recording = message.on;
         } else if (message.type === "error") {
             this.pacer.done();
         }
     }
 
     // The engine's default box doesn't know the camera's shape: ask once for a box with the game
-    // area's shape (box.ts), and start streaming when the engine confirms it with another ready.
+    // area's shape (box.ts), so the hand skeleton isn't stretched, and start streaming when the
+    // engine confirms it with another ready.
     private handleReady(box: Box) {
         const video = this.video;
         const fitted = video
@@ -137,13 +160,18 @@ export default class ServerHandInput implements InputSource {
             this.sendControl({ type: "box", box: fitted });
             return;
         }
-        this.placeVideo(box);
         if (this.cooldownMs !== null)
             this.sendControl({ type: "settings", cooldownMs: this.cooldownMs });
         this.pacer.ready();
     }
 
-    private sendControl(message: CvBoxMessage | CvSettingsMessage) {
+    private sendControl(
+        message:
+            | CvBoxMessage
+            | CvSettingsMessage
+            | CvRecordMessage
+            | CvRecenterMessage,
+    ) {
         this.socket?.send(JSON.stringify(message));
     }
 
@@ -198,17 +226,6 @@ export default class ServerHandInput implements InputSource {
         );
     }
 
-    // Scale the mirrored video so the engine's calibration box fills the game area: the
-    // crosshair then sits exactly on the on-screen fingertip (docs/SHOOTER_CV.md → Aim).
-    private placeVideo([x0, y0, x1, y1]: Box) {
-        if (!this.video) return;
-        const style = this.video.style;
-        style.width = `${100 / (x1 - x0)}%`;
-        style.height = `${100 / (y1 - y0)}%`;
-        style.left = `${(-100 * x0) / (x1 - x0)}%`;
-        style.top = `${(-100 * y0) / (y1 - y0)}%`;
-    }
-
     private fail(reason: string) {
         if (this.isDestroyed) return;
         this.destroy();
@@ -228,13 +245,14 @@ function createVideo(stream: MediaStream): HTMLVideoElement {
     video.muted = true;
     video.playsInline = true;
     video.srcObject = stream;
-    // Behind the transparent game canvas, mirrored like a mirror. Geometry: placeVideo().
+    // Only a frame source: the game draws its own backdrop instead of the camera image. It stays
+    // in the page, 1 px and transparent, because browsers may stop decoding a detached or
+    // display:none video, and then requestVideoFrameCallback never fires.
     Object.assign(video.style, {
         position: "absolute",
-        zIndex: "0",
-        objectFit: "fill",
-        transform: "scaleX(-1)",
-        filter: "saturate(0.7) contrast(1.05)",
+        width: "1px",
+        height: "1px",
+        opacity: "0",
         pointerEvents: "none",
     });
     return video;

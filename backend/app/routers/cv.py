@@ -7,6 +7,10 @@ after the previous answer arrived, so slow networks lower the frame rate instead
     client → binary JPEG frame (≤ CV_MAX_FRAME_BYTES)    server → {"type": "frame", ...CvFrame}
     client → {"type": "box", "box": [x0, y0, x1, y1]}    server → {"type": "ready", "box": [...]}
     client → {"type": "settings", "cooldownMs": 175}     server → the same message (athlete perk)
+    client → {"type": "record", "on": true}              server → {"type": "record", "on", "dir"}
+                                         saves frames to backend/captures/ (development only)
+    client → {"type": "recenter"}                        server → the same message; the aim
+                                         calibrates again (frames say tracking "calibrating")
     server → {"type": "error", "detail": "..."}          bad frame or message; the stream goes on
 
 Close codes: 1013 = engine busy (try again later), 1011 = engine unavailable, 4000 = no frames
@@ -25,6 +29,8 @@ from app.schemas import (
     CV_MAX_COOLDOWN_MS,
     CV_MIN_BOX_SPAN,
     CvControlMessage,
+    CvRecenterMessage,
+    CvRecordMessage,
     CvSettingsMessage,
     CvStatus,
 )
@@ -107,6 +113,12 @@ def _control_reply(session: cv_service.CvSession, text: str | None) -> dict:
         message = _CONTROL_MESSAGE.validate_json(text or "")
     except ValidationError as error:
         return _error(_control_error(error))
+    if isinstance(message, CvRecenterMessage):
+        session.recenter()
+        return {"type": "recenter"}
+    if isinstance(message, CvRecordMessage):
+        folder = session.set_recording(message.on)
+        return {"type": "record", "on": folder is not None, "dir": folder and str(folder)}
     if isinstance(message, CvSettingsMessage):
         session.set_cooldown(message.cooldown_ms)
         return {"type": "settings", "cooldownMs": message.cooldown_ms}
@@ -127,6 +139,8 @@ def _control_error(error: ValidationError) -> str:
         )
     if message_type == "settings":
         return f"cooldownMs must be a number from 0 to {CV_MAX_COOLDOWN_MS}"
+    if message_type == "record":
+        return "on must be true or false"
     return "Unknown message"
 
 

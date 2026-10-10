@@ -1,13 +1,23 @@
-"""Synthetic hands for gesture tests: 21 MediaPipe landmarks built from finger states, so tests
-need no camera, no model and no images. Indices follow MediaPipe: 0 wrist, 1–4 thumb,
+"""Synthetic hands for gesture tests: 21 MediaPipe image landmarks built from finger states, so
+tests need no camera, no model and no images. Indices follow MediaPipe: 0 wrist, 1–4 thumb,
 5–8 index, 9–12 middle, 13–16 ring, 17–20 pinky."""
+
+import math
 
 from app.services.gesture import Hand
 
-# World landmarks are in metres with the palm in the x/y plane; fingers point towards +y.
+# The hand is built upright in metres, palm in the x/y plane, fingers towards +y and the camera
+# at -z, then scaled into the image (where y points down; z is scaled like x, as MediaPipe does).
 _MCP_X = {"index": -0.025, "middle": 0.0, "ring": 0.022, "pinky": 0.042}
 _MCP_Y = 0.09
 _PHALANX = 0.03
+_THUMB_MCP = (-0.05, 0.04)
+_THUMB_LENGTH = 0.06  # thumb MCP to tip
+
+# Thumb angles from straight up: clearly cocked and clearly dropped, even after a 4:3 frame
+# stretches x against y.
+THUMB_UP_DEGREES = 15.0
+THUMB_DOWN_DEGREES = 70.0
 
 
 def _finger(name: str, straight: bool) -> list[tuple[float, float, float]]:
@@ -17,45 +27,59 @@ def _finger(name: str, straight: bool) -> list[tuple[float, float, float]]:
     if straight:
         dip = (x, _MCP_Y + 2 * _PHALANX, 0.0)
         tip = (x, _MCP_Y + 3 * _PHALANX, 0.0)
-    else:  # folded back towards the palm: about 60° at the PIP joint
+    else:  # folded back towards the palm: the tip ends closer to the wrist than the PIP
         dip = (x, _MCP_Y + _PHALANX + 0.012, -0.02)
         tip = (x, _MCP_Y + 0.015, -0.026)
     return [mcp, pip, dip, tip]
 
 
-def _thumb(up: bool) -> list[tuple[float, float, float]]:
-    # Up (cocked): tip ~7 cm from the index MCP. Down: tip resting on the index side, ~2 cm.
-    if up:
-        return [(-0.03, 0.02, 0.0), (-0.05, 0.04, 0.0), (-0.065, 0.07, 0.0), (-0.075, 0.12, 0.0)]
-    return [(-0.03, 0.02, 0.0), (-0.045, 0.05, 0.0), (-0.04, 0.08, 0.0), (-0.035, 0.105, 0.0)]
+def _index_at_camera() -> list[tuple[float, float, float]]:
+    """The gun's barrel: pointing at the camera, so it looks short (and dips slightly)."""
+    x = _MCP_X["index"]
+    return [(x, _MCP_Y, 0.0), (x, 0.085, -0.025), (x, 0.082, -0.04), (x, 0.08, -0.055)]
+
+
+def _thumb(degrees: float) -> list[tuple[float, float, float]]:
+    """Up is 0°; dropping it tilts the thumb towards the index finger (+x)."""
+    mcp_x, mcp_y = _THUMB_MCP
+    dx, dy = math.sin(math.radians(degrees)), math.cos(math.radians(degrees))
+    ip = (mcp_x + dx * _THUMB_LENGTH / 2, mcp_y + dy * _THUMB_LENGTH / 2, 0.0)
+    tip = (mcp_x + dx * _THUMB_LENGTH, mcp_y + dy * _THUMB_LENGTH, 0.0)
+    return [(-0.03, 0.02, 0.0), (mcp_x, mcp_y, 0.0), ip, tip]
+
+
+def _swapped_thumb_and_index() -> list[tuple[float, float, float]]:
+    """MediaPipe's mistake with an upright thumb: the thumb chain laid sideways along the curled
+    fingers, and the index chain on the upright thumb (straight up, extended)."""
+    thumb = [(-0.03, 0.02, 0.0), (-0.02, 0.05, 0.0), (0.0, 0.06, 0.0), (0.02, 0.06, 0.0)]
+    index = [(-0.045, 0.06, 0.0), (-0.05, 0.09, 0.0), (-0.052, 0.11, 0.0), (-0.055, 0.13, 0.0)]
+    return thumb + index
 
 
 def make_hand(
     *,
-    index: bool = True,
     middle: bool = False,
     ring: bool = False,
     pinky: bool = False,
     thumb_up: bool = True,
-    thumb_gap: float | None = None,
+    thumb_degrees: float | None = None,
+    swapped: bool = False,
     tip: tuple[float, float] = (0.5, 0.45),
     size: float = 0.15,
 ) -> Hand:
-    """A hand whose index fingertip sits at `tip` in image coordinates (camera view, not
+    """A finger gun whose index fingertip sits at `tip` in image coordinates (camera view, not
     mirrored). `size` is the wrist→middle-MCP distance in the image, i.e. how close it is.
-    `thumb_gap` places the thumb tip exactly that many metres from the index MCP."""
+    `thumb_degrees` overrides `thumb_up` with an exact thumb angle from straight up (exact in the
+    image when the frame is square). `swapped` labels an upright thumb the way MediaPipe
+    sometimes does (see app/services/gesture.py)."""
+    if thumb_degrees is None:
+        thumb_degrees = THUMB_UP_DEGREES if thumb_up else THUMB_DOWN_DEGREES
     world = [(0.0, 0.0, 0.0)]
-    world += _thumb(thumb_up)
-    if thumb_gap is not None:
-        world[4] = (_MCP_X["index"] - thumb_gap, _MCP_Y, 0.0)
-    world += _finger("index", index)
+    world += _swapped_thumb_and_index() if swapped else _thumb(thumb_degrees) + _index_at_camera()
     world += _finger("middle", middle)
     world += _finger("ring", ring)
     world += _finger("pinky", pinky)
-    tip_x, tip_y = tip
-    wrist = (tip_x, tip_y + 2.2 * size, 0.0)
-    image = [
-        (wrist[0] + wx / _MCP_Y * size, wrist[1] - wy / _MCP_Y * size, wz) for wx, wy, wz in world
-    ]
-    image[8] = (tip_x, tip_y, 0.0)  # pin the fingertip exactly where the test wants it
-    return Hand(image=tuple(image), world=tuple(world))
+    scale = size / _MCP_Y
+    index_tip = _index_at_camera()[-1]  # also for a swapped hand: same palm, other labels
+    wrist = (tip[0] - index_tip[0] * scale, tip[1] + index_tip[1] * scale)
+    return tuple((wrist[0] + wx * scale, wrist[1] - wy * scale, wz * scale) for wx, wy, wz in world)

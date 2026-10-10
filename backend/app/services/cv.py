@@ -2,38 +2,43 @@
 
 The browser sends small JPEG frames over a WebSocket (routers/cv.py). Each connection gets its
 own MediaPipe HandLandmarker (VIDEO mode needs increasing timestamps per instance) and its own
-GestureTracker (services/gesture.py). Frames are processed one at a time, in memory only, and
-never stored. A session cap protects the server's CPU: about one core per player.
+PlayerGun (services/gesture.py). Frames are processed one at a time, in memory only, and
+never stored, except in a developer's explicit recording (Recorder, development only). A session
+cap protects the server's CPU: about one core per player.
 """
 
 import io
+import json
 import logging
 import threading
 import time
+from dataclasses import asdict
+from datetime import datetime
 from pathlib import Path
 from typing import Protocol
 
 import numpy as np
 from PIL import Image, UnidentifiedImageError
 
-from app.config import settings
+from app.config import BACKEND_DIR, settings
 from app.schemas import CvFrame, CvStatus
-from app.services.gesture import (
-    DEFAULT_CONFIG,
-    Box,
-    GestureConfig,
-    GestureTracker,
-    Hand,
-    pick_hand,
-    to_game_area,
-)
+from app.services.gesture import Box, GestureFrame, Hand, PlayerGun, to_game_area
 
 log = logging.getLogger(__name__)
 
-# Frames are 320 px wide in practice. A side of 32767 px or more aborts OpenCV inside MediaPipe
+# Frames are 640 px wide in practice. A side of 32767 px or more aborts OpenCV inside MediaPipe
 # (a native crash that kills the whole process), so each side is limited, not only the area.
 MAX_FRAME_SIDE = 1280
 MAX_FRAME_PIXELS = 1280 * 960
+# The game area's share of the mirrored camera image until the browser sends one fitted to its
+# camera (input/box.ts). Only the hand skeleton uses it; the aim has its own gains.
+DEFAULT_BOX: Box = (0.2, 0.15, 0.8, 0.75)
+# MediaPipe's default 0.5 drops small, foreshortened gun hands (fist pointing at the camera) and
+# re-detects them, which loses frames and sometimes reports the hand twice. On a two-hand
+# recording 0.3 cut frames missing a visible hand from 24 to 10, longest gap from 5 frames to 1,
+# and duplicates from 16 to 0, with no false hands on any recording (0.2 added one).
+HAND_CONFIDENCE = 0.3
+RECORDINGS_DIR = BACKEND_DIR / "captures"  # git-ignored; one folder per recording
 _lock = threading.Lock()
 _active_sessions = 0
 _working_models: set[Path] = set()  # model files a detector has started from
@@ -64,10 +69,10 @@ class MediaPipeDetector:
         options = vision.HandLandmarkerOptions(
             base_options=BaseOptions(model_asset_path=str(model_path)),
             running_mode=vision.RunningMode.VIDEO,
-            num_hands=2,  # keep the closest one (gesture.pick_hand)
-            min_hand_detection_confidence=0.6,
-            min_hand_presence_confidence=0.6,
-            min_tracking_confidence=0.5,
+            num_hands=2,  # the largest is the player (gesture.PlayerGun)
+            min_hand_detection_confidence=HAND_CONFIDENCE,
+            min_hand_presence_confidence=HAND_CONFIDENCE,
+            min_tracking_confidence=HAND_CONFIDENCE,
         )
         self._landmarker = vision.HandLandmarker.create_from_options(options)
 
@@ -79,36 +84,94 @@ class MediaPipeDetector:
         image = mp.Image(image_format=mp.ImageFormat.SRGB, data=np.ascontiguousarray(rgb))
         result = self._landmarker.detect_for_video(image, timestamp_ms)
         return [
-            Hand(
-                image=tuple((point.x, point.y, point.z) for point in image_points),
-                world=tuple((point.x, point.y, point.z) for point in world_points),
-            )
-            for image_points, world_points in zip(
-                result.hand_landmarks, result.hand_world_landmarks, strict=True
-            )
+            tuple((point.x, point.y, point.z) for point in hand) for hand in result.hand_landmarks
         ]
 
     def close(self) -> None:
         self._landmarker.close()
 
 
+def _rounded(hand: Hand) -> list[list[float]]:
+    return [[round(coordinate, 4) for coordinate in point] for point in hand]
+
+
+class Recorder:
+    """Saves each frame exactly as received (00000.jpg, ...) and, per frame, what the engine
+    measured and decided (frames.jsonl), to find out why a shot fired or the aim jittered. Rows
+    hold the landmarks too, so a recording can be replayed through the gesture rules alone."""
+
+    def __init__(self) -> None:
+        self.dir = RECORDINGS_DIR / datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+        self.dir.mkdir(parents=True)
+        self._rows = (self.dir / "frames.jsonl").open("w")
+        self._count = 0
+
+    def write(
+        self,
+        jpeg: bytes,
+        size: tuple[int, int],
+        timestamp_ms: int,
+        gesture: GestureFrame,
+        reply: CvFrame,
+    ) -> None:
+        name = f"{self._count:05d}.jpg"
+        (self.dir / name).write_bytes(jpeg)
+        row = {
+            "frame": name,
+            "size": size,
+            "t_ms": timestamp_ms,
+            "reply": reply.model_dump(
+                by_alias=False, include={"tracking", "aim", "fired_at", "processing_ms"}
+            ),
+            "hands": [
+                {
+                    "id": hand.id,
+                    "player": hand.id == gesture.player_id,
+                    **asdict(hand.reading),
+                    "landmarks": _rounded(hand.landmarks),
+                }
+                for hand in gesture.hands
+            ],
+            # Detections dropped as a second copy of a hand above, kept to tune that rule.
+            "duplicates": [_rounded(hand) for hand in gesture.duplicates],
+        }
+        self._rows.write(json.dumps(row) + "\n")
+        self._count += 1
+
+    def close(self) -> None:
+        self._rows.close()
+        log.info("Saved %d camera frames to %s", self._count, self.dir)
+
+
 class CvSession:
-    def __init__(self, detector: HandDetector, config: GestureConfig = DEFAULT_CONFIG) -> None:
+    def __init__(self, detector: HandDetector) -> None:
         self._detector = detector
-        self._tracker = GestureTracker(config)
+        self._gun = PlayerGun()
+        self.box = DEFAULT_BOX
+        self._recorder: Recorder | None = None
         self._started = time.monotonic()
         self._last_timestamp_ms = -1
         self._closed = False
 
-    @property
-    def box(self) -> Box:
-        return self._tracker.config.box
-
     def set_box(self, box: Box) -> None:
-        self._tracker.set_box(box)
+        self.box = box
 
     def set_cooldown(self, cooldown_ms: float) -> None:
-        self._tracker.set_cooldown(cooldown_ms)
+        self._gun.cooldown_ms = cooldown_ms
+
+    def recenter(self) -> None:
+        self._gun.recenter()
+
+    def set_recording(self, on: bool) -> Path | None:
+        """Starts or stops a Recorder; returns its folder while recording. Development only:
+        anyone can open a stream, and a production server must never store camera frames."""
+        if on and self._recorder is None and settings.environment == "development":
+            self._recorder = Recorder()
+            log.info("Recording camera frames to %s", self._recorder.dir)
+        elif not on and self._recorder is not None:
+            self._recorder.close()
+            self._recorder = None
+        return self._recorder.dir if self._recorder else None
 
     def process(self, jpeg: bytes) -> CvFrame:
         started = time.perf_counter()
@@ -117,20 +180,22 @@ class CvSession:
         now_ms = int((time.monotonic() - self._started) * 1000)
         timestamp_ms = max(self._last_timestamp_ms + 1, now_ms)
         self._last_timestamp_ms = timestamp_ms
-        hand = pick_hand(self._detector.detect(rgb, timestamp_ms))
-        gesture = self._tracker.update(hand, timestamp_ms)
-        return CvFrame(
+        height, width = rgb.shape[:2]
+        hands = self._detector.detect(rgb, timestamp_ms)
+        gesture = self._gun.update(hands, width, height, timestamp_ms)
+        reply = CvFrame(
             tracking=gesture.tracking,
             aim=gesture.aim,
             fired_at=gesture.fired_at,
             landmarks=(
-                [to_game_area(point, self.box, clamp=False) for point in hand.image]
-                if hand
-                else None
+                [to_game_area(point, self.box) for point in gesture.hand] if gesture.hand else None
             ),
-            thumb_distance=gesture.thumb_distance,
+            thumb_angle=gesture.thumb_angle,
             processing_ms=round((time.perf_counter() - started) * 1000, 1),
         )
+        if self._recorder:
+            self._recorder.write(jpeg, (width, height), timestamp_ms, gesture, reply)
+        return reply
 
     def close(self) -> None:
         global _active_sessions
@@ -138,6 +203,7 @@ class CvSession:
             return
         self._closed = True
         try:
+            self.set_recording(False)
             self._detector.close()
         except Exception:
             log.exception("A hand detector failed to close")

@@ -17,15 +17,17 @@ const NEON = 0x4fe3ff;
 const AIMING = 0xf2c14e;
 const NOT_AIMING = 0x8a8f99;
 
+// `aim` is where to draw the crosshair: the input's aim, glided in camera mode (glide.ts).
 export function drawHandOverlay(
     graphics: GameObjects.Graphics,
     input: InputSource,
+    aim: AimPoint | null,
 ) {
     graphics.clear();
     if (input.landmarks) drawSkeleton(graphics, input.landmarks);
-    if (!input.aim) return;
-    const x = input.aim.x * GAME_WIDTH;
-    const y = input.aim.y * GAME_HEIGHT;
+    if (!aim) return;
+    const x = aim.x * GAME_WIDTH;
+    const y = aim.y * GAME_HEIGHT;
     graphics.lineStyle(4, input.tracking === "ok" ? AIMING : NOT_AIMING, 1);
     graphics.strokeCircle(x, y, 26);
     graphics.lineBetween(x - 40, y, x - 12, y);

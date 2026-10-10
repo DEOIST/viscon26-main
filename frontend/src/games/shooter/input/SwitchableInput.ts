@@ -1,5 +1,7 @@
 // The one input the shooter scene talks to. Starts with the finger-detection engine and
 // switches to the mouse when the camera or the engine fails, or when the operator presses M.
+// C recalibrates the aim (hold the finger gun still at the centre); R starts and stops a
+// recording of the camera stream (development servers only).
 
 import MouseInput from "./MouseInput";
 import ServerHandInput from "./ServerHandInput";
@@ -39,6 +41,12 @@ export default class SwitchableInput implements InputSource {
             : null;
     }
 
+    get recording(): boolean {
+        return (
+            this.current instanceof ServerHandInput && this.current.recording
+        );
+    }
+
     takeShots(): AimPoint[] {
         return this.current.takeShots();
     }
@@ -58,5 +66,9 @@ export default class SwitchableInput implements InputSource {
     private readonly handleKey = (event: KeyboardEvent) => {
         if (event.key === "m" || event.key === "M")
             this.useMouse("Mouse mode (operator)");
+        if (!(this.current instanceof ServerHandInput)) return;
+        if (event.key === "r" || event.key === "R")
+            this.current.toggleRecording();
+        if (event.key === "c" || event.key === "C") this.current.recenter();
     };
 }

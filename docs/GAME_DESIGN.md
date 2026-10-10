@@ -92,7 +92,7 @@ You bet your semester stipend of 1 000 CHF at the casino.
 
 The Basisprüfung, ETH's first-year exam block, attacks: exam questions fly
 toward you out of an isometric exam hall (2D art that fakes depth, in Phaser),
-layered over your own mirrored webcam image. Make a finger gun, aim with your
+down a dark exam-hall corridor that flashes with every shot. Make a finger gun, aim with your
 index finger, drop your thumb to shoot. The technical design is in
 [SHOOTER_CV.md](SHOOTER_CV.md). Both minigames use Phaser.
 

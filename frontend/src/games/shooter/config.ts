@@ -43,6 +43,12 @@ export const TARGET_RADIUS = 80; // hit radius in game pixels at scale 1
 export const GAMER_TARGET_SCALE = 1.15; // Gamer perk: targets 15 % larger
 export const ATHLETE_COOLDOWN_MS = 175; // ASVZ-athlete perk: 250 ms re-arm, 30 % faster
 
-export const FRAME_WIDTH = 320; // camera frames sent to the engine
-export const JPEG_QUALITY = 0.7;
+// Camera frames sent to the engine. The finger-gun thresholds were tuned on 640 px frames at
+// quality 0.8; 320 px at 0.7 made the aim ~20–40 % shakier and fired false shots on the same
+// recordings (docs/SHOOTER_CV.md → Camera).
+export const FRAME_WIDTH = 640;
+export const JPEG_QUALITY = 0.8;
+// The engine answers ~30 times a second; the crosshair glides toward each answer with this time
+// constant instead of stepping. Larger = smoother but laggier. Shots use the engine's own point.
+export const CROSSHAIR_GLIDE_MS = 40;
 export const FALLBACK_FRAME_MS = 33; // camera polling where requestVideoFrameCallback is missing

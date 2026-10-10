@@ -19,7 +19,7 @@ export function createGame(parent: HTMLElement, scene: Scene): Game {
         parent,
         width: GAME_WIDTH,
         height: GAME_HEIGHT,
-        transparent: true, // the page (or the webcam video) shows through
+        transparent: true, // the page shows through where a scene draws no background
         banner: false,
         scale: { mode: Scale.FIT, autoCenter: Scale.CENTER_BOTH },
         scene,

@@ -111,7 +111,8 @@ export interface Epilogue {
 
 // --- cv (finger-detection engine, issue #13) ---
 
-export type Tracking = "ok" | "noPose" | "lost";
+// calibrating: the hand is in view and the engine waits for the finger gun to be held still.
+export type Tracking = "ok" | "noPose" | "lost" | "calibrating";
 export type GamePoint = [number, number]; // [x, y] in the game area, 0..1
 
 export interface CvStatus {
@@ -128,7 +129,7 @@ export interface CvFrame {
     aim: GamePoint | null;
     firedAt: GamePoint | null; // set on the frame a shot fires
     landmarks: GamePoint[] | null; // 21 points for drawing the hand; may lie outside 0..1
-    thumbDistance: number | null; // metres, for the debug overlay
+    thumbAngle: number | null; // degrees from straight up (cocked < 32, fires > 55), for tuning
     processingMs: number;
 }
 
@@ -141,4 +142,11 @@ export interface CvBoxMessage {
 export interface CvSettingsMessage {
     type: "settings";
     cooldownMs: number; // 0–2000
+}
+export interface CvRecenterMessage {
+    type: "recenter"; // calibrate the aim's neutral position again
+}
+export interface CvRecordMessage {
+    type: "record";
+    on: boolean; // development servers only: saves the frames to backend/captures/
 }

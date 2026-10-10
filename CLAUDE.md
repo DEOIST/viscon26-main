@@ -50,7 +50,7 @@ Finger detection: WebSocket /api/cv/stream → app/routers/cv.py → app/service
 - **Navigation** is plain `<a href="/other-page">` or `window.location.href` (a full page load). Pass state between pages through the query string: the run id is `?run=<id>`, built and read only through `misc/run.ts`. **Do not add `react-router`.**
 - **Two shells, one seam.** React owns everything around a round (menus, character creator, hub, overlays, saving, navigation). Phaser 4 owns the round itself, in both minigames. They meet only through the `MountMinigame` contract in `games/shared/minigame.ts`. Pages never import Phaser; `games/` never fetches, never navigates and never imports React.
 - **No client-side store (no Redux).** Every navigation is a full page load, which wipes in-memory state. The character and the run live on the server; each page loads them through the API.
-- **Computer vision runs on the server (#13).** The shooter streams small JPEG frames over a WebSocket to `/api/cv/stream`; MediaPipe finds the hand and `services/gesture.py` turns it into aim and shots. Frames are analysed in memory and never stored. Details in [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md).
+- **Computer vision runs on the server (#13).** The shooter streams small JPEG frames over a WebSocket to `/api/cv/stream`; MediaPipe finds the hand and `services/gesture.py` turns it into aim and shots. Frames are analysed in memory and never stored, except when a developer records them with **R** on a server in development mode (`backend/captures/`, git-ignored). The camera image is never shown; the shooter draws its own backdrop. Details in [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md).
 - **Secrets stay on the server.** Only `backend/app/ai.py` talks to OpenAI.
 - **Code shared between pages** (React, `misc/`, common components) is split into `dist/pages/chunks/` by esbuild automatically. Phaser is imported only by the two game pages, so esbuild puts it in one shared chunk that `/blackjack` and `/shooter` reuse from the cache.
 - **Routing is automatic on both sides.** The build turns every `src/pages/<name>.tsx` into `dist/<name>.html`, and FastAPI serves `/<name>` → `dist/<name>.html`. Adding a page needs no backend change.
@@ -156,8 +156,8 @@ The tree shows the target. *(planned)* marks parts that don't exist yet.
 │       │   ├── blackjack/        Phaser 4, 2D: index.ts (mountBlackjack), rules.ts + rules.test.ts,
 │       │   │                     BlackjackScene.ts, config.ts, assets/
 │       │   └── shooter/          Phaser 4, fake-depth 2D: index.ts (mountShooter), ShooterScene.ts,
-│       │       │                 depth.ts, hitTest.ts, score.ts, spawn.ts (+ tests), effects.ts,
-│       │       │                 handOverlay.ts, config.ts
+│       │       │                 depth.ts, hitTest.ts, score.ts, spawn.ts, glide.ts (+ tests),
+│       │       │                 Backdrop.ts, effects.ts, handOverlay.ts, config.ts
 │       │       └── input/        InputSource.ts, ServerHandInput.ts (camera → /api/cv/stream),
 │       │                         FramePacer.ts, box.ts, cvStream.ts, SwitchableInput.ts (+ tests),
 │       │                         MouseInput.ts
@@ -399,7 +399,7 @@ The full rules are in [docs/BRANCH_RULES.md](docs/BRANCH_RULES.md) (humans) and 
 - **MediaPipe needs system libraries even on a server without a screen** (`libxcb1`, `libgl1`, `libglib2.0-0`, `libegl1`, `libgles2` in the Dockerfile). A missing one shows up when a detector starts, not at import time: `/api/cv/status` reports the engine unavailable (with the missing `.so` file in development; in production the log has it).
 - **Never let an unchecked image reach MediaPipe.** A frame with a side of 32767 px or more aborts OpenCV inside it: a native crash that kills the whole server process, not an exception. `decode_frame` (JPEG only, each side ≤ 1280 px) and a guard in `MediaPipeDetector.detect` prevent it; keep both.
 - **Game FPS depends on the player's laptop; finger detection depends on the server.** WebGL runs in the browser, so never judge game performance in a browser on the VM or in CI (no GPU, software rendering). The engine runs on the server's CPU: measure it with `make cv-check URL=...` against the server the demo uses.
-- **The shooter uploads one ~10 KB JPEG per camera frame** (2–4 Mbit/s per player) and waits for each answer, so the network round trip is part of the aim's latency. The best demo setup is `make prod` on the demo laptop itself.
+- **The shooter uploads one ~46 KB JPEG per camera frame** (640 px, about 11 Mbit/s per player; smaller frames made the aim shaky) and waits for each answer, so the network round trip is part of the aim's latency. The best demo setup is `make prod` on the demo laptop itself.
 - **OpenAI calls never happen in tests or CI,** and only in development when you set `AI_MODE=live`. If you see real calls in a test run, stop and fix the test.
 - Pages deleted from `src/pages/` are removed from `dist/` on the next rebuild. If the watcher acts strangely after big file moves, restart it (it wipes `dist/` on startup).
 
@@ -408,7 +408,7 @@ The full rules are in [docs/BRANCH_RULES.md](docs/BRANCH_RULES.md) (humans) and 
 - **Git: [AGENTS.md](AGENTS.md) is binding.** Never commit on or push to `main`, work only on an owned task branch, stop at a reviewable PR, and never merge unless explicitly asked to merge that PR. Don't add AI attribution to commits, PRs, issues or code.
 - **Never spend OpenAI credits.** Don't run anything that calls OpenAI (`AI_MODE=live`, `make art`, `make ai-check LIVE=1`, scripts or tests with real keys) unless the user explicitly asks for it in that message. Every automated test must pass with no keys and no network.
 - **Never read, print or write real keys.** Don't display the contents of any `.env` file (laptop or server); put only variable names in `.env.example`.
-- **Respect the boundaries:** Phaser only under `games/`; network only through `apiClient.ts`; OpenAI only through `app/ai.py`; Redis only through `app/db.py`; camera frames go only to `/api/cv/stream` and are never stored or logged; no client-side store (no Redux).
+- **Respect the boundaries:** Phaser only under `games/`; network only through `apiClient.ts`; OpenAI only through `app/ai.py`; Redis only through `app/db.py`; camera frames go only to `/api/cv/stream` and are never stored or logged (only a development server's explicit recording may store them); no client-side store (no Redux).
 - Follow the conventions above exactly. Match the surrounding code over your own defaults (`args` not `props`, function declarations, CSS Modules, no `var`).
 - After any frontend change run `cd frontend && npx tsc --noEmit`; after any backend change run `cd backend && .venv/bin/pytest -q`. Before saying you're done, run `make check` and report the result honestly.
 - When adding an endpoint, do all four steps of "Add an API endpoint" plus a test, in one go, and add it to the contract table in `docs/ARCHITECTURE.md`.

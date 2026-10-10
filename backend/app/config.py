@@ -38,7 +38,7 @@ class Settings(BaseSettings):
         REPO_DIR / "frontend" / "dist" / "static" / "models" / "hand_landmarker.task"
     )
     cv_max_sessions: int = 4  # players tracked at the same time; each costs ~1 CPU core
-    cv_max_frame_bytes: int = 200_000  # a 320×240 JPEG is ~10 KB
+    cv_max_frame_bytes: int = 200_000  # a 640×480 camera JPEG is ~30–60 KB
     cv_idle_timeout_seconds: float = 20.0  # a hidden tab sends nothing: free its slot
 
     @field_validator("openai_api_keys", mode="before")

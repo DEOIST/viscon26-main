@@ -121,7 +121,9 @@ class Epilogue(CamelModel):
 
 # --- cv (finger-detection engine) ---
 
-Tracking = Literal["ok", "noPose", "lost"]
+# calibrating: the player's hand is in view, and the engine waits for the finger gun to be held
+# still to learn its neutral position (docs/SHOOTER_CV.md → Aim).
+Tracking = Literal["ok", "noPose", "lost", "calibrating"]
 
 
 class CvStatus(CamelModel):
@@ -140,7 +142,7 @@ class CvFrame(CamelModel):
     aim: tuple[float, float] | None
     fired_at: tuple[float, float] | None  # set on the frame a shot fires
     landmarks: list[tuple[float, float]] | None  # 21 points, for drawing the hand
-    thumb_distance: float | None  # metres, for the debug overlay
+    thumb_angle: float | None  # degrees from straight up (cocked < 32, fires > 55), for tuning
     processing_ms: float
 
 
@@ -172,4 +174,21 @@ class CvSettingsMessage(CamelModel):
     cooldown_ms: float = Field(ge=0, le=CV_MAX_COOLDOWN_MS, strict=True, allow_inf_nan=False)
 
 
-CvControlMessage = Annotated[CvBoxMessage | CvSettingsMessage, Field(discriminator="type")]
+class CvRecordMessage(CamelModel):
+    """Start or stop saving the camera frames with the engine's measurements (development only,
+    docs/SHOOTER_CV.md → Recording)."""
+
+    type: Literal["record"]
+    on: bool = Field(strict=True)
+
+
+class CvRecenterMessage(CamelModel):
+    """Calibrate the aim's neutral position again (the C key)."""
+
+    type: Literal["recenter"]
+
+
+CvControlMessage = Annotated[
+    CvBoxMessage | CvSettingsMessage | CvRecordMessage | CvRecenterMessage,
+    Field(discriminator="type"),
+]

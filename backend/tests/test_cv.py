@@ -2,6 +2,7 @@
 MediaPipe (tests/test_cv_mediapipe.py runs the real model)."""
 
 import io
+import json
 import struct
 import time
 from collections.abc import Iterator
@@ -14,8 +15,11 @@ from starlette.websockets import WebSocketDisconnect
 
 from app.config import settings
 from app.services import cv as cv_service
-from app.services.gesture import Hand
+from app.services.gesture import CALIBRATION_FRAMES, Hand
 from tests.hands import make_hand
+
+UP, DOWN = [make_hand(thumb_up=True)], [make_hand(thumb_up=False)]
+STILL = [UP] * CALIBRATION_FRAMES  # the player holds the gun still: the aim calibrates
 
 
 class ScriptedDetector:
@@ -164,22 +168,29 @@ def test_the_stream_starts_with_ready_and_the_calibration_box(client: TestClient
         assert ws.receive_json() == {"type": "ready", "box": [0.2, 0.15, 0.8, 0.75]}
 
 
+def _frames(ws, count: int) -> list[dict]:
+    replies = []
+    for _ in range(count):
+        ws.send_bytes(jpeg())
+        replies.append(ws.receive_json())
+    return replies
+
+
 def test_frames_turn_into_aim_tracking_and_landmarks(client: TestClient, detectors):
     detectors.append(ScriptedDetector([make_hand(tip=(0.5, 0.45))]))
 
     with client.websocket_connect("/api/cv/stream") as ws:
         ws.receive_json()
-        replies = []
-        for _ in range(3):
-            ws.send_bytes(jpeg())
-            replies.append(ws.receive_json())
+        replies = _frames(ws, CALIBRATION_FRAMES + 1)
 
-    assert [reply["tracking"] for reply in replies] == ["noPose", "noPose", "ok"]
+    trackings = [reply["tracking"] for reply in replies]
+    assert trackings == ["calibrating"] * (CALIBRATION_FRAMES - 1) + ["ok", "ok"]
     last = replies[-1]
     assert last["type"] == "frame"
-    assert last["aim"] == pytest.approx([0.5, 0.5])
+    assert last["aim"] == pytest.approx([0.5, 0.5])  # where the gun was held still
     assert last["firedAt"] is None
     assert len(last["landmarks"]) == 21
+    assert last["thumbAngle"] < 32  # cocked
     assert last["processingMs"] >= 0
 
 
@@ -194,20 +205,32 @@ def test_no_hand_in_view_is_reported_as_lost(client: TestClient, detectors):
     assert reply["tracking"] == "lost"
     assert reply["aim"] is None
     assert reply["landmarks"] is None
+    assert reply["thumbAngle"] is None
 
 
 def test_dropping_the_thumb_on_camera_fires_one_shot(client: TestClient, detectors):
-    up, down = [make_hand(thumb_up=True)], [make_hand(thumb_up=False)]
-    detectors.append(ScriptedDetector(up, up, up, up, down, down))
+    detectors.append(ScriptedDetector(*STILL, UP, DOWN, DOWN, DOWN))
 
     with client.websocket_connect("/api/cv/stream") as ws:
         ws.receive_json()
-        shots = []
-        for _ in range(6):
-            ws.send_bytes(jpeg())
-            shots.append(ws.receive_json()["firedAt"])
+        _frames(ws, CALIBRATION_FRAMES)
+        shots = [reply["firedAt"] for reply in _frames(ws, 4)]
 
-    assert [shot is not None for shot in shots] == [False, False, False, False, True, False]
+    assert [shot is not None for shot in shots] == [False, False, True, False]  # held 2 frames
+
+
+def test_recenter_calibrates_the_aim_again(client: TestClient, detectors):
+    detectors.append(ScriptedDetector([make_hand()]))
+
+    with client.websocket_connect("/api/cv/stream") as ws:
+        ws.receive_json()
+        assert _frames(ws, CALIBRATION_FRAMES)[-1]["tracking"] == "ok"
+        ws.send_json({"type": "recenter"})
+        reply = ws.receive_json()
+        after = _frames(ws, CALIBRATION_FRAMES)
+
+    assert reply == {"type": "recenter"}
+    assert after[0]["tracking"] == "calibrating" and after[-1]["tracking"] == "ok"
 
 
 def test_timestamps_given_to_the_detector_always_increase(client: TestClient, detectors):
@@ -299,7 +322,9 @@ def test_calibration_changes_the_box(client: TestClient, detectors):
             reply = ws.receive_json()
 
     assert ready == {"type": "ready", "box": [0.4, 0.35, 0.6, 0.55]}
-    assert reply["aim"] == pytest.approx([0.75, 0.5])  # mirrored 0.55 inside the 0.4–0.6 box
+    # The box places the skeleton over the video: the index tip, mirrored to 0.55, sits at 0.75
+    # of the 0.4–0.6 box.
+    assert reply["landmarks"][8] == pytest.approx([0.75, 0.5])
 
 
 @pytest.mark.parametrize(
@@ -312,6 +337,7 @@ def test_calibration_changes_the_box(client: TestClient, detectors):
         {"type": "box", "box": [0, 0, 5e-324, 1]},  # no area: landmarks would become infinite
         {"type": "box", "box": [0.2, 0.15, 0.25, 0.75]},  # too narrow to aim with
         {"type": "settings", "cooldownMs": True},
+        {"type": "record", "on": "yes"},
         {"type": "dance"},
         ["box", [0.2, 0.15, 0.8, 0.75]],
     ],
@@ -434,31 +460,28 @@ def test_an_unavailable_engine_closes_streams_with_1011(
 
 
 def _shots(ws, count: int) -> list[bool]:
-    shots = []
-    for _ in range(count):
-        ws.send_bytes(jpeg())
-        shots.append(ws.receive_json()["firedAt"] is not None)
-    return shots
+    return [reply["firedAt"] is not None for reply in _frames(ws, count)]
+
+
+TWO_QUICK_SHOTS = (*STILL, DOWN, DOWN, UP, DOWN, DOWN)
 
 
 def test_the_default_cooldown_blocks_an_instant_second_shot(client: TestClient, detectors):
-    up, down = [make_hand(thumb_up=True)], [make_hand(thumb_up=False)]
-    detectors.append(ScriptedDetector(up, up, up, up, down, up, down))
+    detectors.append(ScriptedDetector(*TWO_QUICK_SHOTS))
 
     with client.websocket_connect("/api/cv/stream") as ws:
         ws.receive_json()
-        assert _shots(ws, 7).count(True) == 1  # frames arrive milliseconds apart
+        assert _shots(ws, len(TWO_QUICK_SHOTS)).count(True) == 1  # frames arrive ms apart
 
 
 def test_a_shorter_cooldown_setting_allows_quick_shots(client: TestClient, detectors):
-    up, down = [make_hand(thumb_up=True)], [make_hand(thumb_up=False)]
-    detectors.append(ScriptedDetector(up, up, up, up, down, up, down))
+    detectors.append(ScriptedDetector(*TWO_QUICK_SHOTS))
 
     with client.websocket_connect("/api/cv/stream") as ws:
         ws.receive_json()
         ws.send_json({"type": "settings", "cooldownMs": 0})
         assert ws.receive_json() == {"type": "settings", "cooldownMs": 0}
-        assert _shots(ws, 7).count(True) == 2
+        assert _shots(ws, len(TWO_QUICK_SHOTS)).count(True) == 2
 
 
 @pytest.mark.parametrize("cooldown", [-1, 5000, "fast"])
@@ -468,3 +491,72 @@ def test_an_out_of_range_cooldown_is_refused(client: TestClient, detectors, cool
         ws.send_json({"type": "settings", "cooldownMs": cooldown})
 
         assert ws.receive_json()["type"] == "error"
+
+
+@pytest.fixture
+def recordings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    folder = tmp_path / "captures"
+    monkeypatch.setattr(cv_service, "RECORDINGS_DIR", folder)
+    monkeypatch.setattr(settings, "environment", "development")
+    return folder
+
+
+def test_a_recording_saves_each_frame_with_the_engine_measurements(
+    client: TestClient, detectors, recordings: Path
+):
+    detectors.append(ScriptedDetector(*STILL, DOWN, DOWN))
+    frames = [jpeg(), jpeg(80, 60)]
+
+    with client.websocket_connect("/api/cv/stream") as ws:
+        ws.receive_json()
+        _frames(ws, CALIBRATION_FRAMES)  # not recorded yet
+        ws.send_json({"type": "record", "on": True})
+        started = ws.receive_json()
+        for frame in frames:
+            ws.send_bytes(frame)
+            ws.receive_json()
+        ws.send_json({"type": "record", "on": False})
+        stopped = ws.receive_json()
+
+    (folder,) = recordings.iterdir()
+    assert started == {"type": "record", "on": True, "dir": str(folder)}
+    assert stopped == {"type": "record", "on": False, "dir": None}
+    assert [(folder / f"{k:05d}.jpg").read_bytes() for k in range(2)] == frames
+    rows = [json.loads(line) for line in (folder / "frames.jsonl").read_text().splitlines()]
+    assert [row["size"] for row in rows] == [[64, 48], [80, 60]]
+    assert rows[0]["reply"]["fired_at"] is None and rows[1]["reply"]["fired_at"] is not None
+    (hand,) = rows[1]["hands"]
+    assert hand["player"] is True and hand["cocked"] is False and hand["shot"] is True
+    assert hand["hammer_angle"] > 55 and hand["swapped"] is False and len(hand["palm"]) == 2
+    assert len(hand["reach"]) == 3 and len(hand["landmarks"]) == 21
+    assert rows[1]["duplicates"] == []
+
+
+def test_a_recording_ends_when_the_player_leaves(client: TestClient, detectors, recordings: Path):
+    detectors.append(ScriptedDetector([make_hand()]))
+
+    with client.websocket_connect("/api/cv/stream") as ws:
+        ws.receive_json()
+        ws.send_json({"type": "record", "on": True})
+        ws.receive_json()
+        ws.send_bytes(jpeg())
+        ws.receive_json()
+
+    (folder,) = recordings.iterdir()
+    assert len((folder / "frames.jsonl").read_text().splitlines()) == 1  # flushed and closed
+
+
+def test_a_production_server_never_records(
+    client: TestClient, detectors, recordings: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setattr(settings, "environment", "production")
+
+    with client.websocket_connect("/api/cv/stream") as ws:
+        ws.receive_json()
+        ws.send_json({"type": "record", "on": True})
+        reply = ws.receive_json()
+        ws.send_bytes(jpeg())
+        ws.receive_json()
+
+    assert reply == {"type": "record", "on": False, "dir": None}
+    assert not recordings.exists()

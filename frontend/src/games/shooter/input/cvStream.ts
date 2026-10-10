@@ -7,6 +7,8 @@ import type { Box } from "./box";
 export type CvMessage =
     | { type: "ready"; box: Box }
     | { type: "settings"; cooldownMs: number }
+    | { type: "record"; on: boolean; dir: string | null } // dir: where the server saves frames
+    | { type: "recenter" }
     | { type: "error"; detail: string }
     | CvFrame;
 

@@ -209,7 +209,7 @@ interface Epilogue {
 }
 
 // --- cv (finger detection; protocol in SHOOTER_CV.md → Wire protocol) ---
-type Tracking = "ok" | "noPose" | "lost";
+type Tracking = "ok" | "noPose" | "lost" | "calibrating";
 type GamePoint = [number, number]; // game area 0..1, x already mirrored
 interface CvStatus {
     available: boolean;
@@ -223,7 +223,7 @@ interface CvFrame {
     aim: GamePoint | null;
     firedAt: GamePoint | null; // set on the frame a shot fires
     landmarks: GamePoint[] | null; // 21 points for drawing the hand
-    thumbDistance: number | null; // metres
+    thumbAngle: number | null; // degrees from straight up
     processingMs: number;
 }
 // client → server control messages on the stream
@@ -428,7 +428,7 @@ cannot spend them, by construction:
 | AI plumbing (`ai.py`) | pytest with a fake OpenAI client object | Key order, dead-key marking, daily cap, timeout → fallback, error mapping, all without the network |
 | Story features | pytest with `FakeAI` | A cache hit doesn't call `FakeAI` again (assert the call count); fallback content when `FakeAI` raises; 404 and 409 rules |
 | Endings | pytest | Every tier boundary: 24/25, 44/45, 64/65, 84/85 |
-| Finger detection | pytest | Gesture rules on synthetic hands; the WebSocket contract with a scripted detector; the real model on a photo (skipped without the model) |
+| Finger detection | pytest | Gesture rules on synthetic hands and replayed webcam recordings; the WebSocket contract with a scripted detector; the real model on photos (skipped without the model) |
 | Frontend logic | vitest (in `make check`) | Shooter depth, hit test, score, spawn, box fitting, `cvStream`, `FramePacer`, and the input lifecycle against a fake camera and WebSocket; next: blackjack rules, `run.ts` |
 | Docker smoke | `scripts/smoke.sh` | Read-only GETs only, never a story POST. CI has no keys, so no AI call can happen |
 | Performance (game) | Real browser on the demo laptop and the weakest team laptop, camera on | Game frame rate. Never in a browser on the VM or in CI: neither has a GPU, so the browser falls back to software rendering and the numbers mean nothing |
@@ -484,7 +484,7 @@ announce it to the team first.
   browser running *inside* the VM (remote desktop): it has no GPU and no webcam.
 - **The VM does run finger detection** (#13): about one CPU core per camera
   player at 30 frames per second, capped by `CV_MAX_SESSIONS` (default 4). Each
-  player uploads one ~10 KB JPEG per camera frame (about 2–4 Mbit/s) and waits
+  player uploads one ~46 KB JPEG per camera frame (640 px, about 11 Mbit/s) and waits
   for the answer, so the round trip shapes the aim's latency. The best demo
   setup runs `make prod` on the demo laptop itself; otherwise measure the VM
   with `make cv-check URL=...` from the venue (SHOOTER_CV.md → Demo setup).

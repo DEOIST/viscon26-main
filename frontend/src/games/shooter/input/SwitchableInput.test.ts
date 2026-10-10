@@ -178,7 +178,7 @@ describe("SwitchableInput", () => {
             aim: [0.5, 0.4],
             firedAt: [0.45, 0.4],
             landmarks: null,
-            thumbDistance: 0.02,
+            thumbAngle: 20,
             processingMs: 9,
         });
 
@@ -186,6 +186,46 @@ describe("SwitchableInput", () => {
         expect(input.aim).toEqual({ x: 0.5, y: 0.4 });
         expect(input.takeShots()).toEqual([{ x: 0.45, y: 0.4 }]);
         expect(input.takeShots()).toEqual([]);
+    });
+
+    it("keeps the camera image invisible: the game draws its own backdrop", async () => {
+        useCamera(() => Promise.resolve(cameraStream(new FakeTrack())));
+        new SwitchableInput(fakeParent(), null);
+        await settle();
+
+        expect(videos[0].style).toMatchObject({ opacity: "0", width: "1px" });
+    });
+
+    it("starts and stops a recording with R once the engine confirms it", async () => {
+        useCamera(() => Promise.resolve(cameraStream(new FakeTrack())));
+        const input = new SwitchableInput(fakeParent(), null);
+        await settle();
+        const socket = FakeSocket.instances[0];
+
+        keydown?.({ key: "r" });
+        expect(input.recording).toBe(false); // not until the engine says so
+        socket.receive({ type: "record", on: true, dir: "/tmp/captures/1" });
+        expect(input.recording).toBe(true);
+        keydown?.({ key: "R" });
+        socket.receive({ type: "record", on: false, dir: null });
+
+        expect(input.recording).toBe(false);
+        expect(socket.sentMessages()).toEqual([
+            { type: "record", on: true },
+            { type: "record", on: false },
+        ]);
+    });
+
+    it("asks the engine to recalibrate the aim with C", async () => {
+        useCamera(() => Promise.resolve(cameraStream(new FakeTrack())));
+        new SwitchableInput(fakeParent(), null);
+        await settle();
+
+        keydown?.({ key: "c" });
+
+        expect(FakeSocket.instances[0].sentMessages()).toEqual([
+            { type: "recenter" },
+        ]);
     });
 
     it("falls back to the mouse when the camera is unplugged", async () => {
