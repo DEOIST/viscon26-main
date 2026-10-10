@@ -1,5 +1,11 @@
 # Game design: ETH Life (working title)
 
+> **Current level 1 change:** Bug Bash replaces the finger-gun gameplay. See
+> [BUG_BASH.md](BUG_BASH.md) for the current gestures, scoring, visuals, fullscreen,
+> `/api/cv/stream` field additions and local verification status. Original shooter
+> descriptions below are historical reference.
+
+
 What we are building, for everyone on the team: code, art and pitch. How it is
 built is in [ARCHITECTURE.md](ARCHITECTURE.md), the finger-gun computer vision
 in [SHOOTER_CV.md](SHOOTER_CV.md), the tools in [STACK.md](STACK.md).
@@ -201,17 +207,28 @@ side: the code is in `frontend/level3/`.
 
 ## Endings
 
-The average of the two minigame scores picks the career. The server computes it
-(`backend/app/services/endings.py`): thresholds are constants in one place, and
-every boundary has a pytest case.
+Each year pays its 60 ECTS in proportion to its minigame score (0–100), rounded
+half up: 72 points in a year earn 43 ECTS. Finishing all three years graduates
+you, and your share of the 180 ECTS picks the career. Replaying a finished year
+does not change its credits. The tiers live in one place,
+`shared/game-config.json` (`endings`), read by the year shell
+(`frontend/src/config.ts` `endingFor`) and the backend
+(`backend/app/services/endings.py`, `shell_config.py` `earned_ects`). Every
+boundary has a test on both sides. The legacy `/graduation` page picks the tier
+from its run's average score the same way.
 
-| Average | Ending id | Career | Epilogue tone |
+| Share of ECTS | Ending id | Career | Epilogue tone |
 |---|---|---|---|
-| 85–100 | `c_level` | C-level executive | Absurd success, private jet to Davos |
-| 65–84 | `big_tech` | Big-tech engineer in Zürich | Free lunch, endless reorgs |
-| 45–64 | `phd` | Eternal PhD student | Year 7, "one more paper" |
+| 85–100 | `quant` | Quant researcher in Zug | Card counting was a transferable skill, unexplainable bonus |
+| 65–84 | `phd` | PhD student at ETH, year 7 | Pizza-box doctoral hat, "one more paper" |
+| 45–64 | `masters` | Master's student at ETH (again) | Left the main building for 4 minutes, enrolled again |
 | 25–44 | `mcdonalds` | McDonald's at Zürich HB | Best fries throughput in the canton |
-| 0–24 | `unemployed` | Unemployed in a 6-person WG | Still looking for a flat |
+| 0–24 | `homeless` | Homeless in Zürich | Lost the housing lottery, cardboard CV |
+
+The diploma (`components/Diploma.tsx` in the year shell, `components/graduation/Diploma.tsx`
+on the legacy page) shows the career, its photo from `frontend/src/assets/endings/`
+with a fake Latin grade stamp and your avatar (`components/common/EndingPhoto.tsx`),
+and salary and housing jokes (`misc/endingArt.ts`).
 
 All of this is parody: no real company logos anywhere (UI or generated art),
 and no official ETH logo.

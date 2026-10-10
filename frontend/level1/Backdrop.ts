@@ -1,203 +1,172 @@
-// The shooter's backdrop instead of the webcam image: a near-black exam-hall corridor that lives
-// with the round. Floor and ceiling grids scroll toward the player, dust streams out of the
-// vanishing point and the horizon glows. Every shot sends a shockwave through it and flashes the
-// glow; a hit streak warms the colours from cold blue to magenta, and the final seconds pulse red.
-// One Graphics object redrawn per frame with plain shapes, so it runs on Canvas too (no shaders,
-// no gradients) and adds no sprites to the scene's budget.
-
+// A restrained editor backdrop: scrolling syntax-colored code, quiet chrome and a minimap.
 import { GAME_HEIGHT, GAME_WIDTH } from "./gameSize";
-import { HORIZON_Y } from "./depth";
 import type { GameObjects, Scene } from "phaser";
 
-const BLACK = 0x05060b;
-const CALM = 0x2f6bff; // grid and glow at rest
-const HOT = 0xff3d9a; // a long hit streak
-const ALARM = 0xff2a2a; // the final seconds
-const STREAK_FOR_HOT = 8;
-const ENERGY_HALF_LIFE_MS = 280; // how fast a shot's flash fades
-const ROWS_PER_SECOND = 0.35; // floor scroll at rest; shots speed it up
-const FLOOR_ROWS = 12;
-const LANES = 7; // on each side of the centre
-const DUST = 48;
-const WAVE_MS = 700;
-const MAX_WAVES = 6;
-const ALARM_BEATS_PER_SECOND = 1.6;
-
-const HORIZON = HORIZON_Y * GAME_HEIGHT;
-const CENTER_X = GAME_WIDTH / 2;
-const DUST_REACH = Math.hypot(CENTER_X, GAME_HEIGHT - HORIZON);
+const CALM = 0x648fc6;
+const HOT = 0xa48bbf;
+const ALARM = 0xd97278;
+const ROW_HEIGHT = 31;
+const CODE: [string, string][] = [
+    ["// a little focus. a little less chaos.", "#667b75"],
+    ["import { build, deploy } from './workspace';", "#a590c2"],
+    ["", "#8994a6"],
+    ["export async function shipRelease() {", "#8faecc"],
+    ["  const project = await workspace.open();", "#adb6c5"],
+    ["  const release = build(project);", "#adb6c5"],
+    ["", "#8994a6"],
+    ["  // remove anything that shouldn't be here", "#667b75"],
+    ["  for (const bug of release.bugs) {", "#a590c2"],
+    ["    await bug.remove();", "#b6a886"],
+    ["  }", "#8994a6"],
+    ["", "#8994a6"],
+    ["  const checks = await release.validate();", "#adb6c5"],
+    ["  if (checks.passed) {", "#a590c2"],
+    ["    protect(release.workingCode);", "#8ba99b"],
+    ["    await deploy(release);", "#8faecc"],
+    ["  }", "#8994a6"],
+    ["", "#8994a6"],
+    ["  return { status: 'ready to ship' };", "#b6a886"],
+    ["}", "#8994a6"],
+    ["", "#8994a6"],
+    ["// keep going. you're making progress.", "#667b75"],
+];
 
 export interface Mood {
-    streak: number; // hits in a row
-    isFinalStretch: boolean; // the last seconds of the round
-}
-
-interface Wave {
-    x: number;
-    y: number;
-    color: number;
-    strength: number;
-    ageMs: number;
-}
-
-interface Mote {
-    angle: number;
-    distance: number; // 0 at the vanishing point, 1 at the screen corners
-    speed: number;
+    streak: number;
+    isFinalStretch: boolean;
+    isAdvancing?: boolean;
 }
 
 export default class Backdrop {
     private readonly graphics: GameObjects.Graphics;
-    private readonly dust: Mote[];
-    private waves: Wave[] = [];
-    private energy = 0; // 0..1: kicked by shots, fades by itself
-    private flash = CALM; // colour of the latest kick
-    private scroll = 0;
-    private elapsedMs = 0;
+    private readonly rows: {
+        code: GameObjects.Text;
+        number: GameObjects.Text;
+    }[] = [];
+    private readonly progress: GameObjects.Text;
+    private distance = 0;
+    private energy = 0;
+    private flash = CALM;
 
     constructor(scene: Scene) {
-        this.graphics = scene.add.graphics().setDepth(-1);
-        this.dust = Array.from({ length: DUST }, () => newMote(Math.random()));
+        this.graphics = scene.add.graphics().setDepth(-20);
+        const label = (
+            x: number,
+            y: number,
+            text: string,
+            size: number,
+            color: string,
+        ) =>
+            scene.add
+                .text(x, y, text, {
+                    fontFamily: "monospace",
+                    fontSize: `${size}px`,
+                    color,
+                })
+                .setDepth(-19);
+        // The game's title occupies the top bar; keep the editor chrome below it.
+        label(26, 66, "WORKSPACE", 11, "#69788f");
+        label(26, 115, "⌄  bug-bash", 13, "#a7b2c3");
+        label(39, 156, "⌄ src", 12, "#7e8ba1");
+        label(54, 191, "main.ts", 12, "#b1c0d3");
+        label(54, 222, "bugs.ts", 12, "#718198");
+        label(54, 253, "release.ts", 12, "#718198");
+        label(39, 296, "› tests", 12, "#718198");
+        label(39, 331, "package.json", 12, "#718198");
+        label(215, 64, "TS", 12, "#79a1cc");
+        label(244, 64, "main.ts", 13, "#c3cbd8");
+        label(362, 64, "bugs.ts", 13, "#647189");
+        label(213, 97, "src  /  main.ts  /  shipRelease", 11, "#55647b");
+        const clip = scene.make.graphics({ x: 0, y: 0 });
+        clip.fillStyle(0xffffff).fillRect(195, 121, 950, 445);
+        const mask = clip.createGeometryMask();
+        for (let row = 0; row < 17; row += 1) {
+            const code = label(256, 130, "", 16, "#9aa7b8").setMask(mask);
+            const number = label(213, 130, "", 12, "#435168")
+                .setOrigin(1, 0)
+                .setMask(mask);
+            this.rows.push({ code, number });
+        }
+        scene.events.once("shutdown", () => {
+            mask.destroy();
+            clip.destroy();
+        });
+        label(214, 590, "TERMINAL", 10, "#8293aa");
+        label(310, 590, "OUTPUT", 10, "#46576f");
+        label(214, 620, "› watching workspace for changes", 12, "#6d9684");
+        this.progress = label(968, 591, "line 1", 11, "#62758e");
+        label(21, GAME_HEIGHT - 20, "main  ·  TypeScript", 10, "#8a9cb2");
+        label(
+            GAME_WIDTH - 188,
+            GAME_HEIGHT - 20,
+            "UTF-8     LF     TS",
+            10,
+            "#667c97",
+        );
     }
 
-    // A shockwave from (x, y) in game pixels and a flash of `color`; strength 0..1.
-    pulse(x: number, y: number, color: number, strength: number) {
+    pulse(_x: number, _y: number, color: number, strength: number) {
         this.energy = Math.min(1, this.energy + strength);
         this.flash = color;
-        this.waves.push({ x, y, color, strength, ageMs: 0 });
-        if (this.waves.length > MAX_WAVES) this.waves.shift();
     }
 
     update(deltaMs: number, mood: Mood) {
-        this.elapsedMs += deltaMs;
-        this.energy *= 0.5 ** (deltaMs / ENERGY_HALF_LIFE_MS);
-        const speedUp = 1 + 4 * this.energy + (mood.isFinalStretch ? 0.6 : 0);
-        this.scroll =
-            (this.scroll + (deltaMs / 1000) * ROWS_PER_SECOND * speedUp) % 1;
-        const beat = mood.isFinalStretch
-            ? (Math.sin(
-                  (this.elapsedMs / 1000) *
-                      ALARM_BEATS_PER_SECOND *
-                      2 *
-                      Math.PI,
-              ) +
-                  1) /
-              2
-            : 0;
-        const tone = mixColor(
-            moodColor(
-                mood.streak,
-                mood.isFinalStretch ? 0.35 + 0.45 * beat : 0,
-            ),
-            this.flash,
-            this.energy,
+        this.energy *= 0.5 ** (deltaMs / 220);
+        if (mood.isAdvancing) this.distance += (deltaMs / 1000) * 12;
+        const line = Math.floor(this.distance / ROW_HEIGHT);
+        const offset = this.distance % ROW_HEIGHT;
+        this.rows.forEach(({ code, number }, index) => {
+            const [text, color] = CODE[(line + index) % CODE.length];
+            const y = 128 + index * ROW_HEIGHT - offset;
+            // Code remains legible and parallel; advancing through the file supplies motion.
+            code.setText(text)
+                .setColor(color)
+                .setPosition(256, y)
+                .setAlpha(0.42);
+            number
+                .setText(String(line + index + 1))
+                .setPosition(234, y)
+                .setAlpha(0.7);
+        });
+        this.progress.setText(`line ${line + 1}   →`);
+        const g = this.graphics;
+        g.clear();
+        g.fillStyle(0x0c111b).fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+        g.fillStyle(0x141c29).fillRect(0, 0, GAME_WIDTH, 46);
+        g.fillStyle(0x101723).fillRect(0, 46, 180, GAME_HEIGHT - 46);
+        g.fillStyle(0x111925).fillRect(181, 46, GAME_WIDTH - 181, 42);
+        g.fillStyle(0x172335).fillRect(194, 46, 140, 42);
+        g.fillStyle(0x709cc3).fillRect(194, 86, 140, 2);
+        g.fillStyle(0x1a293d, 0.6).fillRoundedRect(30, 180, 136, 30, 4);
+        g.lineStyle(1, 0x202c3f, 0.7);
+        g.lineBetween(180, 46, 180, GAME_HEIGHT - 28);
+        g.lineBetween(181, 576, GAME_WIDTH, 576);
+        g.fillStyle(0x0d1420).fillRect(181, 577, GAME_WIDTH - 181, 75);
+        g.fillStyle(0x142035).fillRect(0, GAME_HEIGHT - 28, GAME_WIDTH, 28);
+        // A subdued editor minimap and a travelling scrollbar, rather than perspective wires.
+        for (let row = 0; row < 70; row += 1) {
+            const width = 12 + ((row * 19) % 45);
+            g.fillStyle(row % 4 === 0 ? 0x768e83 : 0x697c99, 0.13);
+            g.fillRect(1178 + (row % 3) * 4, 125 + row * 5.4, width, 2);
+        }
+        g.fillStyle(0x8fa5c5, 0.15);
+        g.fillRoundedRect(1268, 128 + ((this.distance * 0.17) % 280), 4, 78, 2);
+        g.fillStyle(
+            mood.isFinalStretch ? ALARM : this.flash,
+            this.energy * 0.045,
         );
-
-        const graphics = this.graphics;
-        graphics.clear();
-        graphics.fillStyle(BLACK, 1);
-        graphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-        graphics.fillStyle(tone, 0.04 + 0.08 * this.energy + 0.04 * beat);
-        graphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-        this.drawGlow(tone, beat);
-        this.drawGrid(tone);
-        this.drawDust(deltaMs, tone, speedUp);
-        this.drawWaves(deltaMs);
-    }
-
-    // Stacked translucent ellipses: brightest where they all overlap, at the vanishing point.
-    private drawGlow(tone: number, beat: number) {
-        const alpha = 0.05 + 0.07 * this.energy + 0.03 * beat;
-        for (let ring = 0; ring < 6; ring += 1) {
-            this.graphics.fillStyle(tone, alpha);
-            this.graphics.fillEllipse(
-                CENTER_X,
-                HORIZON,
-                GAME_WIDTH * (1.5 - ring * 0.24),
-                GAME_HEIGHT * (0.55 - ring * 0.085),
-            );
-        }
-        this.graphics.lineStyle(2, tone, 0.35 + 0.5 * this.energy);
-        this.graphics.lineBetween(0, HORIZON, GAME_WIDTH, HORIZON);
-    }
-
-    private drawGrid(tone: number) {
-        const graphics = this.graphics;
-        const glow = 0.25 * this.energy;
-        graphics.lineStyle(2, tone, 0.12 + glow);
-        for (let lane = -LANES; lane <= LANES; lane += 1)
-            graphics.lineBetween(
-                CENTER_X + lane * 22,
-                HORIZON,
-                CENTER_X + lane * 190,
-                GAME_HEIGHT,
-            );
-        // Rows bunch up toward the horizon (perspective) and scroll toward the player.
-        for (let row = 0; row < FLOOR_ROWS; row += 1) {
-            const near = (row + this.scroll) / FLOOR_ROWS;
-            const floorY = HORIZON + (GAME_HEIGHT - HORIZON) * near * near;
-            graphics.lineStyle(2, tone, 0.04 + 0.26 * near + glow);
-            graphics.lineBetween(0, floorY, GAME_WIDTH, floorY);
-            const ceilingY = HORIZON - HORIZON * near * near;
-            graphics.lineStyle(1, tone, 0.02 + 0.1 * near + glow / 2);
-            graphics.lineBetween(0, ceilingY, GAME_WIDTH, ceilingY);
-        }
-    }
-
-    private drawDust(deltaMs: number, tone: number, speedUp: number) {
-        const graphics = this.graphics;
-        for (const mote of this.dust) {
-            mote.distance +=
-                (deltaMs / 1000) *
-                mote.speed *
-                speedUp *
-                (0.15 + mote.distance);
-            if (mote.distance > 1) Object.assign(mote, newMote(0.02));
-            const x =
-                CENTER_X + Math.cos(mote.angle) * mote.distance * DUST_REACH;
-            const y =
-                HORIZON +
-                Math.sin(mote.angle) * mote.distance * DUST_REACH * 0.7;
-            graphics.fillStyle(
-                mixColor(tone, 0xffffff, 0.5),
-                0.15 + 0.55 * mote.distance,
-            );
-            graphics.fillCircle(x, y, 0.6 + 2.6 * mote.distance);
-        }
-    }
-
-    private drawWaves(deltaMs: number) {
-        for (const wave of this.waves) wave.ageMs += deltaMs;
-        this.waves = this.waves.filter((wave) => wave.ageMs < WAVE_MS);
-        for (const wave of this.waves) {
-            const progress = wave.ageMs / WAVE_MS;
-            const radius = (1 - (1 - progress) ** 3) * 520 * wave.strength + 20;
-            this.graphics.lineStyle(
-                2 + 6 * (1 - progress),
-                wave.color,
-                0.7 * wave.strength * (1 - progress),
-            );
-            this.graphics.strokeCircle(wave.x, wave.y, radius);
-        }
+        g.fillRect(181, 89, GAME_WIDTH - 181, 487);
     }
 }
 
-function newMote(distance: number): Mote {
-    return {
-        angle: Math.random() * 2 * Math.PI,
-        distance,
-        speed: 0.12 + Math.random() * 0.25,
-    };
-}
-
-// The resting colour: cold blue, warming toward magenta with the streak, pulled toward red by
-// `alarm` (0..1) in the final seconds.
 export function moodColor(streak: number, alarm: number): number {
-    const warmth = Math.min(1, Math.max(0, streak) / STREAK_FOR_HOT);
-    return mixColor(mixColor(CALM, HOT, warmth), ALARM, alarm);
+    return mixColor(
+        mixColor(CALM, HOT, Math.min(1, Math.max(0, streak) / 8)),
+        ALARM,
+        alarm,
+    );
 }
 
-// Linear blend of two 0xRRGGBB colours; t = 0 gives `from`, 1 gives `to`.
 export function mixColor(from: number, to: number, t: number): number {
     const amount = Math.min(1, Math.max(0, t));
     let mixed = 0;

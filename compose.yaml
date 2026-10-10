@@ -1,4 +1,5 @@
-# Local development: docker compose up --build, then open http://localhost:5173.
+# docker compose up --build, then open http://localhost:8080 (or https://localhost via Caddy).
+# On the VIScon VM, set SITE_ADDRESS=18-direct.viscon-hackathon.ch in .env next to this file.
 # Source is copied into images; no bind mount can hide installed dependencies.
 services:
   db:
@@ -62,7 +63,7 @@ services:
     environment:
       API_PROXY_TARGET: http://backend:8000
     ports:
-      - "127.0.0.1:${FRONTEND_PORT:-5173}:5173"
+      - "8080:5173"
     depends_on:
       backend:
         condition: service_healthy
@@ -72,6 +73,27 @@ services:
       timeout: 3s
       retries: 20
     restart: unless-stopped
+  caddy:
+    # HTTPS in front of the frontend (deploy/Caddyfile). The hackathon's managed proxy doesn't
+    # support WebSockets, which the camera stream needs, so the VM serves itself on its direct
+    # address. Locally SITE_ADDRESS defaults to localhost with Caddy's own self-signed certificate.
+    image: public.ecr.aws/docker/library/caddy:2-alpine
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+    ports:
+      - "${CADDY_HTTP_PORT:-80}:80"
+      - "${CADDY_HTTPS_PORT:-443}:443"
+      - "${CADDY_HTTPS_PORT:-443}:443/udp" # HTTP/3
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data # certificates: keep them, Let's Encrypt rate-limits reissuing
+      - caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+    restart: unless-stopped
 volumes:
   postgres_data:
   redis-data:
+  caddy_data:
+  caddy_config:

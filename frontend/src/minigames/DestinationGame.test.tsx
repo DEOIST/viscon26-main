@@ -124,9 +124,10 @@ describe("independent destination minigame adapter", () => {
         GAMES[0].implemented = true;
         render(<DestinationGame {...args} />);
         const implemented = mount.mock.calls[1][0] as MinigameOptions;
-        implemented.onFinish({ score: 100, stats: {} });
+        implemented.onFinish({ score: 72, stats: {} });
         implemented.onFinish({ score: 100, stats: {} });
         expect(onComplete).toHaveBeenCalledOnce();
+        expect(onComplete).toHaveBeenCalledWith(72);
     });
 });
 

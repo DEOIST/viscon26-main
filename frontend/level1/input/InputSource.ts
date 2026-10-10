@@ -9,6 +9,7 @@ export interface AimPoint {
 }
 
 export interface InputSource {
+    readonly pinching?: boolean;
     readonly mode: "camera" | "mouse";
     readonly aim: AimPoint | null;
     readonly tracking: Tracking;

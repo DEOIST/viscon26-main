@@ -3,13 +3,13 @@ import { pickTargetKind, spawnIntervalMs } from "./spawn";
 import { SPAWN_EVERY_MS_END, SPAWN_EVERY_MS_START } from "./config";
 
 describe("pickTargetKind", () => {
-    it("spawns 70 % questions, 20 % deadlines and 10 % coffee", () => {
+    it("spawns 72 % bugs and 28 % code bombs", () => {
         expect(pickTargetKind(0)).toBe("question");
-        expect(pickTargetKind(0.69)).toBe("question");
-        expect(pickTargetKind(0.7)).toBe("deadline");
+        expect(pickTargetKind(0.719)).toBe("question");
+        expect(pickTargetKind(0.72)).toBe("deadline");
         expect(pickTargetKind(0.89)).toBe("deadline");
-        expect(pickTargetKind(0.9)).toBe("coffee");
-        expect(pickTargetKind(0.999)).toBe("coffee");
+        expect(pickTargetKind(0.9)).toBe("deadline");
+        expect(pickTargetKind(0.999)).toBe("deadline");
     });
 });
 
