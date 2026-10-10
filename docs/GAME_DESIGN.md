@@ -101,6 +101,13 @@ new "over 21"; landing on it three times is the new blackjack.
   dealer wins. Otherwise more balls wins; equal counts push.
 - **Score:** `clamp(round(50 × chips / 1000), 0, 100)`: keep your money = 50,
   double it = 100, broke = 0. The result's `stats` are `bankroll` and `hands`.
+- **Your seat:** the character you built sits in the bottom-right portrait,
+  animated. Idle, it breathes, sways, blinks and glances around; when a hand goes
+  wrong (a red ball on your board, three yellow on the dealer's, or fewer balls)
+  it cries, and when it goes right it throws its arms up, jumps and sprays
+  confetti, with a spin for a blackjack. The mood settles at the next hand. The
+  shapes are shared with the builder's portrait (`frontend/src/avatarArt.ts`);
+  the moods live in `frontend/level2/PlayerAvatar.ts`.
 - **Dealer lines** (AI dialogue event keys): `intro`, `deal`, `playerBlackjack`,
   `playerBust`, `dealerBust`, `win`, `lose`, `push`, `broke`, and `cashOut`
   (said when you finish the ten hands ahead). Without a dialogue pack the game

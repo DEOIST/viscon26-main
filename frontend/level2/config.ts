@@ -23,3 +23,13 @@ export const BALL_GAP_MS = 110; // between balls leaving one card
 export const HOP_MS = 72; // pin to pin
 export const FUNNEL_MS = 260;
 export const DEALER_LINE_MS = 5000; // how long a dealer line stays on the table
+
+// The player's avatar (PlayerAvatar.ts).
+// Texture pixels per avatar unit. The seat is ~0.6 canvas px per unit, so 1 leaves headroom.
+export const AVATAR_TEXTURE_SCALE = 1;
+export const BLINK_MS = 130;
+export const FIDGET_MS = { min: 2200, max: 5200 }; // between blinks and glances while idle
+// How long a mood lasts before the avatar calms down; the next hand ends it anyway.
+export const CRY_MS = 7000;
+export const CELEBRATE_MS = 6000;
+export const BIG_CELEBRATE_MS = 8000; // a blackjack, or leaving the table ahead

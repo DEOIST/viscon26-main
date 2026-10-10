@@ -139,7 +139,8 @@ The tree shows the target. *(planned)* marks parts that don't exist yet.
 │   ├── level2/                   Level 2, Galton Blackjack (Phaser 4, 2D): index.ts (mountBlackjack),
 │   │                             rules.ts + rules.test.ts, board.ts, config.ts, lines.ts,
 │   │                             BlackjackScene.ts, BoardView.ts, CardView.ts, layout.ts, textures.ts,
-│   │                             ui.ts, assets/ (sprite sheets)
+│   │                             ui.ts, avatar.ts + avatar.test.ts and PlayerAvatar.ts (the player's
+│   │                             animated character), assets/ (sprite sheets)
 │   ├── template.html             HTML shell for every page ({{page}}, {{css}} placeholders)
 │   ├── package.json  tsconfig.json  .prettierrc  .nvmrc
 │   ├── public/                   copied verbatim to dist/static/ → served at /static/<file>

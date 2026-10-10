@@ -7,7 +7,19 @@
 // loader accepts in place of a URL. That works unchanged in both bundlers (esbuild and Vite).
 
 import type { Scene } from "phaser";
-import { BLACKJACK_YELLOWS, DEALER_STANDS_AT } from "./config";
+import {
+    AVATAR_PARTS,
+    AVATAR_TEXTURE,
+    avatarKey,
+    avatarLayers,
+    VIEW,
+} from "./avatar";
+import type { AvatarLook, AvatarPart } from "./avatar";
+import {
+    AVATAR_TEXTURE_SCALE,
+    BLACKJACK_YELLOWS,
+    DEALER_STANDS_AT,
+} from "./config";
 import { BELT, CENTER, HEIGHT, WIDTH } from "./layout";
 
 import backJson from "./assets/back.json";
@@ -56,6 +68,51 @@ export const COLORS = {
 
 export function loadAssets(scene: Scene) {
     for (const [key, png, json] of ATLASES) scene.load.atlas(key, png, json);
+}
+
+// The player's character: the loader rasterizes one SVG per part (avatar.ts), then
+// packAvatar() copies them into a single texture with one frame per part, so the avatar costs
+// one texture binding however many parts it has.
+export function loadAvatar(scene: Scene, look: AvatarLook) {
+    const size = {
+        width: VIEW.w * AVATAR_TEXTURE_SCALE,
+        height: VIEW.h * AVATAR_TEXTURE_SCALE,
+    };
+    for (const [part, svg] of Object.entries(avatarLayers(look))) {
+        if (!svg) continue;
+        // Phaser's loader reads every data URL as base64; the markup is plain ASCII.
+        const url = `data:image/svg+xml;base64,${btoa(svg)}`;
+        scene.load.svg(avatarKey(part as AvatarPart), url, size);
+    }
+}
+
+// Returns false when the parts did not load (the seat then shows the stand-in portrait).
+export function packAvatar(scene: Scene): boolean {
+    const parts = AVATAR_PARTS.filter((part) =>
+        scene.textures.exists(avatarKey(part)),
+    );
+    if (scene.textures.exists(AVATAR_TEXTURE)) return true;
+    if (!parts.includes("head") || !parts.includes("body")) return false;
+    const w = VIEW.w * AVATAR_TEXTURE_SCALE;
+    const h = VIEW.h * AVATAR_TEXTURE_SCALE;
+    const columns = 6;
+    const texture = scene.textures.createCanvas(
+        AVATAR_TEXTURE,
+        columns * w,
+        Math.ceil(parts.length / columns) * h,
+    );
+    if (!texture) return false;
+    const ctx = texture.getContext();
+    parts.forEach((part, i) => {
+        const x = (i % columns) * w;
+        const y = Math.floor(i / columns) * h;
+        const source = scene.textures.get(avatarKey(part)).getSourceImage();
+        ctx.drawImage(source as CanvasImageSource, x, y, w, h);
+        texture.add(part, 0, x, y, w, h);
+        scene.textures.remove(avatarKey(part));
+    });
+    texture.refresh();
+    return true;
 }
 
 function canvas(
@@ -123,6 +180,24 @@ export function makeTextures(scene: Scene) {
     canvas(scene, "avatar-player", 200, 200, (ctx) =>
         drawAvatar(ctx, "#2d3a7a", "#4f63c2"),
     );
+    // The empty portrait the player's character sits in (PlayerAvatar).
+    canvas(scene, "avatar-frame", 200, 200, (ctx) =>
+        drawAvatar(ctx, "#2d3a7a", "#4f63c2", false),
+    );
+
+    canvas(scene, "tear", 14, 20, (ctx) => {
+        ctx.fillStyle = "#8fd3ff";
+        ctx.beginPath();
+        ctx.moveTo(7, 0);
+        ctx.quadraticCurveTo(14, 10, 14, 13);
+        ctx.arc(7, 13, 7, 0, Math.PI);
+        ctx.quadraticCurveTo(0, 10, 7, 0);
+        ctx.fill();
+        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+        ctx.beginPath();
+        ctx.ellipse(5, 13, 1.6, 2.6, 0.3, 0, Math.PI * 2);
+        ctx.fill();
+    });
 }
 
 function drawFelt(ctx: CanvasRenderingContext2D) {
@@ -216,6 +291,7 @@ function drawAvatar(
     ctx: CanvasRenderingContext2D,
     dark: string,
     light: string,
+    silhouette = true,
 ) {
     const g = ctx.createLinearGradient(0, 0, 0, 200);
     g.addColorStop(0, light);
@@ -225,18 +301,20 @@ function drawAvatar(
     ctx.arc(100, 100, 92, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(100, 100, 92, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.fillStyle = "rgba(255, 246, 236, 0.92)";
-    ctx.beginPath();
-    ctx.arc(100, 82, 34, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(100, 182, 62, 52, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    if (silhouette) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(100, 100, 92, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.fillStyle = "rgba(255, 246, 236, 0.92)";
+        ctx.beginPath();
+        ctx.arc(100, 82, 34, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(100, 182, 62, 52, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
 
     ctx.lineWidth = 8;
     ctx.strokeStyle = "#f5c451";
