@@ -16,7 +16,7 @@ from starlette.websockets import WebSocketDisconnect
 from app.config import settings
 from level1 import cv as cv_service
 from level1.config import cv_settings
-from level1.gesture import CALIBRATION_FRAMES, Hand
+from level1.gesture import CALIBRATION_FRAMES, COCKED_BELOW_DEG, TRIGGER_MIN_SAMPLES, Hand
 from level1.tests.hands import make_hand
 
 UP, DOWN = [make_hand(thumb_up=True)], [make_hand(thumb_up=False)]
@@ -232,6 +232,48 @@ def test_recenter_calibrates_the_aim_again(client: TestClient, detectors):
 
     assert reply == {"type": "recenter"}
     assert after[0]["tracking"] == "calibrating" and after[-1]["tracking"] == "ok"
+
+
+def test_trigger_calibration_over_the_stream(client: TestClient, detectors):
+    # A small drop (camera frames aren't square, so these angles read a little larger, still
+    # under the default 55 degrees): never fires until the trigger is calibrated
+    up, down = make_hand(thumb_degrees=10), make_hand(thumb_degrees=40)
+    held = TRIGGER_MIN_SAMPLES
+    tryout = [[up]] * 3 + [[down]] * 3
+    script = [[up]] * CALIBRATION_FRAMES + tryout + ([[up]] * held + [[down]] * held) * 2 + tryout
+    detectors.append(ScriptedDetector(*script))
+
+    with client.websocket_connect("/api/cv/stream") as ws:
+        ws.receive_json()
+        _frames(ws, CALIBRATION_FRAMES)
+        before = _frames(ws, len(tryout))
+        for step in ("up", "down", "up", "down"):
+            ws.send_json({"type": "trigger", "step": step})
+            assert ws.receive_json()["step"] == step
+            _frames(ws, held)
+        ws.send_json({"type": "trigger", "step": "done"})
+        done = ws.receive_json()
+        after = _frames(ws, len(tryout))
+
+    assert not any(frame["firedAt"] for frame in before)
+    assert done["type"] == "trigger" and done["ok"] is True and done["detail"] is None
+    assert done["thresholds"]["firedAboveDeg"] < 55
+    assert any(frame["firedAt"] for frame in after)
+
+
+def test_trigger_calibration_reports_why_it_failed(client: TestClient, detectors):
+    detectors.append(ScriptedDetector([make_hand()]))
+
+    with client.websocket_connect("/api/cv/stream") as ws:
+        ws.receive_json()
+        ws.send_json({"type": "trigger", "step": "done"})
+        early = ws.receive_json()
+        ws.send_json({"type": "trigger", "step": "sideways"})
+        bad = ws.receive_json()
+
+    assert early["ok"] is False and early["detail"]
+    assert early["thresholds"]["cockedBelowDeg"] == COCKED_BELOW_DEG  # the default stays
+    assert bad == {"type": "error", "detail": 'step must be "up", "down", "done" or "reset"'}
 
 
 def test_timestamps_given_to_the_detector_always_increase(client: TestClient, detectors):

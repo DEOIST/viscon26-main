@@ -74,7 +74,31 @@ class CvRecenterMessage(CamelModel):
     type: Literal["recenter"]
 
 
+class CvTriggerMessage(CamelModel):
+    """Trigger calibration (docs/SHOOTER_CV.md → Trigger calibration): "up" and "down" collect
+    the player's thumb in that position, "done" applies the result, "reset" restores the
+    default trigger."""
+
+    type: Literal["trigger"]
+    step: Literal["up", "down", "done", "reset"]
+
+
+class CvTriggerThresholds(CamelModel):
+    cocked_below_deg: float
+    fired_above_deg: float
+    upright_above: float
+    folded_below: float
+
+
+class CvTriggerReply(CamelModel):
+    type: Literal["trigger"] = "trigger"
+    step: Literal["up", "down", "done", "reset"]
+    ok: bool  # False when "done" couldn't tell up from down; the previous trigger stays
+    detail: str | None  # why not, for the player
+    thresholds: CvTriggerThresholds  # the trigger in use after this step
+
+
 CvControlMessage = Annotated[
-    CvBoxMessage | CvSettingsMessage | CvRecordMessage | CvRecenterMessage,
+    CvBoxMessage | CvSettingsMessage | CvRecordMessage | CvRecenterMessage | CvTriggerMessage,
     Field(discriminator="type"),
 ]

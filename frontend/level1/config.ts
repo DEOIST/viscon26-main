@@ -15,6 +15,30 @@ export const PRACTICE_POINTS = [
 ];
 export const PRACTICE_RADIUS = 105; // game pixels: generous, it's practice
 export const PRACTICE_MAX_SECONDS = 25;
+// Trigger calibration before the warm-up (camera only; docs/SHOOTER_CV.md → Trigger
+// calibration): thumb up, down, up, down, each held this long; then a few test shots. Enter
+// skips it, T runs it again during the warm-up.
+export const TRIGGER_STEPS: {
+    step: "up" | "down";
+    ms: number;
+    text: string;
+}[] = [
+    {
+        step: "up",
+        ms: 2000,
+        text: "Make the finger gun 👉 thumb UP, and hold it",
+    },
+    {
+        step: "down",
+        ms: 1500,
+        text: "Now SHOOT: drop your thumb and hold it down",
+    },
+    { step: "up", ms: 1500, text: "Thumb back UP, and hold it" },
+    { step: "down", ms: 1500, text: "SHOOT again: thumb down, hold it" },
+];
+export const TRIGGER_TEST_SHOTS = 3;
+export const TRIGGER_MAX_ATTEMPTS = 2; // then the default trigger, so nobody gets stuck
+export const TRIGGER_RETRY_MS = 2500; // how long a failure's reason shows before retrying
 export const PAR_POINTS = 420; // a good first-time player scores about 70
 export const MISS_PENALTY = 2;
 export const STREAK_FOR_BONUS = 3;

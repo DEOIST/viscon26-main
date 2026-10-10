@@ -31,6 +31,25 @@ export interface CvSettingsMessage {
 export interface CvRecenterMessage {
     type: "recenter"; // calibrate the aim's neutral position again
 }
+// Trigger calibration: "up"/"down" collect the thumb in that position, "done" applies the result,
+// "reset" restores the default trigger.
+export type TriggerStep = "up" | "down" | "done" | "reset";
+export interface CvTriggerMessage {
+    type: "trigger";
+    step: TriggerStep;
+}
+export interface CvTriggerReply {
+    type: "trigger";
+    step: TriggerStep;
+    ok: boolean; // false when "done" couldn't tell up from down; the previous trigger stays
+    detail: string | null; // why not, for the player
+    thresholds: {
+        cockedBelowDeg: number;
+        firedAboveDeg: number;
+        uprightAbove: number;
+        foldedBelow: number;
+    };
+}
 export interface CvRecordMessage {
     type: "record";
     on: boolean; // development servers only: saves the frames to backend/captures/
@@ -41,6 +60,7 @@ export type CvMessage =
     | { type: "settings"; cooldownMs: number }
     | { type: "record"; on: boolean; dir: string | null } // dir: where the server saves frames
     | { type: "recenter" }
+    | CvTriggerReply
     | { type: "error"; detail: string }
     | CvFrame;
 

@@ -56,6 +56,27 @@ THUMB_LENGTH_GROW = 0.5  # per frame, toward a longer upright thumb
 THUMB_LENGTH_SHRINK = 0.02  # per frame, toward a shorter one (~1.5 s): a fold barely moves it
 FIRE_CONFIRM_FRAMES = 2  # +1 frame (~33 ms) of latency; removes one-frame flickers
 
+
+@dataclass(frozen=True)
+class TriggerThresholds:
+    """When the hammer counts as cocked and as fallen. The defaults above fit most hands; a
+    player whose thumb barely moves (or rests tilted) gets their own from TriggerCalibration."""
+
+    cocked_below_deg: float = COCKED_BELOW_DEG
+    fired_above_deg: float = FIRED_ABOVE_DEG
+    upright_above: float = THUMB_UPRIGHT_ABOVE
+    folded_below: float = THUMB_FOLDED_BELOW
+
+
+DEFAULT_TRIGGER = TriggerThresholds()
+
+# Trigger calibration (docs/SHOOTER_CV.md → Trigger calibration): the game asks the player to
+# hold the thumb up, then down, and the thresholds go between the two. A position needs this many
+# finger-gun frames (~0.3 s); the two positions must differ by this much to be told apart.
+TRIGGER_MIN_SAMPLES = 10
+TRIGGER_MIN_ANGLE_GAP = 12.0  # degrees
+TRIGGER_MIN_LENGTH_GAP = 0.12  # fraction of the upright thumb length
+
 # A swap shows as an "index" that points straight up in the image and is extended; a real index
 # points at the camera and is foreshortened (reach ~1.0). On the recordings swapped frames read
 # 0–15 deg and reach 1.2–1.4.
@@ -217,16 +238,22 @@ class GunTracker:
         self._down_frames = 0  # consecutive frames with the hammer down while cocked
         self._upright_length: float | None = None  # learned thumb length, in knuckle spans
 
-    def update(self, hand: Hand, width: int, height: int) -> GunReading:
+    def update(
+        self, hand: Hand, width: int, height: int, trigger: TriggerThresholds = DEFAULT_TRIGGER
+    ) -> GunReading:
         pts = to_points(hand, width, height)
         swapped = labels_swapped(pts)
         angle = hammer_angle(pts)
         gun = is_gun(pts)
-        length = self._relative_length(thumb_length(pts), angle)
+        length = self._relative_length(thumb_length(pts), angle, trigger.cocked_below_deg)
 
         shot = False
-        upright = angle < COCKED_BELOW_DEG and (length is None or length > THUMB_UPRIGHT_ABOVE)
-        fallen = angle > FIRED_ABOVE_DEG or (length is not None and length < THUMB_FOLDED_BELOW)
+        upright = angle < trigger.cocked_below_deg and (
+            length is None or length > trigger.upright_above
+        )
+        fallen = angle > trigger.fired_above_deg or (
+            length is not None and length < trigger.folded_below
+        )
         if upright:
             self._cocked, self._down_frames = True, 0
         elif fallen and self._cocked:
@@ -254,12 +281,14 @@ class GunTracker:
             ),
         )
 
-    def _relative_length(self, length: float | None, angle: float) -> float | None:
+    def _relative_length(
+        self, length: float | None, angle: float, cocked_below_deg: float
+    ) -> float | None:
         """Learns the upright thumb length while the thumb points up, and returns this frame's
         length as a fraction of it (None before anything is learned, or when swapped)."""
         if length is None:
             return None
-        if angle < COCKED_BELOW_DEG:
+        if angle < cocked_below_deg:
             if self._upright_length is None:
                 self._upright_length = length
             else:
@@ -268,6 +297,72 @@ class GunTracker:
         if not self._upright_length:
             return None
         return length / self._upright_length
+
+
+TriggerPosition = Literal["up", "down"]
+
+
+class TriggerCalibration:
+    """Learns one player's trigger from their own thumb: the game asks for the thumb up, then
+    down (a shot held), and feeds the finger-gun readings of each position here. The thresholds
+    go between the two, so a small drop, or a thumb that rests tilted, still fires and re-cocks.
+    """
+
+    def __init__(self) -> None:
+        self.position: TriggerPosition | None = None
+        self._readings: dict[TriggerPosition, list[GunReading]] = {"up": [], "down": []}
+
+    def add(self, reading: GunReading) -> None:
+        if self.position is not None and reading.gun:
+            self._readings[self.position].append(reading)
+
+    def result(self) -> tuple[TriggerThresholds | None, str | None]:
+        """(thresholds, None), or (None, why it couldn't tell up from down)."""
+        up, down = self._readings["up"], self._readings["down"]
+        if min(len(up), len(down)) < TRIGGER_MIN_SAMPLES:
+            return None, "Keep your finger gun in view of the camera, thumb up and then down"
+        # The highest a held-up thumb leans, against where a dropped thumb typically sits
+        angle_up = float(np.percentile([r.hammer_angle for r in up], 80))
+        angle_down = float(np.median([r.hammer_angle for r in down]))
+        lengths_up = [r.thumb_length for r in up if r.thumb_length is not None]
+        lengths_down = [r.thumb_length for r in down if r.thumb_length is not None]
+        length_up = length_down = None
+        if min(len(lengths_up), len(lengths_down)) >= TRIGGER_MIN_SAMPLES:
+            length_up = float(np.median(lengths_up))
+            length_down = float(np.median(lengths_down))
+
+        tilts = angle_down - angle_up >= TRIGGER_MIN_ANGLE_GAP
+        folds = (
+            length_up is not None
+            and length_down is not None
+            and length_up - length_down >= TRIGGER_MIN_LENGTH_GAP
+        )
+        if not tilts and not folds:
+            return None, "Your thumb looked the same up and down: drop it further to shoot"
+
+        if tilts:
+            gap = angle_down - angle_up
+            cocked = min(max(angle_up + 0.3 * gap, 10.0), 60.0)
+            fired = min(max(angle_up + 0.6 * gap, cocked + 6.0), 90.0)
+        else:
+            # The drop is a fold toward the camera: keep the tilt trigger out of the way, but
+            # make sure this player's resting thumb still counts as cocked
+            cocked = max(COCKED_BELOW_DEG, min(angle_up + 5.0, 60.0))
+            fired = max(FIRED_ABOVE_DEG, cocked + 10.0)
+        upright, folded = THUMB_UPRIGHT_ABOVE, THUMB_FOLDED_BELOW
+        if folds:
+            assert length_up is not None and length_down is not None
+            span = length_up - length_down
+            folded = min(max(length_down + 0.5 * span, 0.3), 0.9)
+            upright = min(max(length_down + 0.8 * span, folded + 0.05), 1.0)
+        elif length_up is not None:
+            upright = min(THUMB_UPRIGHT_ABOVE, length_up - 0.05)
+        return TriggerThresholds(
+            cocked_below_deg=round(cocked, 1),
+            fired_above_deg=round(fired, 1),
+            upright_above=round(upright, 2),
+            folded_below=round(folded, 2),
+        ), None
 
 
 def _box(hand: Hand) -> tuple[np.ndarray, np.ndarray]:
@@ -320,7 +415,14 @@ class GunTracks:
         self._next_id = 1
         self.ids: list[int] = []  # track id of each hand in the last update, in the same order
 
-    def update(self, hands: Sequence[Hand], width: int, height: int, t: float) -> list[GunReading]:
+    def update(
+        self,
+        hands: Sequence[Hand],
+        width: int,
+        height: int,
+        t: float,
+        trigger: TriggerThresholds = DEFAULT_TRIGGER,
+    ) -> list[GunReading]:
         """hands: landmarks of every visible hand. Returns one reading per hand, in the same order
         (and their track ids in `ids`)."""
         self._tracks = [tr for tr in self._tracks if t - tr.last_seen <= TRACK_TIMEOUT_S]
@@ -346,7 +448,7 @@ class GunTracks:
                 self._next_id += 1
                 self._tracks.append(track)
             track.palm, track.last_seen = palms[h], t
-            readings.append(track.gun.update(hand, width, height))
+            readings.append(track.gun.update(hand, width, height, trigger))
             self.ids.append(track.id)
         return readings
 
@@ -394,12 +496,14 @@ class PlayerGun:
         self._last_shot_ms: float | None = None
         self._last_seen_ms: float | None = None  # when the player's hand was last seen
         self._last_aim: tuple[float, float] | None = None
+        self.trigger = DEFAULT_TRIGGER
+        self._trigger_calibration: TriggerCalibration | None = None
 
     def update(
         self, detections: Sequence[Hand], width: int, height: int, timestamp_ms: float
     ) -> GestureFrame:
         hands, duplicates = drop_duplicate_hands(detections)
-        readings = self._tracks.update(hands, width, height, timestamp_ms / 1000)
+        readings = self._tracks.update(hands, width, height, timestamp_ms / 1000, self.trigger)
         ids = self._tracks.ids
         tracked = [TrackedHand(*hand) for hand in zip(ids, hands, readings, strict=True)]
         recently = (
@@ -418,6 +522,8 @@ class PlayerGun:
         player = tracked[ids.index(self._player_id)]
         reading = player.reading
         self._last_seen_ms = timestamp_ms
+        if self._trigger_calibration is not None:
+            self._trigger_calibration.add(reading)
         if self._neutral is None and not self._calibrate(reading):
             self._last_aim = (0.5, 0.5)  # the crosshair waits in the centre
             return GestureFrame(
@@ -458,6 +564,28 @@ class PlayerGun:
         self._filter_x = OneEuroFilter(AIM_MIN_CUTOFF_HZ, AIM_BETA)
         self._filter_y = OneEuroFilter(AIM_MIN_CUTOFF_HZ, AIM_BETA)
         self._recent_aims.clear()
+
+    def calibrate_trigger(
+        self, step: Literal["up", "down", "done", "reset"]
+    ) -> tuple[TriggerThresholds | None, str | None]:
+        """Drives a trigger calibration: "up" and "down" collect the player's thumb in that
+        position, "done" applies the result (or keeps the current trigger and says why), "reset"
+        goes back to the default trigger. Returns the trigger in use and any problem."""
+        if step == "reset":
+            self.trigger, self._trigger_calibration = DEFAULT_TRIGGER, None
+            return self.trigger, None
+        if step in ("up", "down"):
+            self._trigger_calibration = self._trigger_calibration or TriggerCalibration()
+            self._trigger_calibration.position = step
+            return self.trigger, None
+        if self._trigger_calibration is None:
+            return self.trigger, "Start with the thumb up"
+        thresholds, problem = self._trigger_calibration.result()
+        self._trigger_calibration = None
+        if thresholds is None:
+            return self.trigger, problem
+        self.trigger = thresholds
+        return self.trigger, None
 
     def _calibrate(self, reading: GunReading) -> bool:
         """Collects the palm while the finger gun is held still; True once calibrated."""

@@ -15,7 +15,7 @@ import time
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Protocol
+from typing import Literal, Protocol
 
 import numpy as np
 from PIL import Image, UnidentifiedImageError
@@ -23,7 +23,7 @@ from PIL import Image, UnidentifiedImageError
 from app.config import BACKEND_DIR, settings
 from level1.config import cv_settings
 from level1.gesture import Box, GestureFrame, Hand, PlayerGun, to_game_area
-from level1.schemas import CvFrame, CvStatus
+from level1.schemas import CvFrame, CvStatus, CvTriggerReply, CvTriggerThresholds
 
 log = logging.getLogger(__name__)
 
@@ -162,6 +162,15 @@ class CvSession:
 
     def recenter(self) -> None:
         self._gun.recenter()
+
+    def calibrate_trigger(self, step: Literal["up", "down", "done", "reset"]) -> CvTriggerReply:
+        trigger, problem = self._gun.calibrate_trigger(step)
+        return CvTriggerReply(
+            step=step,
+            ok=problem is None,
+            detail=problem,
+            thresholds=CvTriggerThresholds(**asdict(trigger)),
+        )
 
     def set_recording(self, on: bool) -> Path | None:
         """Starts or stops a Recorder; returns its folder while recording. Development only:

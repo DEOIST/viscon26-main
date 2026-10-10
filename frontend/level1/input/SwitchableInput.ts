@@ -1,11 +1,12 @@
 // The one input the shooter scene talks to. Starts with the finger-detection engine and
 // switches to the mouse when the camera or the engine fails, or when the operator presses M.
 // C recalibrates the aim (hold the finger gun still at the centre); R starts and stops a
-// recording of the camera stream (development servers only).
+// recording of the camera stream (development servers only). The trigger calibration (T) is run
+// by the scene, through calibrateTrigger().
 
 import MouseInput from "./MouseInput";
 import ServerHandInput from "./ServerHandInput";
-import type { Tracking } from "./cvStream";
+import type { CvTriggerReply, TriggerStep, Tracking } from "./cvStream";
 import type { AimPoint, InputSource } from "./InputSource";
 
 export default class SwitchableInput implements InputSource {
@@ -49,6 +50,17 @@ export default class SwitchableInput implements InputSource {
 
     takeShots(): AimPoint[] {
         return this.current.takeShots();
+    }
+
+    calibrateTrigger(step: TriggerStep) {
+        if (this.current instanceof ServerHandInput)
+            this.current.calibrateTrigger(step);
+    }
+
+    takeTriggerReplies(): CvTriggerReply[] {
+        return this.current instanceof ServerHandInput
+            ? this.current.takeTriggerReplies()
+            : [];
     }
 
     destroy() {

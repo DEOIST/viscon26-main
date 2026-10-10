@@ -8,10 +8,12 @@ from level1.gesture import (
     AIM_GAIN,
     CALIBRATION_FRAMES,
     COCKED_BELOW_DEG,
+    DEFAULT_TRIGGER,
     FIRED_ABOVE_DEG,
     GAME_ASPECT,
     SHOT_AIM_LOOKBACK_S,
     TRACK_TIMEOUT_S,
+    TRIGGER_MIN_SAMPLES,
     GunTracker,
     GunTracks,
     PlayerGun,
@@ -407,3 +409,85 @@ def test_recorded_aim_is_smooth_and_never_jumps(name: str):
     assert wobble < 0.003
     # The old aim used the index tip, which label swaps threw across the screen.
     assert (np.abs(np.diff(aims, axis=0)) > 0.1).sum() <= 2
+
+
+# --- trigger calibration (PlayerGun.calibrate_trigger) ---
+
+
+def calibrate_trigger(gun: PlayerGun, up, down, start_ms: float = 0.0):
+    """Runs the game's calibration: thumb up, down, up, down, each held for a moment."""
+    held = TRIGGER_MIN_SAMPLES
+    t = start_ms
+    for step, hand in (("up", up), ("down", down), ("up", up), ("down", down)):
+        gun.calibrate_trigger(step)
+        play(gun, [[hand]] * held, start_ms=t)
+        t += held * FRAME_MS
+    return gun.calibrate_trigger("done"), t
+
+
+def fires(gun: PlayerGun, up, down, start_ms: float) -> bool:
+    frames = play(gun, [[up]] * 3 + [[down]] * 3, start_ms=start_ms)
+    return any(f.fired_at for f in frames)
+
+
+def test_a_small_thumb_drop_fires_only_after_calibrating():
+    up, down = make_hand(thumb_degrees=15), make_hand(thumb_degrees=45)  # never reaches 55
+    gun, t = calibrated(up)
+    assert not fires(gun, up, down, t)
+
+    (trigger, problem), t = calibrate_trigger(gun, up, down, t + 6 * FRAME_MS)
+
+    assert problem is None
+    assert 15 < trigger.cocked_below_deg < trigger.fired_above_deg < 45
+    assert fires(gun, up, down, t)
+
+
+def test_a_thumb_resting_tilted_cocks_after_calibrating():
+    up, down = make_hand(thumb_degrees=40), make_hand(thumb_degrees=80)  # 40 > 32: never cocked
+    gun, t = calibrated(up)
+    assert not fires(gun, up, down, t)
+
+    (trigger, problem), t = calibrate_trigger(gun, up, down, t + 6 * FRAME_MS)
+
+    assert problem is None
+    assert trigger.cocked_below_deg > 40
+    assert fires(gun, up, down, t)
+
+
+def test_a_fold_toward_the_camera_calibrates_the_length_trigger():
+    gun, t = calibrated(UP)
+    (trigger, problem), t = calibrate_trigger(gun, UP, FOLDED, t)
+
+    assert problem is None
+    assert 0.3 <= trigger.folded_below < trigger.upright_above <= 1.0
+    assert fires(gun, UP, FOLDED, t)
+
+
+def test_calibration_keeps_the_trigger_when_up_and_down_look_the_same():
+    gun, t = calibrated(UP)
+    (trigger, problem), _ = calibrate_trigger(gun, UP, UP, t)
+
+    assert trigger == DEFAULT_TRIGGER
+    assert problem is not None and "drop it further" in problem
+
+
+def test_calibration_needs_the_finger_gun_in_view():
+    gun, t = calibrated(UP)
+    gun.calibrate_trigger("up")
+    play(gun, [[UP]] * TRIGGER_MIN_SAMPLES, start_ms=t)
+    gun.calibrate_trigger("down")
+    play(gun, [[]] * TRIGGER_MIN_SAMPLES, start_ms=t + 500)  # the hand left
+
+    trigger, problem = gun.calibrate_trigger("done")
+
+    assert trigger == DEFAULT_TRIGGER
+    assert problem is not None and "in view" in problem
+
+
+def test_reset_restores_the_default_trigger():
+    up, down = make_hand(thumb_degrees=15), make_hand(thumb_degrees=45)
+    gun, t = calibrated(up)
+    (trigger, _), _ = calibrate_trigger(gun, up, down, t)
+    assert trigger != DEFAULT_TRIGGER
+
+    assert gun.calibrate_trigger("reset") == (DEFAULT_TRIGGER, None)

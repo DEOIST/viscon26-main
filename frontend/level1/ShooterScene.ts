@@ -1,7 +1,8 @@
 // The finger-gun shooter ("Basisprüfung", docs/GAME_DESIGN.md). Exam questions fly at the player
 // with fake depth (depth.ts) down a dark corridor that reacts to every shot (Backdrop.ts); the
-// player aims and shoots through the finger-detection engine or the mouse (input/). Phases: warm-up (three practice papers),
-// countdown, a 60-second round, then the score. The juice is part of the feature.
+// player aims and shoots through the finger-detection engine or the mouse (input/). Phases: trigger
+// calibration (camera only, triggerCalibration.ts), warm-up (three practice papers), countdown, a
+// 60-second round, then the score. The juice is part of the feature.
 
 import { Scene } from "phaser";
 import Backdrop from "./Backdrop";
@@ -25,7 +26,8 @@ import { project } from "./depth";
 import { hitTest } from "./hitTest";
 import { shooterScore, shotPoints } from "./score";
 import { pickTargetKind, spawnIntervalMs } from "./spawn";
-import type { GameObjects } from "phaser";
+import { TriggerCalibration } from "./triggerCalibration";
+import type { GameObjects, Time } from "phaser";
 import type { MinigameResult } from "../src/games/shared/minigame";
 import type { AimPoint } from "./input/InputSource";
 import type SwitchableInput from "./input/SwitchableInput";
@@ -47,7 +49,7 @@ interface Target {
     view: GameObjects.Container;
 }
 
-type Phase = "practice" | "countdown" | "playing" | "over";
+type Phase = "trigger" | "practice" | "countdown" | "playing" | "over";
 
 const BUILT_IN_QUESTIONS = [
     "Prove it.",
@@ -80,6 +82,8 @@ export default class ShooterScene extends Scene {
     private questionIndex = 0;
     private practiceIndex = 0;
     private practiceTarget: GameObjects.Container | null = null;
+    private practiceTimer: Time.TimerEvent | null = null;
+    private trigger: TriggerCalibration | null = null;
     private phase: Phase = "practice";
     private lastLine: string | undefined;
     private backdrop!: Backdrop;
@@ -89,6 +93,7 @@ export default class ShooterScene extends Scene {
     private hud!: GameObjects.Text;
     private hint!: GameObjects.Text;
     private banner!: GameObjects.Text;
+    private instruction!: GameObjects.Text;
 
     constructor(args: ShooterSceneArgs) {
         super("shooter");
@@ -123,8 +128,24 @@ export default class ShooterScene extends Scene {
             )
             .setOrigin(0.5)
             .setDepth(2002);
+        this.instruction = this.add
+            .text(
+                GAME_WIDTH / 2,
+                GAME_HEIGHT * 0.3,
+                "",
+                textStyle(44, "#f2c14e", "bold"),
+            )
+            .setOrigin(0.5)
+            .setAlign("center")
+            .setWordWrapWidth(GAME_WIDTH * 0.8)
+            .setDepth(2002);
         this.say("intro", `Basisprüfung time, ${this.args.playerName}!`);
-        this.startPractice();
+        // T runs the trigger check again, but only before the round starts
+        this.input.keyboard?.on("keydown-T", () => {
+            if (this.phase === "practice") this.restartTriggerCalibration();
+        });
+        if (this.args.input.mode === "camera") this.startTriggerCalibration();
+        else this.startPractice();
     }
 
     update(_time: number, delta: number) {
@@ -143,6 +164,10 @@ export default class ShooterScene extends Scene {
         this.hint.setText(this.hintText());
         this.updateHud();
         const shots = this.args.input.takeShots(); // always drained, so none pile up
+        if (this.phase === "trigger") {
+            this.updateTriggerCalibration(delta, shots);
+            return;
+        }
         if (this.phase === "practice") {
             for (const shot of shots)
                 this.practiceShot(shot.x * GAME_WIDTH, shot.y * GAME_HEIGHT);
@@ -156,11 +181,63 @@ export default class ShooterScene extends Scene {
             this.shoot(shot.x * GAME_WIDTH, shot.y * GAME_HEIGHT);
     }
 
+    private startTriggerCalibration() {
+        this.phase = "trigger";
+        this.trigger = new TriggerCalibration();
+        // Never stuck here either: Enter skips to the warm-up with the trigger as it is.
+        this.input.keyboard?.once("keydown-ENTER", () => {
+            this.trigger?.skip();
+        });
+    }
+
+    private updateTriggerCalibration(delta: number, shots: AimPoint[]) {
+        const { input } = this.args;
+        const trigger = this.trigger;
+        if (!trigger) return;
+        if (input.mode !== "camera") trigger.skip(); // switched to the mouse
+        for (const reply of input.takeTriggerReplies())
+            trigger.handleReply(reply);
+        const step = trigger.update(delta, input.tracking === "ok");
+        if (step) input.calibrateTrigger(step);
+        for (const shot of shots) {
+            if (!trigger.handleShot()) continue; // shots only count in the test
+            const x = shot.x * GAME_WIDTH;
+            const y = shot.y * GAME_HEIGHT;
+            muzzleFlash(this, x, y);
+            floatText(this, x, y, "BANG!", "#f2c14e");
+            this.backdrop.pulse(x, y, HIT_FLASH, 0.6);
+        }
+        this.instruction.setText(trigger.instruction());
+        if (!trigger.isFinished) return;
+        this.instruction.setText("");
+        if (trigger.usedDefault && input.mode === "camera")
+            floatText(
+                this,
+                GAME_WIDTH / 2,
+                GAME_HEIGHT * 0.3,
+                "Standard trigger (T to try again)",
+                "#ffffff",
+            );
+        this.trigger = null;
+        this.startPractice();
+    }
+
+    private restartTriggerCalibration() {
+        if (this.args.input.mode !== "camera") return;
+        this.removePracticeTarget();
+        this.practiceTimer?.remove();
+        this.practiceTimer = null;
+        this.practiceIndex = 0;
+        this.startTriggerCalibration();
+    }
+
     private startPractice() {
+        this.phase = "practice";
         this.showPracticeTarget();
         // Never stuck in the warm-up: it ends by itself, or at once on Enter (the operator).
-        this.time.delayedCall(PRACTICE_MAX_SECONDS * 1000, () =>
-            this.endPractice(),
+        this.practiceTimer = this.time.delayedCall(
+            PRACTICE_MAX_SECONDS * 1000,
+            () => this.endPractice(),
         );
         this.input.keyboard?.once("keydown-ENTER", () => this.endPractice());
     }
@@ -419,8 +496,9 @@ export default class ShooterScene extends Scene {
             return "Make a finger gun 👉  thumb up, drop it to shoot";
         if (input.mode === "camera" && input.tracking === "lost")
             return "Show your hand to the camera";
+        if (this.phase === "trigger") return "Enter skips the trigger check";
         if (this.phase === "practice")
-            return "Warm-up: shoot the practice paper (Enter skips)";
+            return "Warm-up: shoot the practice paper (Enter skips, T re-checks the trigger)";
         return "";
     }
 

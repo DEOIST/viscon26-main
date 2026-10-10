@@ -13,6 +13,8 @@ import type {
     CvRecenterMessage,
     CvRecordMessage,
     CvSettingsMessage,
+    CvTriggerMessage,
+    CvTriggerReply,
     GamePoint,
     Tracking,
 } from "./cvStream";
@@ -28,6 +30,7 @@ export default class ServerHandInput implements InputSource {
     latencyMs: number | null = null; // round trip of the last frame, for the debug overlay
     recording = false; // the engine confirmed it saves this stream's frames
     private shots: AimPoint[] = [];
+    private triggerReplies: CvTriggerReply[] = [];
     private video: HTMLVideoElement | null = null;
     private stream: MediaStream | null = null;
     private socket: WebSocket | null = null;
@@ -66,6 +69,18 @@ export default class ServerHandInput implements InputSource {
     recenter() {
         if (this.socket?.readyState !== WebSocket.OPEN) return;
         this.sendControl({ type: "recenter" });
+    }
+
+    // Trigger calibration: the scene paces the steps, the engine measures the thumb.
+    calibrateTrigger(step: CvTriggerMessage["step"]) {
+        if (this.socket?.readyState !== WebSocket.OPEN) return;
+        this.sendControl({ type: "trigger", step });
+    }
+
+    takeTriggerReplies(): CvTriggerReply[] {
+        const replies = this.triggerReplies;
+        this.triggerReplies = [];
+        return replies;
     }
 
     takeShots(): AimPoint[] {
@@ -139,6 +154,8 @@ export default class ServerHandInput implements InputSource {
             else if (!this.recording)
                 console.warn("Recording needs a server in development mode");
             this.recording = message.on;
+        } else if (message.type === "trigger") {
+            this.triggerReplies.push(message);
         } else if (message.type === "error") {
             this.pacer.done();
         }
@@ -170,7 +187,8 @@ export default class ServerHandInput implements InputSource {
             | CvBoxMessage
             | CvSettingsMessage
             | CvRecordMessage
-            | CvRecenterMessage,
+            | CvRecenterMessage
+            | CvTriggerMessage,
     ) {
         this.socket?.send(JSON.stringify(message));
     }
