@@ -19,8 +19,12 @@ HAIR = {color["label"]: color["value"] for color in CONFIG["colors"]["hair"]}
 EYES = {color["label"]: color["value"] for color in CONFIG["colors"]["eyes"]}
 
 
-def suggest(client: TestClient, image: str = PHOTO, origin: str | None = None):
+def suggest(
+    client: TestClient, image: str = PHOTO, origin: str | None = None, host: str | None = None
+):
     headers = {"Origin": origin} if origin else {}
+    if host:
+        headers["Host"] = host
     return client.post("/api/avatar/suggestion", json={"image": image}, headers=headers)
 
 
@@ -95,6 +99,14 @@ def test_rejects_a_disallowed_origin_without_needing_a_session(client, monkeypat
 
     assert suggest(client, origin="https://evil.example").status_code == 403
     assert suggest(client, origin="http://localhost:5173").status_code == 200
+
+
+def test_accepts_its_own_origin_on_any_domain(client, monkeypatch):
+    forbid_clients(monkeypatch)
+    site = "18-direct.viscon-hackathon.ch"
+
+    assert suggest(client, origin=f"https://{site}", host=site).status_code == 200
+    assert suggest(client, origin="https://evil.example", host=site).status_code == 403
 
 
 @pytest.mark.parametrize(
