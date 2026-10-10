@@ -143,7 +143,8 @@ The tree shows the target. *(planned)* marks parts that don't exist yet.
 │   ├── level3/                   Level 3, Thesis defense (Phaser 4, keyboard rhythm game, no backend):
 │   │                             index.ts (mountThesisDefense), chart.ts, engine.ts, verdict.ts,
 │   │                             layout.ts (+ tests), config.ts, ThesisScene.ts, Highway.ts, Hud.ts,
-│   │                             Committee.ts, Student.ts, Overlays.ts, lines.ts, textures.ts
+│   │                             Committee.ts, Student.ts, Overlays.ts, lines.ts, textures.ts,
+│   │                             music.ts + Synth.ts + Soundtrack.ts (synthesised music and effects)
 │   ├── template.html             HTML shell for every page ({{page}}, {{css}} placeholders)
 │   ├── package.json  tsconfig.json  .prettierrc  .nvmrc
 │   ├── public/                   copied verbatim to dist/static/ → served at /static/<file>

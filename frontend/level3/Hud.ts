@@ -44,6 +44,8 @@ export default class Hud {
     private readonly banner: GameObjects.Text;
     private readonly bannerSub: GameObjects.Text;
     private readonly milestone: GameObjects.Text;
+    private readonly nowPlaying: GameObjects.Text;
+    private readonly sound: GameObjects.Text;
     private shown = { score: -1, combo: -1, multiplier: -1, accuracy: -1 };
     private shownScore = 0;
 
@@ -78,6 +80,20 @@ export default class Hud {
             duration: 380,
         });
 
+        this.nowPlaying = scene.add
+            .text(right, 470, "", {
+                fontFamily: FONT,
+                fontSize: "13px",
+                fontStyle: "bold",
+                color: "#c9d3ff",
+                align: "center",
+                wordWrap: { width: 260 },
+            })
+            .setOrigin(0.5, 0)
+            .setDepth(30);
+        // Always visible, also on the title card, so the mute key is never a secret.
+        this.sound = text(scene, right, 690, "", 14, "#8fa2ff");
+
         this.banner = text(scene, CENTER_X, 330, "", 54)
             .setDepth(50)
             .setAlpha(0);
@@ -110,6 +126,7 @@ export default class Hud {
             this.bars,
             this.eurekaHint,
             this.milestone,
+            this.nowPlaying,
         ])
             item.setVisible(isVisible);
     }
@@ -157,6 +174,14 @@ export default class Hud {
         this.drawBars(state, progress, time);
         const ready = state.eureka >= 100 && !state.eurekaActive;
         this.eurekaHint.setAlpha(ready ? 1 : 0);
+    }
+
+    setNowPlaying(value: string) {
+        this.nowPlaying.setText(value);
+    }
+
+    setSound(isMuted: boolean) {
+        this.sound.setText(isMuted ? "M · SOUND OFF" : "M · SOUND ON ♪");
     }
 
     showPhase(title: string, subtitle: string, color: string) {

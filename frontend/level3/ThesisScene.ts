@@ -19,6 +19,7 @@ import { CENTER_X, HEIGHT, WIDTH } from "./layout";
 import { committeeLines } from "./lines";
 import type { CommitteeEvent } from "./lines";
 import Overlays from "./Overlays";
+import Soundtrack from "./Soundtrack";
 import Student from "./Student";
 import { COLORS, makeTextures } from "./textures";
 import { loadBest, saveBest, swissGrade, verdictFor } from "./verdict";
@@ -70,6 +71,7 @@ export default class ThesisScene extends Scene {
     private readonly args: ThesisSceneArgs;
     private readonly lines: Record<CommitteeEvent, string[]>;
     private engine = new DefenseEngine(DEFENSE_CHART);
+    private soundtrack!: Soundtrack;
     private mode: Mode = "title";
     private startAt = 0; // performance.now() at song time 0
     private pausedAt = 0;
@@ -125,6 +127,8 @@ export default class ThesisScene extends Scene {
             () => this.submit(),
         );
         this.best = loadBest(this.args.storage);
+        this.soundtrack = new Soundtrack(DEFENSE_CHART, this.args.storage);
+        this.hud.setSound(this.soundtrack.muted);
         this.hud.setVisible(false);
         this.overlays.showTitle(this.best);
         this.committee.setLead(null, PHASE_LOOK.opening.color);
@@ -144,6 +148,7 @@ export default class ThesisScene extends Scene {
     dispose() {
         if (this.disposed) return;
         this.disposed = true;
+        this.soundtrack?.dispose();
         window.removeEventListener("keydown", this.handleKeyDown);
         window.removeEventListener("keyup", this.handleKeyUp);
         window.removeEventListener("blur", this.handleBlur);
@@ -160,19 +165,22 @@ export default class ThesisScene extends Scene {
             this.engine.state.status === "failed",
         );
         if (this.mode === "countdown") {
-            this.overlays.updateCountdown(-song);
+            this.beep(this.overlays.updateCountdown(-song));
             if (song >= 0) this.mode = "playing";
         } else if (this.mode === "resuming") {
-            this.overlays.updateCountdown(this.resumeAt - now);
+            this.beep(this.overlays.updateCountdown(this.resumeAt - now));
             if (now >= this.resumeAt) {
                 this.startAt += this.resumeAt - this.pausedAt;
+                this.soundtrack.restart(now - this.startAt);
                 // A pause during the countdown resumes into what is left of it.
                 this.mode = now - this.startAt < 0 ? "countdown" : "playing";
             }
         } else if (this.mode === "playing" || this.mode === "ending") {
-            this.overlays.updateCountdown(-song);
+            this.beep(this.overlays.updateCountdown(-song));
             if (this.mode === "playing") this.handle(this.engine.update(song));
         }
+        if (this.mode === "countdown" || this.mode === "playing")
+            this.soundtrack.schedule(song);
         if (this.mode === "title" || this.mode === "results") return;
         this.highway.draw(this.engine, song, DEFENSE_CHART.phases[0].time);
         this.hud.update(
@@ -189,6 +197,7 @@ export default class ThesisScene extends Scene {
 
     private start() {
         if (this.mode !== "title" && this.mode !== "results") return;
+        this.soundtrack.unlock();
         this.overlays.hideTitle();
         this.overlays.hideResults();
         this.engine = new DefenseEngine(DEFENSE_CHART);
@@ -202,6 +211,8 @@ export default class ThesisScene extends Scene {
         this.lastQuip = -Infinity;
         this.attempts += 1;
         this.startAt = performance.now() + COUNTDOWN_MS;
+        this.soundtrack.restart(-COUNTDOWN_MS);
+        this.hud.setNowPlaying(this.soundtrack.nowPlaying("opening"));
         this.mode = "countdown";
     }
 
@@ -272,10 +283,12 @@ export default class ThesisScene extends Scene {
             this.bestContract,
             this.engine.contractScore(),
         );
-        const verdict = verdictFor(failed, accuracy);
         const grade = swissGrade(failed, accuracy);
+        const verdict = verdictFor(failed, grade);
         this.hud.setVisible(false);
         this.highway.clear();
+        // The stamp lands 610 ms in (see Overlays.showResults).
+        this.time.delayedCall(610, () => this.soundtrack.stamp());
         this.overlays.showResults({
             verdict,
             failed,
@@ -311,6 +324,7 @@ export default class ThesisScene extends Scene {
 
     private handle(events: DefenseEvent[]) {
         for (const event of events) {
+            this.soundtrack.event(event);
             switch (event.type) {
                 case "hit":
                     this.highway.hit(
@@ -373,6 +387,7 @@ export default class ThesisScene extends Scene {
         this.setPhaseLook(phase);
         const look = PHASE_LOOK[phase];
         this.hud.showPhase(title, subtitle, look.css);
+        this.hud.setNowPlaying(this.soundtrack.nowPlaying(phase));
         this.committee.setLead(look.lead, look.color);
         this.say(look.lead ?? 1, look.say, true);
         this.args.announce(`${title}. ${subtitle}`);
@@ -459,6 +474,10 @@ export default class ThesisScene extends Scene {
         });
     }
 
+    private beep(value: string | null) {
+        if (value) this.soundtrack.countdown(value);
+    }
+
     private flashVignette(color: number, alpha: number) {
         this.tweens.killTweensOf(this.vignette);
         this.vignette.setFillStyle(color, 1).setAlpha(alpha);
@@ -484,6 +503,7 @@ export default class ThesisScene extends Scene {
     private readonly handleKeyDown = (event: KeyboardEvent) => {
         if (event.ctrlKey || event.metaKey || event.altKey) return;
         if (isTyping(event.target)) return; // a shell dialog's text field keeps its keys
+        this.soundtrack.unlock(); // any key counts as the gesture browsers want before audio
         const lane = LANE_CODES.indexOf(event.code);
         if (lane >= 0) {
             event.preventDefault();
@@ -510,6 +530,10 @@ export default class ThesisScene extends Scene {
                             this.eventTime(event) - this.startAt,
                         ),
                     );
+                return;
+            case "KeyM":
+                event.preventDefault();
+                this.hud.setSound(this.soundtrack.toggleMute());
                 return;
             case "Escape":
             case "KeyP":

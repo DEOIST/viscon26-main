@@ -83,18 +83,35 @@ describe("the defense chart", () => {
         expect(tooClose).toEqual([]);
     });
 
-    it("gets denser as the defense goes on", () => {
-        const density = DEFENSE.map((_, i) => {
-            const from = DEFENSE_CHART.phases[i].time;
-            const to = DEFENSE_CHART.phases[i + 1]?.time ?? DEFENSE_CHART.end;
-            const count = notes.filter(
-                (note) => note.time >= from && note.time < to,
-            ).length;
-            return count / ((to - from) / 1000);
-        });
-        expect(density[1]).toBeGreaterThan(density[0]);
-        expect(density[2]).toBeGreaterThan(density[1]);
-        expect(density[3]).toBeGreaterThan(density[1]);
+    const densities = DEFENSE.map((_, i) => {
+        const from = DEFENSE_CHART.phases[i].time;
+        const to = DEFENSE_CHART.phases[i + 1]?.time ?? DEFENSE_CHART.end;
+        const count = notes.filter(
+            (note) => note.time >= from && note.time < to,
+        ).length;
+        return count / ((to - from) / 1000);
+    });
+
+    it("ramps up after the opening, peaking in the meltdown", () => {
+        expect(densities[1]).toBeGreaterThan(densities[0]);
+        expect(densities[2]).toBeGreaterThanOrEqual(densities[1]);
+        expect(densities[3]).toBeLessThanOrEqual(densities[2] + 0.01);
+    });
+
+    // Players found the old ending too fast: no phase may outrun a learnable pace.
+    it("never asks for more than 4 notes per second in any phase", () => {
+        for (const density of densities) expect(density).toBeLessThan(4);
+    });
+
+    it("keeps sixteenth-note runs to short bursts of at most four steps", () => {
+        const steps = [...new Set(notes.map((note) => note.time))];
+        let run = 1;
+        let longest = 1;
+        for (let i = 1; i < steps.length; i++) {
+            run = steps[i] - steps[i - 1] < BAR_MS / 8 - 1 ? run + 1 : 1;
+            longest = Math.max(longest, run);
+        }
+        expect(longest).toBeLessThanOrEqual(4);
     });
 
     it("has golden notes to fill Eureka twice and ends on a four-key chord", () => {

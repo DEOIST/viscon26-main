@@ -164,20 +164,36 @@ index finger, drop your thumb to shoot. The technical design is in
 
 Guitar Hero meets your thesis defense. A three-professor examination committee
 fires questions down a four-lane neon highway; you answer each one by pressing
-its lane's key as it crosses the hit line. Keyboard only, no audio, no server
-side: the code is in `frontend/level3/`.
+its lane's key as it crosses the hit line. Keyboard only, no server side: the
+code is in `frontend/level3/`.
 
 - **Controls:** `D` Theory (∀), `F` Proofs (∫), `J` Experiments (χ²),
   `K` Critique (?!). `Space` starts and spends Eureka, `Esc`/`P` pauses (also
   automatic when the tab loses focus), `R` restarts from the pause or the verdict,
-  `Enter` submits the thesis.
+  `Enter` submits the thesis, `M` mutes (remembered in `localStorage`).
 - **Chart:** one deterministic 31-bar chart at 128 BPM (about 58 s), written in
   `chart.ts`, so practice pays off. Four phases, each opened by an empty bar
   for its banner: *Opening questions* (quarters and eighths), *Cross-examination*
-  (chords), *Professor meltdown* (Prof. Gradient's sixteenth-note bursts) and
-  *Final defense* (the densest bars, ending on a golden four-key "QED" chord).
-  Beat lines on the highway and a hall that pulses on every beat replace the
-  music's timing cues; chord notes are linked by a bar.
+  (chords), *Professor meltdown* (short sixteenth-note bursts) and *Final defense*
+  (chords on the beat, ending on a golden four-key "QED" chord). The ending was
+  eased after play-testing: no phase asks for 4 notes per second or more, and no
+  sixteenth-note run is longer than four notes (both are chart tests). Beat lines
+  on the highway and a hall that pulses on every beat keep it playable muted;
+  chord notes are linked by a bar.
+- **Music, Piano Tiles style:** each phase has a public-domain classic, and every
+  chart step owns the next note of its melody, so the player performs the tune by
+  hitting the notes and a miss leaves a hole: Petzold's *Minuet in G* (opening),
+  Mozart's *Eine kleine Nachtmusik* (cross-examination), Grieg's *In the Hall of
+  the Mountain King* (meltdown) and Beethoven's *Ode to Joy* (final). Chord notes
+  add octaves and fifths below the melody. A quiet groove (kick, hats, bass, a
+  backbeat from the meltdown on) keeps the beat. Everything is synthesised with
+  the Web Audio API (`Synth.ts`), so no audio files and no recordings ship; audio
+  starts only after a key press or click, as browsers require.
+- **Sound effects (Swiss/ETH jokes):** a clashing wrong note on a miss, a knock
+  for a stray press, a cowbell plus arpeggio on milestones, the Zürich tram bell
+  for Eureka, a gong per phase (an alarm for the meltdown), countdown beeps, a
+  sad trombone for a failed defense, a fanfare for a passed one and a thump when
+  the verdict stamp lands.
 - **Judgment:** by the key event's own timestamp, ±45 ms PERFECT, ±90 GREAT,
   ±135 GOOD, later is a MISS. A press with no note in its window is a stray: it
   breaks the combo and costs a little confidence, so mashing never pays. A
@@ -189,12 +205,17 @@ side: the code is in `frontend/level3/`.
   −2 per stray. At 0 the defense fails. Simulated players who hit about two
   thirds of the notes survive; a flawless run scores 100.
 - **Milestones:** 10 combo "PROMISING RESEARCH", 25 "PEER REVIEW SURVIVED",
-  50 "ACADEMIC WEAPON", 75 "CITED BY EVERYONE", 100 "TENURE TRACK UNLOCKED",
+  50 "ACADEMIC WEAPON", 75 "MENSA QUEUE SKIPPED", 100 "TENURE TRACK UNLOCKED",
   150 "FIELDS MEDAL SPEEDRUN"; 25 PERFECTs in a row "NOBEL PRIZE INCOMING".
-- **Verdict:** SUMMA CUM LAUDE (≥ 93 % accuracy), THESIS DEFENDED (≥ 80),
-  CONDITIONAL PASS (≥ 65), MAJOR REVISIONS REQUIRED, or ACADEMICALLY DESTROYED
-  when confidence ran out, plus an ETH grade (1–6 in quarter steps, never a pass
-  for a failed defense). The personal best lives in `localStorage` only.
+- **Verdict by final GPA:** accuracy becomes an ETH grade (1–6 in quarter steps,
+  never a pass for a failed defense), and every band has its own verdict, line
+  and career forecast (`verdict.ts`): 6.0 SUMMA CUM LAUDE, 5.75 MAGNA CUM LAUDE,
+  5.5 CUM LAUDE, 5.25 THESIS DEFENDED, 5.0 A VERY SWISS 5.0, 4.75 RESPECTABLE,
+  4.5 CONDITIONAL PASS, 4.25 KOMPENSIERT, 4.0 "4.0 IS A PASS"; below a pass SO
+  CLOSE (3.75), MAJOR REVISIONS REQUIRED (3–3.5), REPETITION NEXT SEMESTER (2–2.75)
+  and EXMATRIKULIERT; a defense that ran out of confidence is ACADEMICALLY
+  DESTROYED or, below 2.5, SENT BACK TO THE BASISPRÜFUNG. The personal best lives
+  in `localStorage` only.
 - **Contract score:** the weighted share of all notes (1 / 0.8 / 0.5 / 0),
   unplayed notes of a failed defense count as misses; the best attempt of the
   visit is sent once, when the player submits.

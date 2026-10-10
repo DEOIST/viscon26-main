@@ -106,6 +106,7 @@ export default class Overlays {
     private readonly results: GameObjects.Container;
     private readonly stamp: GameObjects.Text;
     private readonly verdictLine: GameObjects.Text;
+    private readonly career: GameObjects.Text;
     private readonly grade: GameObjects.Text;
     private readonly stats: GameObjects.Text;
     private readonly counts: GameObjects.Text;
@@ -152,23 +153,24 @@ export default class Overlays {
             .setVisible(false);
 
         const [backdrop, card] = panel(scene, 760, 560, 392);
-        this.stamp = label(scene, CENTER_X, 196, "", 58, "#ffd84a");
+        this.stamp = label(scene, CENTER_X, 188, "", 58, "#ffd84a");
         this.verdictLine = label(
             scene,
             CENTER_X,
-            256,
+            240,
             "",
-            19,
+            17,
             "#c9d3ff",
             "bold",
-        );
-        this.grade = label(scene, CENTER_X, 306, "", 30, "#ffffff");
+        ).setWordWrapWidth(690);
+        this.career = label(scene, CENTER_X, 284, "", 16, "#ffb43c", "bold");
+        this.grade = label(scene, CENTER_X, 322, "", 28, "#ffffff");
         this.stats = label(
             scene,
             CENTER_X,
-            382,
+            400,
             "",
-            22,
+            20,
             "#ffffff",
             "bold",
             MONO,
@@ -176,14 +178,14 @@ export default class Overlays {
         this.counts = label(
             scene,
             CENTER_X,
-            458,
+            474,
             "",
             17,
             "#c9d3ff",
             "bold",
             MONO,
         );
-        this.record = label(scene, CENTER_X, 500, "", 20, "#ffd84a");
+        this.record = label(scene, CENTER_X, 512, "", 20, "#ffd84a");
         const retry = new KeyButton(
             scene,
             CENTER_X - 160,
@@ -215,6 +217,7 @@ export default class Overlays {
                 ),
                 this.stamp,
                 this.verdictLine,
+                this.career,
                 this.grade,
                 this.stats,
                 this.counts,
@@ -240,15 +243,16 @@ export default class Overlays {
     }
 
     // `left` is the countdown's remaining ms; returns nothing, just draws the right number.
-    updateCountdown(left: number) {
+    // Returns the value it just started showing ("3", "2", "1", "DEFEND!"), or null.
+    updateCountdown(left: number): string | null {
         const value =
             left > 1600 ? "3" : left > 800 ? "2" : left > 0 ? "1" : "DEFEND!";
         if (left < -600) {
             this.countdown.setAlpha(0);
             this.shownCount = "";
-            return;
+            return null;
         }
-        if (value === this.shownCount) return;
+        if (value === this.shownCount) return null;
         this.shownCount = value;
         this.countdown
             .setText(value)
@@ -269,6 +273,7 @@ export default class Overlays {
             delay: 520,
             duration: 240,
         });
+        return value;
     }
 
     hideCountdown() {
@@ -293,7 +298,8 @@ export default class Overlays {
                 Math.floor((58 * STAMP_MAX_W) / this.stamp.width),
             );
         this.verdictLine.setText(verdict.line);
-        this.grade.setText(`ETH GRADE  ${summary.grade.toFixed(2)}`);
+        this.career.setText(`CAREER FORECAST: ${verdict.career.toUpperCase()}`);
+        this.grade.setText(`FINAL GPA  ${summary.grade.toFixed(2)}`);
         this.stats.setText(
             [
                 `SCORE      ${state.score.toLocaleString("en-US").padStart(9)}`,

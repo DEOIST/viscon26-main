@@ -1,6 +1,6 @@
-// Tunables for level 3, "Thesis defense" (docs/GAME_DESIGN.md). A four-lane rhythm game with
-// no audio, so the timing windows are a little wider than a music game's and the note lead is
-// long enough to read the highway like sheet music.
+// Tunables for level 3, "Thesis defense" (docs/GAME_DESIGN.md). A four-lane rhythm game that
+// must stay playable muted, so the timing windows are a little wider than a music game's and
+// the note lead is long enough to read the highway like sheet music.
 
 export const LANE_KEYS = ["D", "F", "J", "K"] as const;
 export const LANE_NAMES = [
@@ -54,7 +54,7 @@ export const MILESTONES: readonly [number, string][] = [
     [10, "PROMISING RESEARCH"],
     [25, "PEER REVIEW SURVIVED"],
     [50, "ACADEMIC WEAPON"],
-    [75, "CITED BY EVERYONE"],
+    [75, "MENSA QUEUE SKIPPED"],
     [100, "TENURE TRACK UNLOCKED"],
     [150, "FIELDS MEDAL SPEEDRUN"],
 ];

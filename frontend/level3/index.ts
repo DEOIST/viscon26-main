@@ -30,7 +30,8 @@ function bestStorage(): BestStorage {
 }
 
 // Level 3, "Thesis defense" (docs/GAME_DESIGN.md): the Year 3 game, mounted by the shell
-// through src/games/registry.ts. Keyboard only, no server side and no audio.
+// through src/games/registry.ts. Keyboard only and no server side; its music and sounds are
+// synthesised in the browser (Synth.ts), so it ships no audio files.
 export const mountThesisDefense: MountMinigame = (options) => {
     const liveRegion = createLiveRegion();
     let scene: ThesisScene | null = null;
