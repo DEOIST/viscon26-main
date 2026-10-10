@@ -1,7 +1,11 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import { api, errorMessage } from "./api";
 import { GAMES, YEARS } from "./config";
-import { GraduationScreen, WelcomeScreen } from "./components/Screens";
+import {
+    CharacterBuilder,
+    GraduationScreen,
+    WelcomeScreen,
+} from "./components/Screens";
 import { ScoreboardDialog } from "./components/Dialogs";
 import { Icon } from "./components/Icon";
 import GameWorkspace, {
@@ -37,6 +41,8 @@ export function App() {
     const [graduation, setGraduation] = useState(progress.graduated);
     const [graduationPreview, setGraduationPreview] = useState(false);
     const [previewingGraduation, setPreviewingGraduation] = useState(false);
+    // Editing during the degree keeps the saved stage, so it never replays the admission.
+    const [editingCharacter, setEditingCharacter] = useState(false);
     const [busy, setBusy] = useState(false);
     const [syncing, setSyncing] = useState(false);
     const [syncError, setSyncError] = useState("");
@@ -141,6 +147,7 @@ export function App() {
         selectedGame?.id,
         graduation,
         previewingGraduation,
+        editingCharacter,
     ]);
 
     async function savePlayer(
@@ -217,7 +224,7 @@ export function App() {
     const inDegree = player.onboardingStage === "main";
     const showGraduation =
         graduation || (graduationPreview && previewingGraduation);
-    const gameScreen = inDegree && !showGraduation;
+    const gameScreen = inDegree && !showGraduation && !editingCharacter;
     return (
         <div className={`app-shell ${gameScreen ? "game-screen" : ""}`}>
             <a className="skip-link" href="#main-content">
@@ -312,10 +319,7 @@ export function App() {
                             );
                             setError("");
                         }}
-                        onEdit={() => {
-                            dispatch(setStage("builder"));
-                            setError("");
-                        }}
+                        onEdit={() => setError("")}
                         onBegin={() =>
                             void savePlayer({
                                 ...player,
@@ -344,6 +348,24 @@ export function App() {
                                 setPreviewingGraduation(false);
                             }}
                         />
+                    ) : editingCharacter ? (
+                        <CharacterBuilder
+                            player={player}
+                            busy={busy}
+                            error={error}
+                            onBack={() => {
+                                setEditingCharacter(false);
+                                setError("");
+                            }}
+                            onContinue={(draft) =>
+                                void savePlayer({
+                                    ...draft,
+                                    onboardingStage: "main",
+                                }).then((saved) => {
+                                    if (saved) setEditingCharacter(false);
+                                })
+                            }
+                        />
                     ) : (
                         <GameWorkspace
                             player={player}
@@ -356,7 +378,7 @@ export function App() {
                             selectedGame={selectedGame}
                             completionFeedback={completionFeedback}
                             onEditCharacter={() => {
-                                dispatch(setStage("builder"));
+                                setEditingCharacter(true);
                                 setError("");
                                 setNotice("");
                             }}
