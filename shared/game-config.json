@@ -79,7 +79,7 @@
             "title": "Basisprüfung",
             "description": "Shoot the exam questions with your finger gun.",
             "ects": 90,
-            "implemented": false
+            "implemented": true
         }
     ],
     "years": [
@@ -91,7 +91,7 @@
             "games": [
                 {
                     "id": "year-1-slot",
-                    "title": "Casino night",
+                    "title": "Basisprüfung",
                     "ects": 60,
                     "implemented": true
                 }
@@ -105,9 +105,9 @@
             "games": [
                 {
                     "id": "year-2-slot",
-                    "title": "Basisprüfung",
+                    "title": "Casino night",
                     "ects": 60,
-                    "implemented": false
+                    "implemented": true
                 }
             ]
         },

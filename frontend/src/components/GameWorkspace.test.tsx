@@ -38,7 +38,7 @@ function setup(selected = false) {
 }
 
 it("browses locked years with keyboard and selectors without allowing launch", () => {
-    GAMES[0].implemented = false; // a preview, whatever shared/game-config.json has switched on
+    GAMES[0].implemented = true; // Year 1 is launchable; later years remain locked
     const { onOpen } = setup();
     fireEvent.keyDown(screen.getByRole("region", { name: "Active game" }), {
         key: "ArrowRight",
@@ -54,7 +54,7 @@ it("browses locked years with keyboard and selectors without allowing launch", (
     fireEvent.keyDown(screen.getByRole("region", { name: "Active game" }), {
         key: "Home",
     });
-    fireEvent.click(screen.getByRole("button", { name: "Open preview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Launch game" })); // Year 1: the shooter
     expect(onOpen).toHaveBeenCalledExactlyOnceWith(GAMES[0]);
     expect(
         screen

@@ -6,14 +6,18 @@ webcam in a noisy venue. Gameplay rules are in
 [GAME_DESIGN.md](GAME_DESIGN.md#minigame-2-finger-gun-shooter-basisprüfung);
 system context is in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-> Status: design, not built yet. Numbers marked "start value" are starting
-> points to tune with the debug overlay, not measurements.
+> **Status (2026-10-10): built (#13), as level 1.** The game lives in
+> `frontend/level1/` (mounted by the outer shell through `src/games/registry.ts`)
+> and its finger-detection engine in `backend/level1/` (registered in
+> `app/routers/__init__.py`). The shooter scene (warm-up, countdown, 60-second
+> round) is playable with the finger gun and with the mouse. Values marked "start value"
+> are starting points to tune at the venue; values marked "measured" come from
+> [Measurements](#measurements). [Not built yet](#not-built-yet) lists what is left.
 
-## Acceptance criteria (measured on the demo laptop)
+## Acceptance criteria (measured on the demo setup)
 
-Measure with the game scene and the camera running together, on the demo laptop
-and on the weakest team laptop. Never measure on the VM or in CI: neither has a
-GPU, so the numbers would describe software rendering, not our game.
+Measure with the real demo setup: the demo laptop's camera and browser, and the
+server the demo will use. CI has no camera; it only proves that the engine loads.
 
 | What | Target |
 |---|---|
@@ -21,104 +25,183 @@ GPU, so the numbers would describe software rendering, not our game.
 | False shots | ≤ 1 per 30 s of aiming without shooting |
 | Aim jitter at rest | crosshair moves < 1 % of the screen width while the hand is still |
 | Input-to-feedback latency | < 150 ms from thumb drop to muzzle flash (film the screen and hand with a 240 fps phone video) |
-| Frame rate with CV running | ≥ 95 % of frames ≤ 33 ms; target 60 fps |
-| New player | understands the gesture within the 3 calibration targets, without coaching |
-| Recovery | camera denied, lost or model missing → mouse mode within 2 s; the round continues |
+| Engine rate | one answer per camera frame (~30 per second); `python -m level1.cv_check <server>` round trip ≤ 60 ms |
+| Game frame rate | 60 fps on the demo laptop with the camera on |
+| New player | understands the gesture within the 3 practice papers, without coaching |
+| Recovery | camera denied or lost, engine busy, unavailable or idle → mouse mode within 2 s; the round continues |
 
-**Gate at T+6h:** a throwaway spike page shows the crosshair following the index
-finger and firing on a thumb drop, roughly meeting the first three rows. If it
-doesn't, switch the trigger to a pinch (see "Trigger") before the game depends
-on it. The spike is not merged; it only answers "does this work on our laptops".
+## Why on the server (#13)
 
-## Why in the browser, never on the server
+The team decided in issue #13 to run finger detection in the Python backend.
+This replaces the earlier plan of MediaPipe in the browser
+([DECISIONS.md](DECISIONS.md)). What we get:
 
-Camera frames never leave the laptop. MediaPipe runs the hand model on the GPU
-in the browser at camera rate. Streaming 30 frames per second to FastAPI for
-OpenCV would add network latency to every shot, need real server CPU, and send
-faces over the network. CV also costs no API credits.
+- **One engine, tested in Python.** The gesture rules (`backend/level1/gesture.py`)
+  are pure functions with pytest coverage, next to the MediaPipe wrapper
+  (`backend/level1/cv.py`) and a test that runs the real model on a real photo.
+- **A light browser.** The browser only captures the camera, encodes a small
+  JPEG per frame and draws the game. No 12 MB wasm runtime to download, no hand
+  model competing with Phaser for the GPU and the main thread.
+- **No API credits.** MediaPipe runs locally on the server's CPU; CV never
+  calls OpenAI.
 
-We use the **HandLandmarker** task and our own geometry, not MediaPipe's
+What it costs, and how we contain it:
+
+| Cost | Containment |
+|---|---|
+| Network latency on every frame | Exactly one frame in flight (`FramePacer`), 640 px JPEGs (46 KB measured), the answer ~1 KB. Run the server close to the player: the demo laptop's own `make prod` is best; check a VM with `python -m level1.cv_check <url>` |
+| Server CPU: about one core per tracked player at 30 frames per second | `CV_MAX_SESSIONS` (default 4) caps it; further players get mouse mode (close code 1013). Streams that send nothing for `CV_IDLE_TIMEOUT_SECONDS` (default 20) are closed (4000), which frees the slot of a hidden tab |
+| Upload bandwidth: about 11 Mbit/s per player (46 KB per 640 px frame from a real hand recording, 30 per second). 320 px frames would be a quarter of that, but made the aim shakier and fired false shots ([Camera](#camera-browser)) | Fine on a laptop next to its own server; on venue wifi to a VM, measure first |
+| Camera frames reach our server | Decoded in memory, never stored or logged; only landmarks and the aim go back. The one exception is a developer's [recording](#recording-debugging-gestures), which only a server in development mode accepts |
+
+We use MediaPipe's **HandLandmarker** and our own geometry, not its
 GestureRecognizer: GestureRecognizer has no finger-gun gesture, adds a
 classifier, and we need continuous fingertip positions anyway.
 
 ## Pipeline
 
 ```
-webcam: getUserMedia, 640×480, ~30 fps, shown mirrored
-  │  requestVideoFrameCallback: once per new camera frame
+Browser: frontend/level1/input/ServerHandInput.ts                     Server: one FastAPI process
+getUserMedia 640×480 ~30 fps, never shown (the scene draws its own backdrop)
+  │ requestVideoFrameCallback → FramePacer: one frame in flight, never the same frame twice
   ▼
-HandLandmarker.detectForVideo(video, timestamp)      @mediapipe/tasks-vision, GPU delegate
-  │  per hand: 21 image landmarks (0..1) + 21 world landmarks (metres) + handedness
+640 px wide JPEG (quality 0.8) ── binary WebSocket message ──► /api/cv/stream   (backend/level1/router.py)
+                                                                 │ decode_frame: Pillow, ≤ 1280×960
+                                                                 ▼
+                                                               HandLandmarker, VIDEO mode, CPU, ≤ 2 hands
+                                                                 │ per hand: 21 image landmarks (0..1)
+                                                                 ▼
+                                                               PlayerGun        (backend/level1/gesture.py)
+                                                                 ├ drop duplicate detections of one hand
+                                                                 ├ GunTracks: one GunTracker per hand, stable
+                                                                 │ across frames; the largest is the player
+                                                                 ├ pose: ring and pinky curled?
+                                                                 ├ aim: knuckle position + wrist→index direction
+                                                                 │ → One-Euro
+                                                                 └ trigger: thumb angle, hysteresis, cooldown,
+                                                                   aim from 0.2 s earlier
+{type: "frame", tracking, aim, firedAt, landmarks, thumbAngle, processingMs} ◄── JSON
   ▼
-pick the hand: largest hand in view                   ignores people walking behind the player
-  ▼
-gesture.ts (pure functions, unit-tested)
-  ├─ pose:    is it a finger gun? (index straight, ≥ 2 of middle/ring/pinky curled)
-  ├─ aim:     index fingertip → calibration box → game area 0..1 → One-Euro filter
-  └─ trigger: thumb-to-index distance (metres), hysteresis + cooldown
-  ▼
-InputSource { aim, tracking, onFire }                 same interface as MouseInput and ReplayInput
-  ▼
-ShooterScene (Phaser, isometric 2D): crosshair, hit test at the aim from ~100 ms before the trigger, effects
+SwitchableInput (camera, or the mouse as fallback) → ShooterScene (Phaser): crosshair,
+hand skeleton, hit test at firedAt, effects
 ```
 
-## Camera
+## Wire protocol
 
-- `navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480,
-  frameRate: { ideal: 30 }, facingMode: "user" }, audio: false })`. 640×480 is
-  plenty: the palm detector downscales anyway, and bigger frames only cost upload time.
-- Show the video **mirrored** (`transform: scaleX(-1)`) so moving your hand
-  right moves it right on screen, and mirror landmark x the same way (`x = 1 − x`).
-- Ask for the camera only after a click on the shooter intro screen ("Enable
-  camera") and say why. Handle `NotAllowedError` (denied), `NotFoundError` (no
-  camera) and `NotReadableError` (camera busy, e.g. a video call) by switching to
-  mouse mode with a friendly message.
-- **Secure context required:** `getUserMedia` only exists on `https://` origins
-  and on `http://localhost`. See "Demo setup".
-- `destroy()` stops every track (`stream.getTracks().forEach((t) => t.stop())`)
-  and calls `landmarker.close()`. Leaving the page also releases both, because
-  every scene is its own page.
+`GET /api/cv/status` → `CvStatus`: `{available, reason, activeSessions,
+maxSessions}`. It starts a detector once per process to prove that MediaPipe,
+its system libraries and the model all work (~2 s the first time; only success
+is remembered, so a failed start is retried); calling it before a round also
+warms the engine up, otherwise the first stream pays the ~2 s. In development the reason names the error (for
+example a missing `.so` file); in production it points to the server log, which
+has the full traceback (`make prod-logs`).
 
-## MediaPipe setup
+WebSocket `/api/cv/stream` (`backend/level1/router.py`, `input/cvStream.ts`):
+
+| Direction | Message | Answer |
+|---|---|---|
+| server → client | `{"type": "ready", "box": [x0, y0, x1, y1]}` once the session's detector is loaded | |
+| client → server | binary JPEG frame (JPEG only), at most `CV_MAX_FRAME_BYTES` (200 KB), each side ≤ 1280 px | `{"type": "frame", ...CvFrame}` |
+| client → server | `{"type": "box", "box": [x0, y0, x1, y1]}` (`CvBoxMessage`): 0 ≤ x0 < x1 ≤ 1, same for y, each side at least 0.1 | `{"type": "ready", "box": [...]}` |
+| client → server | `{"type": "settings", "cooldownMs": 175}` (`CvSettingsMessage`): 0–2000, the athlete perk | the same message |
+| server → client | `{"type": "error", "detail": "..."}` for a bad frame or message; the stream continues | |
+
+Control messages are validated by their schemas in `backend/level1/schemas.py` (JSON
+numbers only: no booleans, NaN or infinity) and may be at most 1024 characters
+long. Close codes: **1013** engine busy (all `CV_MAX_SESSIONS` slots taken),
+**1011** engine unavailable (no model, or MediaPipe can't start), **4000** no
+camera frames for `CV_IDLE_TIMEOUT_SECONDS` (control messages don't count). The
+client turns every close into mouse mode with a readable reason (`closeMessage`).
 
 ```ts
-import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
-
-const vision = await FilesetResolver.forVisionTasks("/static/mediapipe"); // self-hosted wasm
-const landmarker = await HandLandmarker.createFromOptions(vision, {
-    baseOptions: {
-        modelAssetPath: "/static/models/hand_landmarker.task", // self-hosted, 7.8 MB
-        delegate: "GPU", // if creation throws, retry with "CPU"
-    },
-    runningMode: "VIDEO",
-    numHands: 2, // detect up to two, keep the largest (see "Picking the hand")
-    minHandDetectionConfidence: 0.6, // start value
-    minHandPresenceConfidence: 0.6, // start value
-    minTrackingConfidence: 0.5, // start value
-});
-
-// Once per new camera frame (requestVideoFrameCallback). Timestamps must increase.
-const result = landmarker.detectForVideo(video, performance.now());
-// result.landmarks[i]       21 × {x, y, z}; x and y normalized to the image
-// result.worldLandmarks[i]  21 × {x, y, z} in metres, origin near the hand centre
-// result.handedness[i][0]   { categoryName: "Left" | "Right", score }
-// HandLandmarker.HAND_CONNECTIONS lists the bones for drawing the skeleton.
+// frontend/level1/input/cvStream.ts (mirrors backend/level1/schemas.py)
+type Tracking = "ok" | "noPose" | "lost";
+type GamePoint = [number, number]; // game area 0..1, x already mirrored
+interface CvFrame {
+    type: "frame";
+    tracking: Tracking;
+    aim: GamePoint | null; // filtered: where the gun points
+    firedAt: GamePoint | null; // set on the frame a shot fires (look-back applied)
+    landmarks: GamePoint[] | null; // 21 points for the skeleton (through the box), not clamped
+    thumbAngle: number | null; // degrees from straight up, for tuning
+    processingMs: number; // server time for this frame
+}
 ```
 
-- **Self-host the runtime files.** The build copies
-  `node_modules/@mediapipe/tasks-vision/wasm/` to `dist/static/mediapipe/` and
-  downloads the model once into `frontend/public/models/` (git-ignored: 7.8 MB is
-  above CI's 5 MB file limit). Nothing is fetched from a CDN at demo time;
-  venue wifi is unreliable.
-- **Warm up during calibration.** The first `detectForVideo` compiles GPU
-  shaders (around a second); never let that happen mid-round.
+## Camera (browser)
+
+- `getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 },
+  frameRate: { ideal: 30 }, facingMode: "user" }, audio: false })`, asked for
+  right after the player clicks **Start**.
+- The camera image is **never shown**: the video element is only a frame
+  source, kept in the page at 1 px with opacity 0 (browsers may stop decoding a
+  detached or `display: none` video, and `requestVideoFrameCallback` then never
+  fires). The game shows its own backdrop instead (`Backdrop.ts`). The engine
+  mirrors x, so moving your hand right moves the crosshair right.
+- **Frames sent: 640 px wide, JPEG quality 0.8** (`FRAME_WIDTH`,
+  `JPEG_QUALITY` in `config.ts`), the size the gesture thresholds were tuned
+  on. Replaying the prototype's camera recordings through the engine at
+  320 px / 0.7 made the aim 20–43 % shakier and, on the labeled recording, missed
+  one shot and fired one false shot; at 640 px / 0.8 it caught every labeled
+  shot with no false one (measured). The cost is upload bandwidth (46 KB per
+  frame) and engine time (9.7 ms median per frame, natively).
+- `NotAllowedError` (denied), `NotFoundError` (no camera) and
+  `NotReadableError` (in use by another app) switch to mouse mode with that
+  reason (`cameraErrorMessage`).
+- **Secure context required:** `getUserMedia` only exists on `https://` origins
+  and on `http://localhost`. See [Demo setup](#demo-setup-checklist).
+- `destroy()` closes the WebSocket and stops every camera track. Leaving the
+  page releases both anyway, because every scene is its own page.
+
+## The engine (server)
+
+- **One HandLandmarker per WebSocket**: VIDEO mode needs strictly increasing
+  timestamps per instance, which `CvSession` derives from a monotonic clock.
+  `num_hands=2` (the largest is the player), detection, presence and tracking
+  confidence **0.3** (measured): MediaPipe's default 0.5 drops small,
+  foreshortened gun hands (a fist pointing at the camera) and re-detects them,
+  which loses frames and sometimes reports the hand twice. On a two-hand
+  recording 0.3 cut frames missing a visible hand from 24 to 10, the longest gap
+  from 5 frames to 1, and duplicates from 16 to 0, with no false hands on any
+  recording (0.2 added one).
+- **The model** (`hand_landmarker.task`, float16, 7.8 MB) is downloaded by the
+  frontend build into the git-ignored `frontend/public/models/` (CI rejects
+  files over 5 MB), copied to `dist/static/models/`, and read by the server from
+  `CV_MODEL_PATH` (default: that file in `frontend/dist`, else the one in
+  `frontend/public/models/`, so `make dev` works after one build). The Docker
+  image gets the model through the frontend build stage.
+- **System libraries.** In `python:3.12-slim` MediaPipe needs `libxcb1`,
+  `libgl1`, `libglib2.0-0` (to import OpenCV) and `libegl1`, `libgles2` (when a
+  detector starts), even though the server never opens a window; the x86_64
+  and arm64 wheels need the same ones. Without them the engine reports itself
+  unavailable and the log names the missing `.so` file. `MPLCONFIGDIR=/tmp/matplotlib`
+  gives matplotlib (pulled in by MediaPipe) a writable cache, because `appuser`
+  has no home directory.
+- **Concurrency.** Decoding and detection run in the threadpool
+  (`run_in_threadpool`), and MediaPipe releases the GIL, so players don't block
+  each other or the rest of the API: four parallel players got the same median
+  round trip as one (measured).
+- **Limits** (the stream is open to anyone who can load the page):
+  - frames: JPEG only (every other Pillow parser is attack surface),
+    `CV_MAX_FRAME_BYTES`, and each side at most 1280 px and 1280×960 px in
+    total, checked from the header before decoding. **A side of 32767 px or more
+    aborts OpenCV inside MediaPipe, a native crash that kills the whole server
+    process**, so the side limit is checked again right before the detector
+    runs. Pillow's decompression-bomb guard maps to "Frame too large" too;
+  - control messages: at most 1024 characters, because they are parsed on the
+    event loop; every WebSocket message is capped at 1 MiB by uvicorn
+    (`--ws-max-size` in the Dockerfile; keep it above `CV_MAX_FRAME_BYTES`);
+  - `CV_MAX_SESSIONS` slots, freed after `CV_IDLE_TIMEOUT_SECONDS` without a
+    camera frame. A slot is always returned, even if a detector fails to close.
+- **Privacy.** Frames live only in memory while one is processed; nothing
+  writes them to disk or to the log.
 
 ## Landmarks we use
 
 ```
- 4 thumb tip              8 index tip   12      16      20
- 3                        7             11      15      19
- 2                        6 index PIP   10      14      18
+ 4 thumb tip              8 index tip   12      16 ring  20 pinky
+ 3                        7             11      15 tip   19 tip
+ 2 thumb MCP              6 index PIP   10      14 PIP   18 PIP
  1                        5 index MCP ─ 9 ───── 13 ──── 17
   \                                                     /
    └───────────────────────── 0 wrist ─────────────────┘
@@ -126,240 +209,335 @@ const result = landmarker.detectForVideo(video, performance.now());
 
 0 wrist · 1–4 thumb · 5–8 index · 9–12 middle · 13–16 ring · 17–20 pinky.
 
-- **World landmarks (metres)** for pose and trigger: they don't change with the
-  hand's distance to the camera.
-- **Image landmarks** for aim and for drawing: they are screen positions.
+Everything uses the **image landmarks scaled to pixels** (x·W, y·H, z·W), so
+angles don't depend on the camera's aspect ratio. MediaPipe's metric "world"
+landmarks are not used: they are unreliable when the index finger points
+straight at the camera, which is exactly how players aim.
+
+The rules in `backend/level1/gesture.py` are tuned on two recordings of real play in
+the game (`backend/level1/tests/fixtures/captures/play_*.jsonl`, 41 s, every frame's
+landmarks, with the frames where the thumb was visibly down labeled by eye) and
+checked on photos (`backend/level1/tests/fixtures/aim*.jpg`, `shoot1.jpg`). `test_gesture.py`
+replays the recordings: every labeled drop must fire, nothing else may. Re-run
+the tests whenever a threshold changes, and record new play (see
+[Recording](#recording-debugging-gestures)) when players report misfires.
+
+**Thumb/index swaps.** With the index pointing at the camera, MediaPipe often
+mislabels the hand: it calls the upright thumb the index finger and lays the
+thumb chain along the curled fingers. On the recordings that happened in about
+15 % of the frames. Read naively it is a dropped thumb (a false shot), and the
+index tip jumps onto the thumb (which threw the old aim around). So the
+trigger recognizes the swap, and the aim uses no thumb or index landmark.
 
 ## Picking the hand
 
-Run with `numHands: 2` and keep the hand with the largest wrist-to-middle-MCP
-distance in image space, i.e. the one closest to the camera. Someone walking
-behind the player cannot steal the crosshair. Stretch goal: keep both hands for
-dual-wield.
+MediaPipe returns up to two hands.
+
+- **Duplicates:** at a low confidence MediaPipe sometimes reports one hand
+  twice (its tracked hand plus a fresh detection). Two detections whose
+  bounding boxes overlap by more than half of the smaller one
+  (`DUPLICATE_OVERLAP`) are one hand; the larger is kept. Two hands held
+  tightly together therefore count as one gun.
+- **Tracks:** every distinct hand gets its own `GunTracker`, matched across
+  frames by the nearest palm point (at most 0.2 frame widths per frame,
+  closest pairs first), so a second hand can't disturb the player's aim or
+  cocked thumb.
+- **The player** is the largest hand in the image (the one closest to the
+  camera) when the crosshair is acquired, and stays that hand for as long as it
+  is tracked. Someone walking behind cannot steal the crosshair, and their thumb
+  can't fire. Choosing the largest hand on every frame made the crosshair jump
+  between two hands of similar size: on a two-hand recording, jumps of more
+  than 10 % of the screen in one frame fell from 50 to 12 with the sticky
+  player (measured). While the player's hand is briefly out of view (≤ 300 ms)
+  the frame is `lost` even if another hand is visible; after that, the largest
+  visible hand becomes the player.
 
 ## Pose: is this a finger gun?
 
-Use the angle at each finger's PIP joint, between the vectors PIP→MCP and
-PIP→tip (world landmarks): about 180° is straight, under about 100° is curled.
+Ring and pinky curled: each finger's tip is closer to the wrist than its PIP
+joint (`reach` < 1). Checked on every frame, no debounce.
 
-- Index straight: PIP angle > 150° (start value).
-- Middle, ring, pinky curled: PIP angle < 120° (start value); at least 2 of the 3 must be curled.
+- The index is not checked: pointing at the camera foreshortens it to a reach
+  of ~1.05, the same as a curled finger, which blocked real shots.
+- The middle finger is too ambiguous to use (0.76–1.17 on the samples).
 - The thumb is not part of the pose; it is the trigger.
-- Debounce: the pose becomes valid after 3 consecutive frames and invalid after 5.
 
-The crosshair shows the state: bright when aiming; grey with the hint "Make a
-finger gun 👉" when a hand is visible but not in pose; hidden, with a banner,
-when no hand is visible.
+The crosshair shows the state: gold when aiming; grey in the centre with "Hold
+your finger gun still, pointing at the centre" while calibrating; grey with the
+hint "Make a finger gun 👉" when a hand is visible but not in pose; hidden, with
+"Show your hand to the camera", when no hand is visible.
 
 ## Aim
 
-1. Raw point = index fingertip (landmark 8), x mirrored. The fingertip position
-   is far steadier than extrapolating where the finger points, which is noisy in depth.
-2. **Calibration box:** a comfortable region of the camera image (default
-   x 0.2–0.8, y 0.15–0.75) maps to the whole game area, so small hand movements
-   cover the screen and the player never has to reach the image edges, where
-   tracking degrades. During calibration the player shoots practice targets at
-   the top-left and bottom-right; we record where their fingertip was and
-   set the box from those points, with a margin.
-3. **Same box for the video:** the mirrored video is scaled and positioned so
-   that the calibration box fills the game area. The crosshair then sits exactly
-   on the on-screen fingertip (the AR effect: the muzzle flash appears on your
-   finger) while movements stay small. One mapping function, `toGameArea(landmark)`,
-   is used for the crosshair, the skeleton overlay and the video transform.
-4. Clamp to 0..1, then apply a **One-Euro filter** (Casiez et al., 2012): an
-   adaptive low-pass filter, smooth when the hand is slow and responsive when it
-   is fast. Start values per axis: `minCutoff = 1.2`, `beta = 0.02`,
-   `dCutoff = 1.0`.
-5. Detection runs at camera rate (~30 Hz). The scene renders at 60 fps and eases
-   the crosshair toward the latest filtered point, so it glides instead of stepping.
-6. Optional (`AIM_EXTRAPOLATION`, default 0): push the crosshair slightly ahead
-   of the fingertip along the 2D direction PIP→tip, so it reads as "where the gun points".
+The crosshair follows the hand, like a mouse in the air, relative to where the
+player held it when the aim was calibrated.
+
+1. **Palm point:** the mean of the wrist (0) and the middle, ring and pinky
+   knuckles (9, 13, 17): landmarks that a thumb/index swap never moves. On the
+   recordings its frame-to-frame jitter is ~2 % of a player's aiming range.
+   (The old aim, hand position plus the wrist→index-tip direction, jumped by
+   more than 10 % of the screen in a single frame in 10–13 % of all frames,
+   whenever the labels swapped. Players also aim by turning the fist rather
+   than moving it, which moved the index knuckle only ~14 % of the frame
+   width.) The wrist→knuckles direction is no alternative: with the index at
+   the camera the wrist sits behind the knuckles and the direction spins.
+2. **Calibration:** at the start of a stream the engine waits until the finger
+   gun is held still (the palm within 0.02 frame widths for 15 frames, 0.5 s)
+   and takes that palm position as the neutral point: the centre of the
+   screen. The warm-up's first practice paper sits in the centre, so that is
+   where players hold it. Meanwhile frames say `tracking: "calibrating"`, the
+   crosshair waits grey in the centre, and no shot fires. **C** recalibrates
+   (`{"type": "recenter"}`), e.g. when a new player takes over or the arm
+   sank.
+3. **Mapping:** the palm's offset from the neutral point, mirrored, times
+   `AIM_GAIN` = 4 (moving the hand a quarter of the camera width sweeps the
+   screen); the vertical offset is also scaled by the game area's 16:9 so both
+   axes feel the same. Clamped to 0..1.
+4. **One-Euro filter** per axis (Casiez et al., 2012): smooth when the hand is
+   slow, responsive when it is fast. `min_cutoff = 0.5` Hz, `beta = 0.5`.
+   `test_recorded_aim_is_smooth_and_never_jumps` measures the wobble (median
+   0.0012 of the screen per frame² on the recordings) and the jumps.
+5. The engine answers at camera rate (~30 Hz). **Glide (display only):** the
+   scene draws the crosshair gliding toward each answer (`glide.ts`, time
+   constant `CROSSHAIR_GLIDE_MS` = 40 ms) instead of stepping at 30 Hz. Shots
+   still land at the engine's `firedAt`.
+
+**The box** is a region of the mirrored camera image (default x 0.2–0.8,
+y 0.15–0.75) that maps onto the game area for the hand skeleton: the engine
+maps the landmarks through it. The browser fits the box to the camera's shape
+(`input/box.ts`: same width and centre, the game area's 16:9 shape in camera
+pixels; y 0.225–0.675 for a 4:3 camera) and sends it once as
+`{"type": "box"}` before the first frame, so the skeleton isn't stretched. The
+box does not change the aim.
 
 ## Trigger: the thumb hammer
 
-The thumb starts up (cocked) and drops onto the side of the index finger to fire.
+The thumb starts up (cocked) and drops forward onto the index finger to fire.
 
-- **Signal:** `t = distance(thumb tip 4, index MCP 5)` in world metres.
-- **Hysteresis:** the gun is *cocked* when `t > T_UP`; it fires on the transition
-  to `t < T_DOWN`, and must return above `T_UP` before it can fire again. Start
-  values: `T_UP = 0.055 m`, `T_DOWN = 0.035 m`. Two thresholds stop flicker
-  around a single threshold from producing double shots.
-- **Cooldown:** at least 250 ms between shots (ASVZ-athlete perk: 30 % shorter).
-- **Aim look-back:** dropping the thumb jerks the hand, so resolving the shot
-  at the crosshair's *current* position misses. Keep a 300 ms ring buffer of
-  filtered aim points and resolve each shot at the aim from about **100 ms
-  before** the trigger fired. This one trick removes most of the "but I was on
-  target!" frustration.
-- Shots only fire while the pose is valid.
-- Every threshold lives in `games/shooter/config.ts`. Tune them at the venue with
-  the debug overlay and recordings from several people.
+Players drop the thumb two ways, and the trigger watches both:
 
-**Plan B: pinch.** If the thumb hammer tests badly, fire on thumb tip (4) to
-index tip (8) distance instead. Same pipeline, same hysteresis; only the signal changes.
+- **Sideways:** the thumb tilts away from straight up. Signal: the angle
+  between the thumb (MCP 2 → tip 4) and straight up, in the image. When the
+  labels are swapped (the "index" points straight up in the image, < 35°, and
+  is extended, reach > 1.15; a real index pointing at the camera is
+  foreshortened, reach ~1.0), the angle of that upright digit is used instead:
+  the thumb is up.
+- **Forward, toward the camera:** the thumb folds over the fist and looks
+  short, while its angle only reaches 30–54° (MediaPipe compresses depth).
+  Signal: the thumb's image length (MCP 2 → tip 4) in knuckle spans (middle to
+  pinky MCP, so the distance to the camera cancels out), as a fraction of its
+  **upright length**. That length is learned while the thumb points up: it
+  follows a longer thumb at once (rate 0.5 per frame) and a shorter one slowly
+  (0.02 per frame, ~1.5 s), so a fold barely moves it but each player's hand
+  and posture are learned within moments. Swapped frames are skipped: that
+  chain is not the thumb.
+- **Hysteresis (measured):** the gun is *cocked* when the thumb points up
+  (below **32°**) and is long again (above **80 %** of its upright length). It
+  fires when the thumb is down, above **55°** or shorter than **70 %**, for **2
+  frames in a row**, and must be cocked again before the next shot.
+- **Measured on four recordings of play** (63 drops labeled by eye, both
+  kinds, `backend/level1/tests/fixtures/captures/`): every drop caught, no false shot. The
+  angle alone at 55° missed 21 forward drops; at 40° it fired on hands that
+  only rolled; with the old label handling it fired on thumb/index swaps.
+  Rolling the hand to point sideways tilts the thumb but keeps its length, so
+  it doesn't fire. The second frame costs ~33 ms and removes one-frame
+  flickers.
+- **Labeling lesson:** a thumb folded toward the camera looks like an upright
+  one in a single small frame. Label drops by comparing each frame with the
+  ones before it.
+- Shots only fire in the finger-gun pose, and not while calibrating.
+- **Cooldown:** at least **250 ms** between the player's shots; the ASVZ-athlete
+  perk sends `{"type": "settings", "cooldownMs": 175}` (30 % shorter).
+- **Aim look-back:** the thumb drop drags the aim in the frames before a shot
+  registers, so the shot lands where the gun pointed **0.2 s** earlier. `aim`
+  keeps following the hand, so the crosshair never jumps.
+- Every threshold is a constant in `backend/level1/gesture.py`; the gameplay values
+  (round length, points, perks) live in `frontend/level1/config.ts`.
+
+**Known limitation:** the player must hold the gun upright (thumb toward the
+ceiling).
 
 ## Tracking loss and recovery
 
 | Situation | Behavior |
 |---|---|
-| Hand out of view < 300 ms | Keep the last aim; no firing |
-| Hand out of view > 1 s | Hide the crosshair, show "Show your finger gun"; could: pause the round timer |
-| Camera denied, busy or missing; model fails to load | Switch to `MouseInput` automatically, toast "Mouse mode" |
-| Tab hidden or window loses focus | Pause the round and reset the trigger state; resume on click |
-| Operator presses `M` / `C` / `D` | Mouse mode / recalibrate / toggle the debug overlay |
+| Hand out of view ≤ 300 ms | The last aim stays (grey); the hand keeps its track and its cocked thumb, so a shot that blurred out of tracking still fires on the way back |
+| Hand out of view > 300 ms | Crosshair hidden, "Show your hand to the camera"; the hand comes back as a new, uncocked track |
+| Camera denied, busy or missing; page not on `https://` or `localhost` | Mouse mode with the reason, the round continues; the shell shows the reason |
+| Camera unplugged or its permission revoked mid-round | Mouse mode at once (the track's `ended` event) |
+| Engine busy (1013), unavailable (1011) or the connection lost | Mouse mode with the reason |
+| No frames for 20 s, e.g. a hidden tab (4000) | The server frees the slot; the client switches to mouse mode |
+| Operator presses `M` | Mouse mode for the rest of the round |
+| Player or operator presses `C` | The aim calibrates again: hold the finger gun still at the centre |
+
+## Recording (debugging gestures)
+
+To find out why a shot fired or the aim shook, record what the engine saw: run
+the server in development (`make dev`), play the shooter, press **R** to start
+and **R** again to stop. The HUD shows `● REC`. The browser sends
+`{"type": "record", "on": true}` (`CvRecordMessage`); the engine answers
+`{"type": "record", "on": true, "dir": "<folder>"}` and the browser console
+prints the folder. Leaving the page also ends the recording.
+
+The engine saves into `backend/captures/<timestamp>/` (git-ignored, not in the
+Docker image):
+
+- `00000.jpg`, `00001.jpg`, ...: each frame exactly as received;
+- `frames.jsonl`, one line per frame: `size`, `t_ms`, the `reply` the browser
+  got (`tracking`, `aim`, `fired_at`, `processing_ms`), every distinct hand
+  (`id`, `player`, `shot`, `gun`, `hammer_angle` (what the trigger uses),
+  `thumb_angle` (as labeled), `thumb_length` (fraction of the learned upright
+  length), `swapped`, `cocked`, `palm`, `reach` of index,
+  ring and pinky, the 21 `landmarks`), and the `duplicates` that were dropped.
+
+The landmarks make a recording replayable through `PlayerGun` without the
+model, the way `test_gesture.py` replays `backend/level1/tests/fixtures/captures/play_*.jsonl`
+(made from two such recordings, landmarks only);
+the JPEGs allow running the model again, e.g. at another frame size.
+
+**Only a server in development mode records** (`ENVIRONMENT=development`, the
+default of `make dev`). Anyone can open the stream, and a production server
+must never store camera frames, so `make prod` and the VM answer
+`{"type": "record", "on": false, "dir": null}` and save nothing.
 
 ## Input abstraction
 
 ```ts
-// frontend/src/games/shooter/input/InputSource.ts (planned)
-export type TrackingState = "ok" | "noPose" | "lost";
-
+// frontend/src/frontend/level1/input/InputSource.ts
 export interface InputSource {
-    start(): Promise<void>;
-    /** Latest aim in game-area coordinates 0..1, or null when there is none. */
-    readonly aim: { x: number; y: number } | null;
-    readonly tracking: TrackingState;
-    /** Called once per shot with the point to resolve it at (look-back already applied). */
-    onFire(listener: (at: { x: number; y: number }) => void): () => void;
+    readonly mode: "camera" | "mouse";
+    readonly aim: AimPoint | null; // game area 0..1
+    readonly tracking: Tracking;
+    readonly landmarks: AimPoint[] | null; // 21 points (camera only), for the skeleton
+    takeShots(): AimPoint[]; // shots since the last call; the scene polls every frame
     destroy(): void;
 }
 ```
 
 | Implementation | Purpose |
 |---|---|
-| `HandInput` | Camera + MediaPipe + `gesture.ts`. The real thing |
+| `ServerHandInput` | Camera + WebSocket to the engine. The real thing |
 | `MouseInput` | Pointer position + click. Always available; the fallback and the operator override |
-| `ReplayInput` | Plays a recorded landmark file through the same `gesture.ts`: build the scene without a camera, reproduce bugs deterministically |
+| `SwitchableInput` | What the scene holds: starts with `ServerHandInput` and swaps in `MouseInput` on any failure or on `M` |
 
-`ShooterScene` never knows which source it has.
+`ShooterScene` never knows which source drives it.
 
-## Isometric 2D rendering with Phaser (what makes it feel like magic)
+## Fake depth with Phaser (what makes it feel like magic)
 
-The shooter is a Phaser 4 scene with a **fixed view** and **isometric art**:
-depth is faked in 2D, the way classic isometric games do it. The player stays
-put and the targets come to them, so there are no camera controls to build, and
-the shooter runs on the same engine and conventions as blackjack.
+The shooter is a Phaser 4 scene with a **fixed view**: the player stays put and
+the targets come to them, so there are no camera controls to build, and it runs
+on the same engine and conventions as blackjack.
 
-```ts
-// games/shooter/ShooterScene.ts (planned): the core of the fake depth
-// Every target has a distance z: 1 = far end of the exam hall, 0 = in your face.
-const near = 1 - target.z;
-target.sprite.setScale(Phaser.Math.Linear(FAR_SCALE, NEAR_SCALE, near));
-target.sprite.setPosition(
-    Phaser.Math.Linear(VANISH_X, target.laneX, near), // lanes fan out from the far end
-    Phaser.Math.Linear(VANISH_Y, target.laneY, near),
-);
-target.sprite.setDepth(near); // nearer targets draw on top
-target.sprite.setAlpha(Phaser.Math.Linear(FAR_ALPHA, 1, near)); // haze at the far end
+- **Depth** (`depth.ts`, pure, unit-tested): every target has a distance
+  `z` (1 = the far end of the exam hall, 0 = in your face). `project()` turns
+  lane, height and `z` into screen position, scale, draw order and haze, with
+  perspective that accelerates as the target approaches.
+- **Targets** fly along lanes that fan out from the horizon: exam questions
+  (the text comes from the dialogue pack's `questions` event, or built-in
+  lines), deadlines (fast, more points) and coffee (+3 s). A target that
+  reaches the player leaves without a penalty; only missed shots cost points.
+- **Hit test** (`hitTest.ts`, pure, unit-tested): at `firedAt`, the nearest
+  target under the aim wins, against a circle of `radius × scale`.
+- **Backdrop** (`Backdrop.ts`) instead of the webcam image: a near-black
+  exam-hall corridor. Floor and ceiling grids scroll toward the player, dust
+  streams out of the vanishing point, and the horizon glows. Every shot sends
+  a shockwave through it and flashes the glow (gold on a hit, red on a miss,
+  white when the round starts); a hit streak warms the colours from cold blue
+  to magenta, shots speed up the scroll, and the last 10 seconds pulse red. One
+  `Graphics` object redrawn each frame with plain shapes: no shaders or
+  gradients, so it runs on Canvas too, and no sprites against the budget.
+- **Feel** (`effects.ts`): muzzle flash at the aim, paper that shatters into
+  pieces, a small camera shake on hits, floating "+10", streak bonuses, proctor
+  subtitles from the dialogue pack.
+- **Crosshair and neon hand skeleton** (`handOverlay.ts`), drawn every frame on
+  top. The skeleton proves to the judges at a glance that the hand is really
+  tracked.
+- **Warm-up:** three practice papers (centre, top-left, bottom-right) teach the
+  gesture before anything counts; `Enter` skips them, and they end by
+  themselves after 25 s. They also hide the engine's start-up.
 
-// games/shooter/hitTest.ts (planned, pure, unit-tested): no engine needed
-// Aim and targets share game-area coordinates (0..1); the nearest target under the aim wins.
-export function hitTest(at: Point, targets: readonly TargetView[]): TargetView | null;
-```
+## Measurements
 
-- **Isometric art carries the depth.** The exam hall, desks and props are
-  pre-drawn isometric sprites at a 2:1 angle (Kenney isometric packs, CC0, or
-  `make art` in the house style). Targets (exam papers, deadline clocks, coffee
-  cups) are drawn at the same angle, with 2–4 frame flutter or spin animations.
-  The code only scales, orders, fades and moves them.
-- **Depth cues:** scale with distance, draw order by distance (`setDepth`), haze
-  toward the far end, a soft blob shadow on the floor under each target, and a
-  slight parallax between background layers when the screen shakes.
-- **Targets fly toward the player** along lanes that fan out from the far end
-  of the hall. A target that reaches `z = 0` without being hit counts as a
-  miss. Targets and shards come from a `Phaser.GameObjects.Group` pool; nothing
-  is created or destroyed mid-round. All sprites live in one texture atlas, so
-  fifty targets still batch into a handful of draw calls.
-- **Hit test:** at the look-back aim point, `hitTest` checks targets nearest
-  first against a circle of `radius × scale`. It is a pure function over plain
-  data, so it is unit-tested without Phaser.
-- **Webcam background.** Start with the mirrored `<video>` element behind the
-  transparent Phaser canvas (`transparent: true` in the game config) and a CSS
-  filter, so it looks designed rather than like a video call. Upgrade (could):
-  the video as a Phaser video game object with a Phaser 4 filter (duotone,
-  scanlines). That is the WebGL showcase moment.
-- **Hits shatter:** a Phaser particle emitter bursts the paper into small
-  pre-drawn isometric shards with fading velocities, plus sparks.
-- **Crosshair and hand skeleton:** a `Graphics` object on the top depth,
-  positioned with the same `toGameArea()` mapping as the aim. The neon skeleton
-  drawn from `HandLandmarker.HAND_CONNECTIONS` proves to the judges instantly
-  that the hand is really tracked.
-- **Feel:** muzzle flash at the fingertip, a small camera shake
-  (`cameras.main.shake`) and a 50 ms hit-stop on hits, punchy sound, a combo
-  counter, floating "+10", and a spark where a missed shot landed, so players
-  learn the look-back aim.
-- **Quality setting:** `standard` (no antialiasing, half the particles, no glow)
-  and `sharp` (antialiasing, full particles, optional glow filter). Use `sharp`
-  on the demo laptop only if it holds 60 fps with the camera on.
-- **Renderer fallback:** Phaser picks WebGL and falls back to Canvas. Gameplay
-  must never depend on filters or glow, so the shooter stays playable in Canvas
-  mode; test it once with `type: Phaser.CANVAS`.
-- **Lifecycle:** pause the round when the tab is hidden or the window loses
-  focus. On WebGL context loss, pause and show "Graphics interrupted"; resume
-  when the context is restored. `destroy()` stops the input source and calls
-  `game.destroy(true)`, which stops the loop, frees textures and removes the canvas.
+Measured on 2026-10-10 on an Apple M4 laptop: natively, and in the production
+image (linux/arm64 in Docker Desktop, CPU only), with `pointing_up.jpg` and a
+browser whose camera was replaced by that photo. A cloud VM will differ:
+measure it with `python -m level1.cv_check <url>`.
 
-## Performance budget (per camera frame, ~33 ms)
+| What | Native | Production image |
+|---|---|---|
+| Engine time per 320 px frame (median) | 8.9 ms | 19.3 ms |
+| Engine time per 640 px frame of a real hand (median / p95), 2026-10-10 after the switch to 640 px | 9.7 / 12.9 ms | not measured |
+| `level1.cv_check` round trip on localhost (median) | 10.7 ms | 26.1 ms |
+| Four players at once, round trip each (median / p95) | | 26 / ≤ 32 ms |
+| First detector in a process (cold start) | ~1.8 s | |
+| Stream ready once warm (connect + detector start) | 185 ms | 45 ms |
+| Browser: engine answers per second (30 fps camera) | | 30.1 |
+| Browser: JPEG per frame / JSON answer | | 9.3 KB / ~1 KB (320 px); 46 KB per 640 px frame of a real hand |
 
-| Step | Budget |
-|---|---|
-| `detectForVideo`, GPU delegate | about 5–15 ms on a recent laptop (CPU delegate: 20–40 ms); measure |
-| Pose, aim, trigger, filter | < 1 ms |
-| Phaser frame (game logic + render, one atlas, ≤ 50 active sprites) | < 6 ms |
-
-Hand tracking and the Phaser scene share one GPU and the main thread.
-`detectForVideo` is synchronous. If frames go over budget on the demo laptop, go
-down this ladder, measuring after each step:
-
-1. Quality `standard`: no antialiasing, half the particles, no glow.
-2. Camera at 480×360.
-3. Detect on every second camera frame (15 Hz) and keep easing the crosshair.
-4. `numHands: 1`.
-5. Move detection into a Web Worker (transfer frames as `ImageBitmap`). The most
-   work; only if steps 1–4 are not enough.
-
-## Debug overlay and tuning (`?debug=1` or `D`)
-
-Shows the landmarks and skeleton, pose state and joint angles, the thumb
-distance `t` with `T_UP` and `T_DOWN` drawn as lines, shots fired, detection time
-in ms, frame times (p50/p95), active sprites and particles, the delegate in use (GPU or CPU), the quality setting
-and the calibration box. All tunables come from `games/shooter/config.ts`. This
-overlay is also the FPS test: run it on each team laptop with the camera on.
+The browser rate was 17 per second before `FramePacer` sent a waiting frame as
+soon as an answer arrived; now the camera is the limit.
 
 ## Testing without a camera (and without credits)
 
-- **Unit tests (vitest, planned)** for `gesture.ts`, the One-Euro filter and the
-  calibration mapping:
-  - synthetic hands from a helper (e.g. `makeHand({ thumb: "up", index: "straight" })`)
-    for pose and trigger decisions;
-  - recorded sequences in `games/shooter/input/fixtures/*.json` (a few seconds
-    each, < 500 KB): "20 deliberate shots" must give 20 fires, "aiming without
-    shooting" must give 0, "hand leaves the frame" must give no fire.
-- **Recording:** `?record=1` on the shooter page downloads the session's
-  landmark stream as JSON. Record several people (hand sizes, lighting) at the
-  venue early. Recordings contain landmark numbers only, never images.
-- **ReplayInput** lets the game owner work on the scene with real hand data and
-  no camera.
-- CI needs no camera, and CV never spends API credits.
+- **pytest** (`make check`): `test_gesture.py` (synthetic hands from
+  `backend/level1/tests/hands.py` for pose, aim, calibration, tracks, duplicates, both drop
+  styles, label swaps, cooldown and look-back, plus four replayed recordings
+  of play that must fire exactly the labeled shots with a smooth aim),
+  `test_cv.py` (the HTTP and WebSocket contract with a scripted detector:
+  frames, errors, limits, busy, unavailable, idle, settings, recording and its
+  refusal in production),
+  `test_cv_mediapipe.py` (the real model through the stream on
+  `backend/level1/tests/fixtures/`: the aim photos read as cocked guns, the aim follows the
+  finger, aim → shoot fires one shot; skipped when the model hasn't been
+  downloaded).
+- **vitest** (`make check`): `depth`, `hitTest`, `score`, `spawn`, `box`,
+  `cvStream`, `FramePacer`, `glide`, the backdrop's colours, and `SwitchableInput.test.ts`, which runs the whole
+  input lifecycle against a fake browser (camera, video, WebSocket): fallback
+  on an insecure origin, an unplugged camera or a busy engine, the box
+  handshake, `M`, and destroy during start-up.
+- **`.venv/bin/python -m level1.cv_check [URL]`** (from `backend/`) streams the photo to a running server
+  and prints the engine time and round trip. Use it on the VM before the demo.
+- **The browser without a camera:** replace `navigator.mediaDevices.getUserMedia`
+  before the page loads (Playwright `page.addInitScript`) with a function that
+  draws a hand photo into a canvas every animation frame and returns
+  `canvas.captureStream(30)`. The whole pipeline then runs for real: tracking
+  `ok`, the skeleton on the hand, the latency in the HUD. A still photo never
+  fires; shots are covered by pytest.
+- CV never spends API credits, and CI needs no camera.
 
 ## Demo setup checklist
 
-- [ ] The demo laptop opens the app on a **secure origin**, one of:
-  the VM's `https://` URL; an SSH tunnel (`ssh -L 8000:localhost:8000 <user>@<vm>`,
-  then `http://localhost:8000`, since localhost counts as secure); or the
-  laptop's own `make prod`. Judges' own devices need the HTTPS URL. Check
-  `window.isSecureContext` on the exact URL.
+- [ ] **Where the engine runs.** Best: the demo laptop runs `make prod` and
+  opens `http://localhost:8000` (localhost is a secure origin, and the network
+  is out of the loop). With the VM: its `https://` URL (or an SSH tunnel to
+  localhost), and `python -m level1.cv_check <that url>` must show a round trip well
+  under 60 ms from the venue.
+- [ ] `curl <url>/api/cv/status` says `"available": true`.
 - [ ] Light from the front (face the window or a lamp, never sit with a window
   behind you). Test the exact demo spot at the venue by T+12h.
 - [ ] Camera at about eye level; hand 40–80 cm from it; a plain background if possible.
 - [ ] Close video-call apps; they can lock the camera.
-- [ ] Recent Chrome or Edge with hardware acceleration on (check `chrome://gpu`).
-- [ ] Calibrate for every player; mouse fallback ready (`M`); a recorded video
-  of a perfect run as the last resort.
+- [ ] Recent Chrome or Edge.
+- [ ] Mouse fallback ready (`M`); a recorded video of a perfect run as the last resort.
+- [ ] Judges playing on their own devices at the same time share
+  `CV_MAX_SESSIONS` camera slots on the server; the rest get mouse mode.
+
+## Not built yet
+
+- **Per-player box calibration.** The warm-up teaches the gesture; the box is
+  the default one, fitted to the camera's shape. The protocol is ready
+  (`{"type": "box"}`).
+- A tool that replays a recording (`backend/captures/...`) and reports shots
+  and wobble, and a debug overlay with the thumb angle (the HUD shows the round
+  trip only).
+- Pausing the round on a hidden tab, a WebGL context-loss screen, sound,
+  hit-stop, isometric art in a texture atlas instead of shapes.
 
 ## Who owns what
 
 | Owner | Files |
 |---|---|
-| Shooter vision | `games/shooter/input/*` (`HandInput`, `gesture.ts`, filter, recording and replay, fixtures), model and wasm hosting, debug overlay |
-| Shooter game | `games/shooter/ShooterScene.ts` (Phaser scene, isometric art, fake depth), `hitTest.ts`, scoring, juice, `MouseInput`, `config.ts` gameplay values |
-| Shell | `components/shooter/App.tsx`: intro, camera permission UI, result screen, saving the score |
+| Shooter vision (engine) | `backend/level1/`: `gesture.py`, `cv.py`, `router.py`, `schemas.py`, `config.py`, `cv_check.py`, `tests/`; the Dockerfile's system libraries |
+| Shooter vision (client) | `frontend/level1/input/*` (`ServerHandInput`, `FramePacer`, `box.ts`, `SwitchableInput`, `MouseInput`, `cvStream.ts`) |
+| Shooter game | `frontend/level1/`: `index.ts` (`mountShooter`), `ShooterScene.ts`, `Backdrop.ts`, `depth.ts`, `hitTest.ts`, `score.ts`, `spawn.ts`, `glide.ts`, `effects.ts`, `handOverlay.ts`, `config.ts` |
+| Shell (from main) | `src/minigames/DestinationGame.tsx` mounts the game into the play area via `src/games/registry.ts`; intro, results and credit are the shell's |

@@ -46,7 +46,9 @@ def test_character_and_progress_survive_page_reads(client):
 
 def test_previews_cannot_award_credits_or_graduate(client, preview_games):
     run = enroll(client)
-    for game in GAMES:
+    previews = [game for game, config in GAMES.items() if not config["implemented"]]
+    assert previews == list(GAMES)  # the fixture makes both shipped games previews
+    for game in previews:
         response = client.post(f"/api/runs/{run['id']}/scores", json={"game": game, "score": 100})
         assert response.status_code == 409
     assert client.post(f"/api/runs/{run['id']}/graduate").status_code == 409

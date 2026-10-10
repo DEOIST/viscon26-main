@@ -1,7 +1,7 @@
 // Destination scenes use the shell seam. Shared metadata controls credit eligibility.
 import type { GameId } from "../misc/CommonInt";
 import { mountBlackjack } from "../../level2";
-import { mountShooter } from "./shooter";
+import { mountShooter } from "../../level1";
 import type { MountMinigame } from "./shared/minigame";
 
 export const MINIGAME_REGISTRY: Partial<Record<GameId, MountMinigame>> = {
