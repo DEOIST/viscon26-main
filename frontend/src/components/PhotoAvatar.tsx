@@ -167,14 +167,12 @@ export function PhotoAvatar({
                 <p className="photo-result" role="status">
                     {detected.aiUnavailable
                         ? "Skin tone set from your photo. The AI is unavailable right now, so pick hair and eyes below."
-                        : `Colors set from your photo. Also noticed: ${
-                              detected.glasses === "none"
-                                  ? "no glasses"
-                                  : detected.glasses
-                          }${
-                              detected.gender && detected.gender !== "unclear"
-                                  ? `, gender guess: ${detected.gender}`
-                                  : ""
+                        : `Colors set from your photo. Glasses: ${
+                              detected.glasses ?? "none"
+                          }. Gender guess: ${
+                              detected.gender === "unclear" || !detected.gender
+                                  ? "couldn't tell"
+                                  : detected.gender
                           }. Adjust anything below.`}
                 </p>
             )}
