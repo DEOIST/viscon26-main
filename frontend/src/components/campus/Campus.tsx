@@ -58,11 +58,7 @@ export default function Campus(args: CampusArgs) {
             <p className={styles.semester}>{SEMESTERS[finishedCount]}</p>
 
             <section className={styles.legi}>
-                <Avatar
-                    avatar={character.avatar}
-                    name={character.name}
-                    isLarge
-                />
+                <Avatar character={character} />
                 <div>
                     <strong>{character.name}</strong>
                     <div className={styles.muted}>

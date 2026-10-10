@@ -1,5 +1,4 @@
-// Every API / domain type lives here. Mirrors backend/app/schemas.py — change both together.
-// The full contract (types and endpoints) is documented in docs/ARCHITECTURE.md → "API contract".
+// Every API / domain type lives here. Mirrors backend/app/schemas.py â€” change both together.
 //
 // Convention: `XWHid` ("without id") is the create payload the client sends;
 // `X extends XWHid` is what the server returns, adding `id` and timestamps.
@@ -42,11 +41,14 @@ export type DepartmentId =
 export type ArchetypeId = "nerd" | "risk_taker" | "gamer" | "athlete";
 
 export interface Character {
-    name: string; // 1–20 chars: letters (accents allowed), digits, space, . ' _ -
+    name: string; // 1â€“20 chars: letters (accents allowed), digits, space, . ' _ -
     pronouns: Pronouns;
     department: DepartmentId;
     archetype: ArchetypeId;
-    avatar: string; // preset id "a1"…"a8" (misc/character.ts)
+    avatar: string; // preset id "a1"â€¦"a8" (misc/character.ts)
+    hairColor: string;
+    skinColor: string;
+    eyeColor: string;
 }
 
 export interface RunWHid {
@@ -61,15 +63,17 @@ export interface Ending {
 export interface Run extends RunWHid {
     id: string;
     createdAt: string; // ISO 8601
-    scores: Partial<Record<GameId, number>>; // integer 0–100 per finished minigame
+    scores: Partial<Record<GameId, number>>; // integer 0â€“100 per finished minigame
     totalScore: number | null; // set at graduation
     ending: Ending | null; // set at graduation
     graduatedAt: string | null;
+    completedGameIds: GameId[];
+    ectsPoints: number;
 }
 
 export interface ScoreSubmission {
     game: GameId;
-    score: number; // integer 0–100
+    score: number; // integer 0â€“100
 }
 
 // --- leaderboard ---
@@ -87,6 +91,15 @@ export interface LeaderboardEntry {
 export interface EndingStats {
     total: number;
     counts: Record<EndingId, number>;
+}
+
+// --- shell ---
+export interface ShellGame {
+    id: GameId;
+    title: string;
+    description: string;
+    ects: number;
+    implemented: boolean;
 }
 
 // --- story (OpenAI-backed) ---

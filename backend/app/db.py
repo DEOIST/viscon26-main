@@ -43,7 +43,11 @@ def dead_key_flag(index: int) -> str:
 @lru_cache
 def get_redis() -> redis.Redis:
     if settings.redis_url:
-        return redis.Redis.from_url(settings.redis_url, decode_responses=True)
+        return redis.Redis.from_url(
+            settings.redis_url, decode_responses=True, socket_connect_timeout=5, socket_timeout=5
+        )
+    if settings.environment == "production":
+        raise RuntimeError("REDIS_URL is required in production")
     import fakeredis  # development-only dependency (requirements-dev.txt)
 
     return fakeredis.FakeRedis(server=fakeredis.FakeServer(), decode_responses=True)
