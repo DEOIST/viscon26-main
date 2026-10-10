@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import redis
 
-from app import db
+from app import ai, db
 from app.game_config import GAMES, earned_ects
 from app.schemas import Run, RunWHid, ScoreSubmission
 from app.services.endings import decide_ending, total_score
@@ -15,7 +15,13 @@ class RunStateError(Exception):
     """The run exists, but the action doesn't fit its state (the router answers 409)."""
 
 
+class NameRejectedError(Exception):
+    """Moderation flagged the character name (the router answers 422)."""
+
+
 def create_run(payload: RunWHid) -> Run:
+    if _name_is_flagged(payload.character.name):
+        raise NameRejectedError
     run = Run(id=uuid4().hex, created_at=datetime.now(UTC), **payload.model_dump())
     db.get_redis().set(db.run_key(run.id), run.model_dump_json())
     return run
@@ -95,3 +101,11 @@ def graduate_run(run_id: str) -> Run | None:
                 return graduated
             except redis.WatchError:
                 continue
+
+
+def _name_is_flagged(name: str) -> bool:
+    """Moderation runs only in live AI mode, and fails open: an outage must not block enrolling."""
+    try:
+        return ai.moderate(name)
+    except ai.AiUnavailableError:
+        return False

@@ -4,7 +4,7 @@ import RunStatus from "./RunStatus";
 import MinigameHost from "./MinigameHost";
 import Icon from "./Icon";
 import { MINIGAME_REGISTRY } from "../../games/registry";
-import { apiSubmitScore } from "../../misc/apiClient";
+import { apiGenerateDialogue, apiSubmitScore } from "../../misc/apiClient";
 import { GAMES } from "../../misc/shellConfig";
 import { useRun } from "../../misc/useRun";
 import { runHref } from "../../misc/run";
@@ -22,14 +22,33 @@ export default function MinigamePage(args: MinigamePageArgs) {
     const [result, setResult] = useState<MinigameResult | null>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
+    const [started, setStarted] = useState(false);
+    const [dialogue, setDialogue] = useState<Record<string, string[]> | null>(
+        null,
+    );
     const saving = useRef(false);
+    async function handleStart() {
+        if (!state.data || saving.current) return;
+        saving.current = true;
+        setBusy(true);
+        const response = await apiGenerateDialogue(state.data.id, {
+            scene: game.id,
+        });
+        setDialogue(response.data?.lines ?? null);
+        setStarted(true);
+        saving.current = false;
+        setBusy(false);
+    }
     function handleExit() {
         if (state.data && !saving.current)
             window.location.href = runHref("/campus", state.data.id);
     }
     async function handleSave(completion: MinigameResult) {
-        if (!state.data || saving.current || !game.implemented || !mount)
+        if (!state.data || saving.current || !mount) return;
+        if (!game.implemented) {
+            setResult(completion);
             return;
+        }
         saving.current = true;
         setBusy(true);
         setError("");
@@ -76,7 +95,7 @@ export default function MinigamePage(args: MinigamePageArgs) {
                                 Campus
                             </button>
                         </div>
-                        {!mount || !game.implemented ? (
+                        {!mount ? (
                             <div className={shellClass("placeholder")}>
                                 <Icon name="slot" size={40} />
                                 <h2>A little space for a big challenge.</h2>
@@ -92,9 +111,36 @@ export default function MinigamePage(args: MinigamePageArgs) {
                                     Return to campus
                                 </button>
                             </div>
+                        ) : !started ? (
+                            <div className={shellClass("placeholder")}>
+                                <p>{game.description}</p>
+                                {!game.implemented && (
+                                    <p>
+                                        This is a preview. Results do not change
+                                        your scores or ECTS.
+                                    </p>
+                                )}
+                                <button
+                                    className={shellClass("button primary")}
+                                    disabled={busy}
+                                    onClick={() => void handleStart()}
+                                >
+                                    {busy
+                                        ? "Getting ready…"
+                                        : game.implemented
+                                          ? "Start"
+                                          : "Start preview"}
+                                </button>
+                            </div>
                         ) : result ? (
                             <div className={shellClass("placeholder")}>
                                 <h2>Your result: {result.score} / 100</h2>
+                                {!game.implemented && (
+                                    <p>
+                                        Preview complete. Your saved scores and
+                                        ECTS are unchanged.
+                                    </p>
+                                )}
                                 {busy && (
                                     <p role="status">Saving completion…</p>
                                 )}
@@ -128,6 +174,7 @@ export default function MinigamePage(args: MinigamePageArgs) {
                                 mount={mount}
                                 run={state.data}
                                 game={game}
+                                dialogue={dialogue}
                                 onFinish={(completion) =>
                                     void handleSave(completion)
                                 }

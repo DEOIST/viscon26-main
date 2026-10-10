@@ -23,3 +23,6 @@ nobody re-argues it at 3am. Link the issue or PR when there is one.
 | 2026-10-09 | Tests spend zero credits: FakeAI, fakeredis, network blocked with pytest-socket; the smoke test sends GETs only | API credits are limited and must not leak into testing |
 | 2026-10-09 | No Redux and no Postgres: the character and run are saved through the API in Redis and travel between pages as `?run=` (supersedes issues #3, #4, #7) | Every page is a full page load, which wipes a client store; one data store is enough |
 | 2026-10-09 | Game FPS is measured on the team's laptops with the camera on (`?debug=1` overlay), never on the VM or in CI | Rendering and hand tracking run in the player's browser; the VM and CI have no GPU |
+| 2026-10-09 | Docker base images (and Redis) come from `public.ecr.aws/docker/library/`, no `# syntax=` line (#11) | Docker Hub rate-limits anonymous pulls per IP; CI runners and the event network share IPs. Same digests as Docker Hub |
+| 2026-10-10 | `AI_MODE` is set only in the server's `.env` (default `off`), never in the Compose files (#14) | A local `make prod` must never spend credits by surprise |
+| 2026-10-10 | Foundation shipped with placeholder minigames: the contract, Redis, OpenAI plumbing and every page work end to end before the real games land (#14) | Six tracks can build in parallel against a running skeleton |

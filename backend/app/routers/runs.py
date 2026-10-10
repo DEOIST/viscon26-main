@@ -12,7 +12,12 @@ RUN_NOT_FOUND = "Run not found"
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_run(payload: RunWHid) -> Run:
-    return runs_service.create_run(payload)
+    try:
+        return runs_service.create_run(payload)
+    except runs_service.NameRejectedError:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "Please choose another name"
+        ) from None
 
 
 @router.get("/{run_id}")

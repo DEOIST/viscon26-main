@@ -3,6 +3,7 @@
 //   dist/pages/<name>.js|css  (the bundle; shared code is split into dist/pages/chunks/)
 //   dist/assets/*             (imported images/fonts)
 //   dist/static/*             (copied as-is from public/)
+//   dist/static/mediapipe/*   (MediaPipe's wasm runtime, copied from node_modules)
 //
 //   node build.js          dev build (sourcemaps, unminified)
 //   node build.js -w       dev build, then watch: rebuilds on save, picks up new/removed pages
@@ -19,6 +20,25 @@ const PAGES_DIR = path.join(ROOT, "src", "pages");
 const PUBLIC_DIR = path.join(ROOT, "public");
 const OUT_DIR = path.join(ROOT, "dist");
 const TEMPLATE = fs.readFileSync(path.join(ROOT, "template.html"), "utf8");
+
+// The shooter's hand tracking is served by us, never from a CDN: venue wifi is unreliable.
+const MEDIAPIPE_WASM_DIR = path.join(
+    ROOT,
+    "node_modules",
+    "@mediapipe",
+    "tasks-vision",
+    "wasm",
+);
+// FilesetResolver loads the SIMD build, or the no-SIMD one on old browsers.
+const MEDIAPIPE_WASM_FILES = [
+    "vision_wasm_internal.js",
+    "vision_wasm_internal.wasm",
+    "vision_wasm_nosimd_internal.js",
+    "vision_wasm_nosimd_internal.wasm",
+];
+const HAND_MODEL_URL =
+    "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
+const HAND_MODEL_PATH = path.join(PUBLIC_DIR, "models", "hand_landmarker.task");
 
 const flags = process.argv.slice(2);
 const watch = flags.includes("-w") || flags.includes("--watch");
@@ -59,6 +79,36 @@ function writeHtml(pages) {
 
 function copyPublic() {
     fs.cpSync(PUBLIC_DIR, path.join(OUT_DIR, "static"), { recursive: true });
+}
+
+function copyMediaPipe() {
+    const target = path.join(OUT_DIR, "static", "mediapipe");
+    fs.mkdirSync(target, { recursive: true });
+    for (const file of MEDIAPIPE_WASM_FILES) {
+        fs.copyFileSync(
+            path.join(MEDIAPIPE_WASM_DIR, file),
+            path.join(target, file),
+        );
+    }
+}
+
+// The hand model (7.8 MB) is above CI's 5 MB file limit, so it is downloaded once into the
+// git-ignored public/models/ instead of being committed. Without it the shooter uses the mouse.
+async function ensureHandModel() {
+    if (fs.existsSync(HAND_MODEL_PATH)) return;
+    try {
+        const res = await fetch(HAND_MODEL_URL, {
+            signal: AbortSignal.timeout(60_000),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        fs.mkdirSync(path.dirname(HAND_MODEL_PATH), { recursive: true });
+        fs.writeFileSync(HAND_MODEL_PATH, Buffer.from(await res.arrayBuffer()));
+        console.log("[build] downloaded the MediaPipe hand model");
+    } catch (err) {
+        console.warn(
+            `[build] could not download the hand model (${err.message}); the shooter falls back to the mouse`,
+        );
+    }
 }
 
 function afterBuildPlugin(pages) {
@@ -105,6 +155,10 @@ function buildOptions(pages) {
             ".webp": "file",
             ".svg": "file",
             ".woff2": "file",
+            ".mp3": "file",
+            ".ogg": "file",
+            ".wav": "file",
+            ".m4a": "file",
         },
         jsx: "automatic",
         target: "es2022",
@@ -122,6 +176,8 @@ function buildOptions(pages) {
 
 async function main() {
     fs.rmSync(OUT_DIR, { recursive: true, force: true });
+    await ensureHandModel();
+    copyMediaPipe();
     let pages = findPages();
 
     if (!watch) {

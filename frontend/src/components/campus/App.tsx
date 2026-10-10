@@ -4,6 +4,7 @@ import RunStatus from "../common/RunStatus";
 import Icon from "../common/Icon";
 import PlayerHeader from "./PlayerHeader";
 import ActivityCard from "./ActivityCard";
+import Advisor from "./Advisor";
 import { useRun } from "../../misc/useRun";
 import { GAMES, TOTAL_ECTS } from "../../misc/shellConfig";
 import { apiGraduateRun } from "../../misc/apiClient";
@@ -43,6 +44,7 @@ export default function App() {
                 {run && (
                     <>
                         <PlayerHeader run={run} />
+                        <Advisor runId={run.id} />
                         <p className={shellClass("guest-note")}>
                             Keep this page’s address to return to your student
                             record.

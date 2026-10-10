@@ -109,7 +109,7 @@ const result = landmarker.detectForVideo(video, performance.now());
   `node_modules/@mediapipe/tasks-vision/wasm/` to `dist/static/mediapipe/` and
   downloads the model once into `frontend/public/models/` (git-ignored: 7.8 MB is
   above CI's 5 MB file limit). Nothing is fetched from a CDN at demo time;
-  venue wifi is unreliable. (planned: `build.js` change)
+  venue wifi is unreliable.
 - **Warm up during calibration.** The first `detectForVideo` compiles GPU
   shaders (around a second); never let that happen mid-round.
 

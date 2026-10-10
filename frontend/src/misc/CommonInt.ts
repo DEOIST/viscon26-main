@@ -15,18 +15,6 @@ export interface HealthStatus {
     environment: string;
 }
 
-// --- Example feature (delete once you have real features) ---
-
-export interface ItemWHid {
-    title: string;
-    description: string;
-}
-
-export interface Item extends ItemWHid {
-    id: string;
-    createdAt: string; // ISO 8601
-}
-
 // --- runs ---
 
 export type GameId = "blackjack" | "shooter";
@@ -112,4 +100,24 @@ export interface ShellGame {
     description: string;
     ects: number;
     implemented: boolean;
+}
+
+// --- story (OpenAI-backed) ---
+
+export type AiSource = "ai" | "fallback";
+export type DialogueScene = "campus" | "blackjack" | "shooter";
+
+export interface DialogueRequest {
+    scene: DialogueScene;
+}
+
+export interface DialoguePack {
+    scene: DialogueScene;
+    lines: Record<string, string[]>; // event key → lines; keys per scene in docs/GAME_DESIGN.md
+    source: AiSource;
+}
+
+export interface Epilogue {
+    text: string;
+    source: AiSource;
 }

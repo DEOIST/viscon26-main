@@ -37,19 +37,6 @@ class HealthStatus(CamelModel):
     environment: str
 
 
-# --- Example feature (delete once you have real features) ---
-
-
-class ItemWHid(CamelModel):
-    title: str = Field(min_length=1, max_length=200)
-    description: str = Field(default="", max_length=2000)
-
-
-class Item(ItemWHid):
-    id: str
-    created_at: datetime
-
-
 # --- runs ---
 
 GameId = Literal["blackjack", "shooter"]
@@ -129,3 +116,24 @@ class LeaderboardEntry(CamelModel):
 class EndingStats(CamelModel):
     total: int
     counts: dict[EndingId, int]
+
+
+# --- story (OpenAI-backed) ---
+
+AiSource = Literal["ai", "fallback"]
+DialogueScene = Literal["campus", "blackjack", "shooter"]
+
+
+class DialogueRequest(CamelModel):
+    scene: DialogueScene
+
+
+class DialoguePack(CamelModel):
+    scene: DialogueScene
+    lines: dict[str, list[str]]  # event key → lines; keys per scene in docs/GAME_DESIGN.md
+    source: AiSource
+
+
+class Epilogue(CamelModel):
+    text: str
+    source: AiSource

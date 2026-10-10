@@ -1,0 +1,10 @@
+.box {
+    padding: var(--space-4);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+}
+
+.link {
+    font-weight: 600;
+}

@@ -1,16 +1,9 @@
 """Shell integration: persisted character data, completion safety and graduation lifecycle."""
 
 import pytest
-from fakeredis import FakeRedis
 
 from app import db
 from app.game_config import CONFIG, GAMES
-
-
-@pytest.fixture(autouse=True)
-def isolated_runs(monkeypatch):
-    storage = FakeRedis(decode_responses=True)
-    monkeypatch.setattr(db, "get_redis", lambda: storage)
 
 
 @pytest.fixture

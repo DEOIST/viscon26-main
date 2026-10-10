@@ -1,6 +1,10 @@
-// Register supplied mount functions here, then enable their shared metadata.
-// Empty until the independently developed minigames land; previews never award credits.
+// Destination scenes use the shell seam. Shared metadata controls credit eligibility.
 import type { GameId } from "../misc/CommonInt";
+import { mountBlackjack } from "./blackjack";
+import { mountShooter } from "./shooter";
 import type { MountMinigame } from "./shared/minigame";
 
-export const MINIGAME_REGISTRY: Partial<Record<GameId, MountMinigame>> = {};
+export const MINIGAME_REGISTRY: Partial<Record<GameId, MountMinigame>> = {
+    blackjack: mountBlackjack,
+    shooter: mountShooter,
+};

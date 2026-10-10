@@ -1,0 +1,42 @@
+.avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    flex: none;
+    border-radius: 50%;
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.large {
+    width: 88px;
+    height: 88px;
+    font-size: 2rem;
+}
+
+.a1 {
+    background: #4f46e5;
+}
+.a2 {
+    background: #db2777;
+}
+.a3 {
+    background: #0891b2;
+}
+.a4 {
+    background: #16a34a;
+}
+.a5 {
+    background: #ea580c;
+}
+.a6 {
+    background: #7c3aed;
+}
+.a7 {
+    background: #ca8a04;
+}
+.a8 {
+    background: #475569;
+}

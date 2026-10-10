@@ -5,12 +5,14 @@ import styles from "./Layout.module.css";
 interface LayoutArgs {
     title: string;
     children: ReactNode;
+    isWide?: boolean; // game pages need room for the canvas
 }
 
 // Navigation is plain <a href> — every page is a separate HTML document (see CLAUDE.md).
 const NAV_LINKS = [
     { href: "/", label: "Home" },
-    { href: "/about", label: "About" },
+    // --- enroll ---
+    { href: "/enroll", label: "Enroll" },
 ];
 
 export default function Layout(args: LayoutArgs) {
@@ -42,7 +44,9 @@ export default function Layout(args: LayoutArgs) {
                     ))}
                 </nav>
             </header>
-            <main className={styles.main}>{args.children}</main>
+            <main className={args.isWide ? styles.wideMain : styles.main}>
+                {args.children}
+            </main>
         </div>
     );
 }

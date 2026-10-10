@@ -2,12 +2,13 @@
 
 from fastapi import APIRouter
 
-from app.routers import health, items, leaderboard, runs
+from app.routers import health, leaderboard, runs, story
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(health.router)
-api_router.include_router(items.router)
-
-# --- shell ---
+# --- runs ---
 api_router.include_router(runs.router)
+# --- leaderboard ---
 api_router.include_router(leaderboard.router)
+# --- story ---
+api_router.include_router(story.router)

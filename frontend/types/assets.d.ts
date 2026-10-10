@@ -37,3 +37,21 @@ declare module "*.woff2" {
     const url: string;
     export default url;
 }
+
+// Audio imports also resolve to a URL string (esbuild "file" loader).
+declare module "*.mp3" {
+    const url: string;
+    export default url;
+}
+declare module "*.ogg" {
+    const url: string;
+    export default url;
+}
+declare module "*.wav" {
+    const url: string;
+    export default url;
+}
+declare module "*.m4a" {
+    const url: string;
+    export default url;
+}

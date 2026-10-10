@@ -1,17 +1,18 @@
 // Browser client for the backend. One `api<Name>` function per backend route handler, named
-// `api` + the PascalCase of the Python handler name: `get_item_by_id` → `apiGetItemById`.
+// `api` + the PascalCase of the Python handler name: `get_run_by_id` → `apiGetRunById`.
 // Paths are relative and same-origin (FastAPI serves the frontend), so there is no base URL.
 
 import type {
     ApiResult,
+    DialoguePack,
+    DialogueRequest,
+    EndingStats,
+    Epilogue,
     HealthStatus,
-    Item,
-    ItemWHid,
+    LeaderboardEntry,
     Run,
     RunWHid,
     ScoreSubmission,
-    LeaderboardEntry,
-    EndingStats,
 } from "./CommonInt";
 
 async function request<T>(
@@ -39,11 +40,7 @@ async function request<T>(
         }
         return { data: json as T, status: res.status, error: null };
     } catch (err) {
-        return {
-            data: null,
-            status: 0,
-            error: err instanceof Error ? err.message : String(err),
-        };
+        return { data: null, status: 0, error: errorMessage(err) };
     }
 }
 
@@ -56,50 +53,79 @@ function readError(body: unknown): string | null {
     return null;
 }
 
+function errorMessage(err: unknown): string {
+    return err instanceof Error ? err.message : String(err);
+}
+
+function runPath(runId: string): string {
+    return `/runs/${encodeURIComponent(runId)}`;
+}
+
 // --- health ---
 
 export function apiGetHealth() {
     return request<HealthStatus>("GET", "/health");
 }
 
-// --- items (example feature) ---
+// --- runs ---
 
-export function apiListItems() {
-    return request<Item[]>("GET", "/items");
-}
-
-export function apiGetItemById(itemId: string) {
-    return request<Item>("GET", `/items/${encodeURIComponent(itemId)}`);
-}
-
-export function apiCreateItem(payload: ItemWHid) {
-    return request<Item>("POST", "/items", payload);
-}
-
-export function apiDeleteItem(itemId: string) {
-    return request<null>("DELETE", `/items/${encodeURIComponent(itemId)}`);
-}
-
-// --- shell ---
 export function apiCreateRun(payload: RunWHid) {
     return request<Run>("POST", "/runs", payload);
 }
+
 export function apiGetRunById(runId: string) {
-    return request<Run>("GET", `/runs/${encodeURIComponent(runId)}`);
+    return request<Run>("GET", runPath(runId));
 }
+
 export function apiSubmitScore(runId: string, payload: ScoreSubmission) {
-    return request<Run>(
-        "POST",
-        `/runs/${encodeURIComponent(runId)}/scores`,
-        payload,
-    );
+    return request<Run>("POST", `${runPath(runId)}/scores`, payload);
 }
+
 export function apiGraduateRun(runId: string) {
-    return request<Run>("POST", `/runs/${encodeURIComponent(runId)}/graduate`);
+    return request<Run>("POST", `${runPath(runId)}/graduate`);
 }
-export function apiListLeaderboard() {
-    return request<LeaderboardEntry[]>("GET", "/leaderboard");
+
+// --- leaderboard ---
+
+export function apiListLeaderboard(limit = 10) {
+    return request<LeaderboardEntry[]>("GET", `/leaderboard?limit=${limit}`);
 }
+
 export function apiGetEndingStats() {
     return request<EndingStats>("GET", "/leaderboard/endings");
+}
+
+// --- story ---
+// POST because these may spend OpenAI credits; the server caches them, so repeating is free.
+
+export function apiGenerateDialogue(runId: string, payload: DialogueRequest) {
+    return request<DialoguePack>("POST", `${runPath(runId)}/dialogue`, payload);
+}
+
+export function apiGenerateEpilogue(runId: string) {
+    return request<Epilogue>("POST", `${runPath(runId)}/epilogue`);
+}
+
+// The one non-JSON endpoint: returns an object URL for an <audio> element. The caller revokes
+// it with URL.revokeObjectURL when done. 503 means "no narration": play the fallback audio.
+export async function apiGenerateEpilogueSpeech(
+    runId: string,
+): Promise<ApiResult<string>> {
+    try {
+        const res = await fetch(`/api${runPath(runId)}/epilogue/speech`, {
+            method: "POST",
+        });
+        if (!res.ok) {
+            const json: unknown = await res.json().catch(() => null);
+            return {
+                data: null,
+                status: res.status,
+                error: readError(json) ?? res.statusText,
+            };
+        }
+        const audioUrl = URL.createObjectURL(await res.blob());
+        return { data: audioUrl, status: res.status, error: null };
+    } catch (err) {
+        return { data: null, status: 0, error: errorMessage(err) };
+    }
 }

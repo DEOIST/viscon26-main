@@ -4,6 +4,7 @@
 #   IMAGE=ghcr.io/<owner>/<repo> TAG=<sha> docker compose -f compose.prod.yaml up -d
 #
 # For local production runs use compose.yaml (`make prod`), which builds from source.
+# The server's ~/app/.env holds AI_MODE=live and OPENAI_API_KEYS (docs/ARCHITECTURE.md).
 
 services:
   app:
@@ -23,7 +24,8 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:8-alpine
+    # Never add `ports:`: Redis has no password here, and an exposed port gets compromised fast.
+    image: public.ecr.aws/docker/library/redis:8-alpine
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis-data:/data

@@ -5,6 +5,7 @@ import type {
     ArchetypeId,
     DepartmentId,
     EndingId,
+    GameId,
     Pronouns,
 } from "./CommonInt";
 
@@ -43,13 +44,26 @@ export const ARCHETYPES: Record<ArchetypeId, { label: string; perk: string }> =
 
 export const PRONOUN_OPTIONS: Pronouns[] = ["she", "he", "they"];
 
-// Placeholder portraits until the generated art lands (docs/GAME_DESIGN.md â†’ Art direction).
+// Placeholder portraits until the generated art lands (docs/GAME_DESIGN.md → Art direction).
 export const AVATARS = ["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8"];
+
+export const GAME_IDS: GameId[] = ["blackjack", "shooter"];
+
+export const GAMES: Record<GameId, { title: string; tagline: string }> = {
+    blackjack: {
+        title: "Casino night",
+        tagline: "Bet your semester stipend at blackjack.",
+    },
+    shooter: {
+        title: "Basisprüfung",
+        tagline: "Shoot the exam questions with your finger gun.",
+    },
+};
 
 export const ENDING_TITLES: Record<EndingId, string> = {
     c_level: "C-level executive",
-    big_tech: "Big-tech engineer in ZÃ¼rich",
+    big_tech: "Big-tech engineer in Zürich",
     phd: "Eternal PhD student",
-    mcdonalds: "McDonald's at ZÃ¼rich HB",
+    mcdonalds: "McDonald's at Zürich HB",
     unemployed: "Unemployed in a 6-person WG",
 };

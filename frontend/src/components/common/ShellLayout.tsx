@@ -55,12 +55,6 @@ export default function ShellLayout(args: ShellLayoutArgs) {
                             Hall of Fame
                         </span>
                     </button>
-                    <a
-                        href="/about"
-                        className={shellClass("button ghost compact")}
-                    >
-                        About
-                    </a>
                     <button
                         className={shellClass("icon-button theme-button")}
                         aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
@@ -84,7 +78,6 @@ export default function ShellLayout(args: ShellLayoutArgs) {
                     Unofficial student parody. No affiliation with or
                     endorsement by ETH Zürich.
                 </span>
-                <a href="/items">Starter items</a>
                 <span>Made for the plot. And the credits.</span>
             </footer>
             {scoreboardOpen && (

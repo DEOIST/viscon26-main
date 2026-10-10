@@ -19,6 +19,27 @@ def run_key(run_id: str) -> str:
     return f"run:{run_id}"
 
 
+def dialogue_key(run_id: str, scene: str, stage: int) -> str:
+    return f"story:dialogue:{run_id}:{scene}:{stage}"
+
+
+def epilogue_key(run_id: str) -> str:
+    return f"story:epilogue:{run_id}"
+
+
+def speech_key(run_id: str) -> str:
+    return f"story:speech:{run_id}"
+
+
+def ai_calls_key(day: str) -> str:
+    return f"ai:calls:{day}"
+
+
+def dead_key_flag(index: int) -> str:
+    """Marks key number `index` of the chain as unusable. Never stores the key itself."""
+    return f"ai:key:{index}:dead"
+
+
 @lru_cache
 def get_redis() -> redis.Redis:
     if settings.redis_url:

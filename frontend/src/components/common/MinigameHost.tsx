@@ -13,6 +13,7 @@ interface MinigameHostArgs {
     mount: MountMinigame;
     run: Run;
     game: ShellGame;
+    dialogue: Record<string, string[]> | null;
     onFinish(result: MinigameResult): void;
     onExit(): void;
 }
@@ -35,7 +36,7 @@ export default function MinigameHost(args: MinigameHostArgs) {
                 major: DEPARTMENTS[args.run.character.department],
                 ectsPoints: args.run.ectsPoints,
                 completedGameIds: [...args.run.completedGameIds],
-                dialogue: null,
+                dialogue: args.dialogue,
                 onFinish(result) {
                     if (!active || finished) return;
                     if (
@@ -64,7 +65,7 @@ export default function MinigameHost(args: MinigameHostArgs) {
                 /* A broken game must not trap the shell. */
             }
         };
-    }, [args.mount, args.run, args.game]);
+    }, [args.mount, args.run, args.game, args.dialogue]);
     return (
         <>
             <div
