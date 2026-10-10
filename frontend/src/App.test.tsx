@@ -361,3 +361,56 @@ it("assigns the career straight after the last game, without a revisit screen", 
     expect(diploma.getByText("168 ECTS")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Open last game" })).toBeNull();
 });
+
+function renderAcceptance() {
+    store.dispatch(
+        replacePlayer({
+            ...defaultPlayer,
+            name: "Ada",
+            onboardingStage: "acceptance",
+        }),
+    );
+    vi.mocked(api.synchronize).mockResolvedValue(emptyProgress);
+    renderApp();
+}
+
+it("begins Year 1 straight away when motion is reduced", async () => {
+    renderAcceptance();
+    fireEvent.click(screen.getByRole("button", { name: "Begin Year 1" }));
+    await waitFor(() =>
+        expect(store.getState().player.onboardingStage).toBe("main"),
+    );
+    await waitFor(() =>
+        expect(
+            screen.queryByRole("dialog", { name: "Your first day at ETH" }),
+        ).toBeNull(),
+    );
+    expect(screen.getByRole("button", { name: "Graduate" })).toBeTruthy();
+});
+
+it("plays the first-day intro over the workspace and can skip it without losing the save", async () => {
+    vi.stubGlobal("matchMedia", () => ({
+        matches: false,
+        addEventListener() {},
+        removeEventListener() {},
+    }));
+    renderAcceptance();
+    fireEvent.click(screen.getByRole("button", { name: "Begin Year 1" }));
+    const intro = screen.getByRole("dialog", { name: "Your first day at ETH" });
+    expect(within(intro).getByText("You got into ETH!")).toBeTruthy();
+    expect(document.getElementById("main-content")?.hasAttribute("inert")).toBe(
+        true,
+    );
+
+    fireEvent.click(within(intro).getByRole("button", { name: "Skip intro" }));
+    await waitFor(() =>
+        expect(
+            screen.queryByRole("dialog", { name: "Your first day at ETH" }),
+        ).toBeNull(),
+    );
+    expect(store.getState().player.onboardingStage).toBe("main");
+    expect(document.getElementById("main-content")?.hasAttribute("inert")).toBe(
+        false,
+    );
+    expect(screen.getByRole("button", { name: "Graduate" })).toBeTruthy();
+});

@@ -33,6 +33,7 @@ export const mountBlackjack: MountMinigame = (options) => {
         (finish) =>
             new BlackjackScene({
                 playerName: options.character.name,
+                look: options.character,
                 dialogue: options.dialogue,
                 finish,
                 announce(text) {
