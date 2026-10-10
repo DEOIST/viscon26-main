@@ -1,0 +1,122 @@
+// Where things are. Card and board positions are in the artwork's own pixels (every card and
+// board image is 500 x 700) and were measured from the sheets. Table positions are in table
+// units: the table is 1000 units tall and as wide as the shared 16:9 game canvas allows, and
+// the scene's camera zooms it onto that canvas.
+
+import { GAME_HEIGHT, GAME_WIDTH } from "../src/games/shared/createGame";
+import type { Rank } from "./rules";
+
+export const HEIGHT = 1000;
+export const ZOOM = GAME_HEIGHT / HEIGHT;
+export const WIDTH = Math.round(GAME_WIDTH / ZOOM); // 1778
+export const CENTER = { x: WIDTH / 2, y: HEIGHT / 2 };
+
+// --- Card artwork -------------------------------------------------------------
+
+export const CARD = { w: 500, h: 700 };
+export const PIP_SCALE = 0.26; // symbols sheet frames are 300 px
+export const CORNER_SUIT_SCALE = 0.105;
+export const CORNERS = {
+    number: [
+        [55, 60],
+        [445, 640],
+    ],
+    suit: [
+        [55, 113],
+        [445, 587],
+    ],
+} as const;
+export const COURT_PEOPLE: Partial<Record<Rank, string>> = {
+    J: "newton",
+    Q: "curie",
+    K: "einstein",
+};
+
+const [L, C, R] = [166, 250, 333];
+const [TOP, HIGH, UPPER, MID_HIGH, MID, MID_LOW, LOWER, LOW, BOTTOM] = [
+    140, 210, 245, 280, 349.5, 419, 454, 489, 559,
+];
+const FOUR: [number, number][] = [
+    [L, TOP],
+    [R, TOP],
+    [L, BOTTOM],
+    [R, BOTTOM],
+];
+const SIX: [number, number][] = [...FOUR, [L, MID], [R, MID]];
+
+export const PIPS: Partial<Record<Rank, [number, number][]>> = {
+    "2": [
+        [C, TOP],
+        [C, BOTTOM],
+    ],
+    "3": [
+        [C, TOP],
+        [C, MID],
+        [C, BOTTOM],
+    ],
+    "4": FOUR,
+    "5": [...FOUR, [C, MID]],
+    "6": SIX,
+    "7": [...SIX, [C, UPPER]],
+    "8": [...SIX, [C, UPPER], [C, LOWER]],
+    "9": [
+        ...FOUR,
+        [L, MID_HIGH],
+        [R, MID_HIGH],
+        [C, MID],
+        [L, MID_LOW],
+        [R, MID_LOW],
+    ],
+    "10": [
+        ...FOUR,
+        [C, HIGH],
+        [L, MID_HIGH],
+        [R, MID_HIGH],
+        [L, MID_LOW],
+        [R, MID_LOW],
+        [C, LOW],
+    ],
+};
+
+// --- The table ----------------------------------------------------------------
+//
+//   dealer avatar     ~~ gold rules belt ~~      secret   [dealer board]
+//   dealer's line                                fan ...   counter
+//   counter        deck    bet pile
+//   [your board]   fan ...
+//                        chips x4   [DEAL]                 your avatar
+//                        chips x4                          chips left
+//   (while playing, HIT / STAND / DOUBLE take the chips' place)
+
+export const BOARD_SCALE = 0.58;
+export const CARD_ON_BOARD = 0.62; // a drawn card covers the board's pins while it dissolves
+export const DECK_SCALE = 0.22;
+export const FAN_SCALE = 0.13;
+
+export type Point = { x: number; y: number };
+
+export const SEATS = {
+    dealer: {
+        board: { x: WIDTH - 170, y: 228 },
+        avatar: { x: 120, y: 118 },
+        fan: { x: WIDTH - 374, y: 330, dx: -40 },
+        counter: { x: WIDTH - 170, y: 466 },
+    },
+    player: {
+        board: { x: 190, y: 775 },
+        avatar: { x: WIDTH - 120, y: 822 },
+        fan: { x: 392, y: 660, dx: 40 },
+        counter: { x: 190, y: 510 },
+    },
+} as const;
+
+export const BELT = { x: CENTER.x - 40, y: -470, radius: 680 }; // an arc curving up at both ends
+export const HAND_LABEL = { x: CENTER.x - 40, y: 42 };
+export const SPEECH = { x: 28, y: 258, width: 400 }; // the dealer's line, under their seat
+export const SECRET = { x: WIDTH - 400, y: 125 };
+export const DECK = { x: CENTER.x - 160, y: 530 };
+export const BET = { x: CENTER.x + 70, y: 540 };
+export const TRAY = { x: CENTER.x, y: 858, dx: 84, dy: 84, perRow: 4 };
+export const BUTTON_ROW = { x: CENTER.x, y: 900, dx: 164 };
+export const DEAL_BUTTON = { x: CENTER.x + 335, y: 900 };
+export const CONTINUE_BUTTON = { x: CENTER.x, y: 628 };

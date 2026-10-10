@@ -11,6 +11,7 @@ frontend/dist
 
 backend/.venv
 backend/tests
+backend/level2/tests
 backend/level1/tests
 backend/captures
 **/__pycache__

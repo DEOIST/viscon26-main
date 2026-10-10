@@ -19,6 +19,7 @@
     },
     "include": [
         "src",
+        "level2",
         "level1",
         "types",
         "vite.config.ts",
