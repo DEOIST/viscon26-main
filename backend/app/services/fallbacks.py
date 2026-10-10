@@ -70,6 +70,19 @@ _SCENE_LINES: dict[DialogueScene, dict[str, tuple[str, ...]]] = {
             "Pens down! The exam is over.",
             "Time's up, {name}. Results in six to eight weeks.",
         ),
+        # Printed on the flying targets: at most prompts.MAX_QUESTION_LENGTH characters.
+        "questions": (
+            "Prove that 1 + 1 = 2.",
+            "Is P equal to NP? Explain.",
+            "Derive the Mensa menu.",
+            "Integrate e^x without crying.",
+            "What is a monad? (2 points)",
+            "Define 'ECTS' in one word.",
+            "Name three free study spots.",
+            "Solve for x. Show your work.",
+            "Big-O of a group project?",
+            "Why {department}? Discuss.",
+        ),
     },
 }
 

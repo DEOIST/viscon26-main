@@ -101,7 +101,7 @@ def _dialogue_pack(run: Run, scene: DialogueScene) -> DialoguePack:
     except ai.AiUnavailableError:
         return DialoguePack(scene=scene, lines=fallback, source="fallback")
     generated = {
-        entry.event: [line.strip() for line in entry.lines if line.strip()]
+        entry.event: [line.strip() for line in entry.lines if _fits(entry.event, line.strip())]
         for entry in output.entries
     }
     # The game needs every event key: anything the model skipped comes from the fallback.
@@ -109,6 +109,13 @@ def _dialogue_pack(run: Run, scene: DialogueScene) -> DialoguePack:
         event: generated.get(event) or fallback[event] for event in prompts.DIALOGUE_EVENTS[scene]
     }
     return DialoguePack(scene=scene, lines=lines, source="ai")
+
+
+def _fits(event: str, line: str) -> bool:
+    """Empty lines never fit; exam questions must fit on a target."""
+    if not line:
+        return False
+    return event != "questions" or len(line) <= prompts.MAX_QUESTION_LENGTH
 
 
 def _epilogue(run: Run) -> Epilogue:
