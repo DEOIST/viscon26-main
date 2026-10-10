@@ -57,6 +57,13 @@ def connected_games(monkeypatch):
         monkeypatch.setitem(game, "implemented", True)
 
 
+@pytest.fixture
+def placeholder_games(monkeypatch):
+    """Every game as a placeholder, whichever games shared/game-config.json has switched on."""
+    for game in GAMES.values():
+        monkeypatch.setitem(game, "implemented", False)
+
+
 def register(client, identifier="ada_private_login"):
     token = client.get("/api/session").json()["csrfToken"]
     response = client.post(
@@ -114,7 +121,7 @@ def test_idempotency_ects_and_graduation(client, connected_games):
     assert len(client.get("/api/progress").json()["completedGameIds"]) == len(GAMES)
 
 
-def test_placeholder_and_unknown_games_cannot_earn_credits(client):
+def test_placeholder_and_unknown_games_cannot_earn_credits(client, placeholder_games):
     headers = register(client)
     profile(client, headers)
     # Year 2 (Casino night) is still a placeholder; Year 1 is the shooter.
@@ -123,16 +130,21 @@ def test_placeholder_and_unknown_games_cannot_earn_credits(client):
     assert client.get("/api/scoreboard").json()[0]["ects"] == 0
 
 
-def test_the_shooter_is_year_1_and_earns_its_credits(client):
-    # The real configuration (no connected_games): the shooter (level 1) is Year 1 and playable;
-    # completing it unlocks Year 2, Casino night, which is still a placeholder.
+def test_shipped_minigames_complete_first_two_years(client):
+    # The real configuration: shooter is Year 1, blackjack is Year 2, both award credits.
+    assert GAMES["year-1-slot"]["implemented"] is True
+    assert GAMES["year-2-slot"]["implemented"] is True
     assert [year["games"][0]["title"] for year in YEARS[:2]] == ["Basisprüfung", "Casino night"]
     headers = register(client)
     profile(client, headers)
     progress = client.post("/api/completions/year-1-slot", headers=headers).json()
     assert progress["ects"] == YEARS[0]["ects"]
     response = client.post("/api/completions/year-2-slot", headers=headers)
-    assert response.status_code == 409 and "placeholder" in response.json()["detail"]
+    assert response.status_code == 200
+    assert response.json()["ects"] == 120
+    assert response.json()["completedGameIds"] == ["year-1-slot", "year-2-slot"]
+    third = client.post("/api/completions/year-3-slot", headers=headers)
+    assert third.status_code == 409 and "placeholder" in third.json()["detail"]
 
 
 def test_csrf_rotation_logout_and_private_scoreboard(client):

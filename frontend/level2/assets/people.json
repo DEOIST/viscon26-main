@@ -1,0 +1,294 @@
+{
+    "frames": {
+        "newton_clubs": {
+            "frame": {
+                "x": 4,
+                "y": 4,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        },
+        "curie_clubs": {
+            "frame": {
+                "x": 328,
+                "y": 4,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        },
+        "einstein_clubs": {
+            "frame": {
+                "x": 652,
+                "y": 4,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        },
+        "newton_diamonds": {
+            "frame": {
+                "x": 4,
+                "y": 548,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        },
+        "curie_diamonds": {
+            "frame": {
+                "x": 328,
+                "y": 548,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        },
+        "einstein_diamonds": {
+            "frame": {
+                "x": 652,
+                "y": 548,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        },
+        "newton_hearts": {
+            "frame": {
+                "x": 4,
+                "y": 1092,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        },
+        "curie_hearts": {
+            "frame": {
+                "x": 328,
+                "y": 1092,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        },
+        "einstein_hearts": {
+            "frame": {
+                "x": 652,
+                "y": 1092,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        },
+        "newton_spades": {
+            "frame": {
+                "x": 4,
+                "y": 1636,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        },
+        "curie_spades": {
+            "frame": {
+                "x": 328,
+                "y": 1636,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        },
+        "einstein_spades": {
+            "frame": {
+                "x": 652,
+                "y": 1636,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        },
+        "jester_red": {
+            "frame": {
+                "x": 4,
+                "y": 2180,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        },
+        "jester_black": {
+            "frame": {
+                "x": 328,
+                "y": 2180,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        }
+    },
+    "meta": {
+        "app": "poker-cards/build.py",
+        "image": "people.png",
+        "format": "RGBA8888",
+        "size": {
+            "w": 976,
+            "h": 2724
+        },
+        "scale": "1"
+    }
+}

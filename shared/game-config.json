@@ -72,7 +72,7 @@
             "title": "Casino night",
             "description": "Bet your semester stipend at blackjack.",
             "ects": 90,
-            "implemented": false
+            "implemented": true
         },
         {
             "id": "shooter",
@@ -107,7 +107,7 @@
                     "id": "year-2-slot",
                     "title": "Casino night",
                     "ects": 60,
-                    "implemented": false
+                    "implemented": true
                 }
             ]
         },

@@ -120,7 +120,7 @@ export interface MinigameHandle {
 export type MountMinigame = (options: MinigameOptions) => MinigameHandle;
 ```
 
-- `games/blackjack/index.ts` exports `mountBlackjack`, and
+- `frontend/level2/index.ts` exports `mountBlackjack`, and
   `games/shooter/index.ts` exports `mountShooter`, both typed `MountMinigame`.
 - `components/common/MinigameHost.tsx` is the **only** caller of a
   mount function. It mounts in an effect and destroys in the cleanup, which also
@@ -391,7 +391,7 @@ cannot spend them, by construction:
 | AI plumbing (`ai.py`) | pytest with a fake OpenAI client object | Key order, dead-key marking, daily cap, timeout → fallback, error mapping, all without the network |
 | Story features | pytest with `FakeAI` | A cache hit doesn't call `FakeAI` again (assert the call count); fallback content when `FakeAI` raises; 404 and 409 rules |
 | Endings | pytest | Every tier boundary: 24/25, 44/45, 64/65, 84/85 |
-| Pure frontend logic | vitest *(planned)* | Blackjack rules and scoring, gesture detection on synthetic and recorded landmarks, the One-Euro filter, `run.ts` |
+| Pure frontend logic | vitest | Blackjack rules and scoring (`frontend/level2/rules.test.ts`). *(planned)*: gesture detection on synthetic and recorded landmarks, the One-Euro filter, `run.ts` |
 | Docker smoke | `scripts/smoke.sh` | Read-only GETs only, never a story POST. CI has no keys, so no AI call can happen |
 | Performance (game + CV) | In-page perf overlay (`?debug=1`), real browser | Frame times (p50/p95), detection time and draw calls, measured on the demo laptop and on the weakest team laptop with the camera on. Never on the VM or in CI: neither has a GPU, so the browser falls back to software rendering and the numbers mean nothing |
 | Manual, UI | Browser with `AI_MODE=fake` | Loading states, typewriter, audio, all without credits |
@@ -459,7 +459,7 @@ announce it to the team first.
 | A. Backend and release | `routers/` + `services/` `runs`, `leaderboard`, `endings.py`, `db.py`, Redis in Compose, deployment, TLS or tunnel | Runs API with Redis in Compose |
 | B. AI and story | `ai.py`, `prompts.py`, `fallbacks.py`, `routers/story.py`, `services/story.py`, `backend/tools/` | Story endpoints that return fallbacks, then `live` |
 | C. Shell and UX | Pages `index`, `enroll`, `campus`, `graduation`; `MinigameHost`, `run.ts`, design tokens, Legi card | Enroll → campus → graduation with stub data |
-| D. Blackjack (Phaser 2D) | `games/blackjack/`, `components/blackjack/` | `rules.ts` with tests, then the scene |
+| D. Blackjack (Phaser 2D), level 2 | `frontend/level2/`, `backend/level2/`, `components/blackjack/` | `rules.ts` with tests, then the scene |
 | E. Shooter game (Phaser, isometric 2D) | `games/shooter/ShooterScene.ts` (Phaser scene, isometric art, fake depth), `hitTest.ts`, scoring, juice, `MouseInput` | Playable with the mouse |
 | F. Shooter vision | `games/shooter/input/`, model and wasm hosting, debug overlay, recordings | The T+6h CV gate ([SHOOTER_CV.md](SHOOTER_CV.md)) |
 
@@ -484,7 +484,7 @@ announce it to the team first.
 - [x] Runs API, endings, leaderboard (#12)
 - [x] Story API: `ai.py`, `AI_MODE`, fallbacks, cache, daily cap, pytest-socket, `make ai-check` (#12)
 - [x] Pages: index, enroll, campus, graduation, as working skeletons (#12)
-- [ ] Blackjack (a placeholder scene is wired in)
+- [x] Blackjack as level 2 (`frontend/level2/`, `backend/level2/`): Galton Blackjack, rules in `rules.ts` with vitest tests, Phaser scene on the shared canvas, dealer dialogue with pytest tests
 - [ ] Shooter with the mouse, then with the camera (a placeholder mouse round is wired in)
 - [ ] Generated art and fallback narration
 - [ ] Deployed on a secure origin

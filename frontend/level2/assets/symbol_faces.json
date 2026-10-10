@@ -1,0 +1,94 @@
+{
+    "frames": {
+        "face_clubs": {
+            "frame": {
+                "x": 4,
+                "y": 4,
+                "w": 400,
+                "h": 500
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 400,
+                "h": 500
+            },
+            "sourceSize": {
+                "w": 400,
+                "h": 500
+            }
+        },
+        "face_diamonds": {
+            "frame": {
+                "x": 408,
+                "y": 4,
+                "w": 400,
+                "h": 500
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 400,
+                "h": 500
+            },
+            "sourceSize": {
+                "w": 400,
+                "h": 500
+            }
+        },
+        "face_hearts": {
+            "frame": {
+                "x": 812,
+                "y": 4,
+                "w": 400,
+                "h": 500
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 400,
+                "h": 500
+            },
+            "sourceSize": {
+                "w": 400,
+                "h": 500
+            }
+        },
+        "face_spades": {
+            "frame": {
+                "x": 1216,
+                "y": 4,
+                "w": 400,
+                "h": 500
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 400,
+                "h": 500
+            },
+            "sourceSize": {
+                "w": 400,
+                "h": 500
+            }
+        }
+    },
+    "meta": {
+        "app": "poker-cards/build.py",
+        "image": "symbol_faces.png",
+        "format": "RGBA8888",
+        "size": {
+            "w": 1620,
+            "h": 508
+        },
+        "scale": "1"
+    }
+}

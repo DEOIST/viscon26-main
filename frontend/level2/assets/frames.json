@@ -1,0 +1,194 @@
+{
+    "frames": {
+        "card_front": {
+            "frame": {
+                "x": 4,
+                "y": 4,
+                "w": 500,
+                "h": 700
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 500,
+                "h": 700
+            },
+            "sourceSize": {
+                "w": 500,
+                "h": 700
+            }
+        },
+        "card_front_joker_red": {
+            "frame": {
+                "x": 508,
+                "y": 4,
+                "w": 500,
+                "h": 700
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 500,
+                "h": 700
+            },
+            "sourceSize": {
+                "w": 500,
+                "h": 700
+            }
+        },
+        "card_front_joker_black": {
+            "frame": {
+                "x": 1012,
+                "y": 4,
+                "w": 500,
+                "h": 700
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 500,
+                "h": 700
+            },
+            "sourceSize": {
+                "w": 500,
+                "h": 700
+            }
+        },
+        "panel_clubs": {
+            "frame": {
+                "x": 4,
+                "y": 708,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        },
+        "panel_diamonds": {
+            "frame": {
+                "x": 508,
+                "y": 708,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        },
+        "panel_hearts": {
+            "frame": {
+                "x": 1012,
+                "y": 708,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        },
+        "panel_spades": {
+            "frame": {
+                "x": 4,
+                "y": 1412,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        },
+        "panel_joker_red": {
+            "frame": {
+                "x": 508,
+                "y": 1412,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        },
+        "panel_joker_black": {
+            "frame": {
+                "x": 1012,
+                "y": 1412,
+                "w": 320,
+                "h": 540
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 320,
+                "h": 540
+            },
+            "sourceSize": {
+                "w": 320,
+                "h": 540
+            }
+        }
+    },
+    "meta": {
+        "app": "poker-cards/build.py",
+        "image": "frames.png",
+        "format": "RGBA8888",
+        "size": {
+            "w": 1516,
+            "h": 2116
+        },
+        "scale": "1"
+    }
+}

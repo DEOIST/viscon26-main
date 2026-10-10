@@ -26,6 +26,7 @@ COPY backend/requirements.txt ./
 RUN pip install -r requirements.txt
 COPY shared/ /app/shared/
 COPY backend/app ./app
+COPY backend/level2 ./level2
 COPY backend/level1 ./level1
 RUN useradd --system --no-create-home appuser
 USER appuser

@@ -8,7 +8,11 @@ vi.mock("./GameHost", () => ({
     GameHost: () => <button>Game control</button>,
 }));
 
-afterEach(cleanup);
+const originalFlag = GAMES[0].implemented;
+afterEach(() => {
+    cleanup();
+    GAMES[0].implemented = originalFlag;
+});
 
 function setup(selected = false) {
     const onOpen = vi.fn();
@@ -50,6 +54,7 @@ it("opens the character builder from the profile picture, but not mid-game", () 
 });
 
 it("browses locked years with keyboard and selectors without allowing launch", () => {
+    GAMES[0].implemented = true; // Year 1 is launchable; later years remain locked
     const { onOpen } = setup();
     fireEvent.keyDown(screen.getByRole("region", { name: "Active game" }), {
         key: "ArrowRight",
