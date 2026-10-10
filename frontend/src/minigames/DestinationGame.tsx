@@ -4,6 +4,7 @@ import { GAMES, departmentLabel } from "../config";
 import { MINIGAME_REGISTRY } from "../games/registry";
 import type { MinigameHandle, MinigameId } from "../games/shared/minigame";
 import type { MinigameProps } from "../types";
+import { TEXT } from "../misc/text";
 
 const DESTINATION_IDS: Record<string, MinigameId> = {
     "year-1-slot": "shooter", // level 1 (frontend/level1/)
@@ -95,16 +96,16 @@ export default function DestinationGame(args: MinigameProps) {
     ]);
     return failed ? (
         <div className="placeholder" role="alert">
-            <h2>This minigame could not open.</h2>
+            <h2>{TEXT.minigameHost.failedTitle}</h2>
             <button className="button secondary" onClick={args.onExit}>
-                Return to games
+                {TEXT.minigameHost.returnToGames}
             </button>
         </div>
     ) : (
         <div
             ref={parent}
             className="destination-game-mount"
-            aria-label="Minigame play area"
+            aria-label={TEXT.minigameHost.playArea}
         />
     );
 }

@@ -12,107 +12,90 @@ import { Icon } from "./Icon";
 import { PhotoAvatar } from "./PhotoAvatar";
 import AdmissionLetter from "./AdmissionLetter";
 import Diploma from "./Diploma";
+import { MultiLine } from "./MultiLine";
 import { ADMISSION_PHASES, type AdmissionPhase } from "../misc/admission";
+import { fill, TEXT } from "../misc/text";
 import diplomaStyles from "./Diploma.module.css";
 
 export function WelcomeScreen({ onStart }: { onStart: () => void }) {
+    const text = TEXT.welcome;
     return (
         <>
             <div className="welcome-layout">
                 <section className="welcome-copy">
                     <span className="eyebrow">
-                        <span className="status-dot" /> ADMISSIONS OPEN · FREE
-                        TIME CLOSED
+                        <span className="status-dot" /> {text.eyebrow}
                     </span>
                     <h1>
-                        ETH Simulator<span className="primary-text">.</span>
+                        {text.title}
+                        <span className="primary-text">.</span>
                     </h1>
                     <p className="hero-lead">
-                        Big ambitions.
-                        <br />
-                        Very little free time.
+                        <MultiLine text={text.lead} />
                     </p>
-                    <p className="hero-description">
-                        Your unofficial university adventure. Create a student,
-                        work your way through three years, and earn those very
-                        expensive letters.
-                    </p>
+                    <p className="hero-description">{text.description}</p>
                     <button className="button primary large" onClick={onStart}>
-                        Start your degree <Icon name="arrow" />
+                        {text.start} <Icon name="arrow" />
                     </button>
-                    <p className="fine-print">
-                        Create your character and play. Coffee not included.
-                    </p>
+                    <p className="fine-print">{text.finePrint}</p>
                 </section>
                 <div className="letter-scene" aria-hidden="true">
-                    <span className="scene-corner top">EST. AFTER HOURS</span>
+                    <span className="scene-corner top">
+                        {text.letter.cornerTop}
+                    </span>
                     <div className="admission-paper">
                         <div className="paper-top">
                             <Icon name="cap" size={36} />
                             <span>
-                                OFFICE OF
-                                <br />
-                                QUESTIONABLE DECISIONS
+                                <MultiLine text={text.letter.office} />
                             </span>
                         </div>
                         <div className="paper-rule" />
-                        <span className="paper-kicker">YOUR NEXT CHAPTER</span>
-                        <h2>You’re in.</h2>
+                        <span className="paper-kicker">
+                            {text.letter.kicker}
+                        </span>
+                        <h2>{text.letter.headline}</h2>
                         <p>
-                            Dear future student,
-                            <br />
-                            <br />
-                            We saw your potential.
-                            <br />
-                            Your sleep schedule saw
-                            <br />
-                            the writing on the wall.
+                            <MultiLine text={text.letter.body} />
                         </p>
                         <div className="paper-signature">
-                            See you on campus.
+                            {text.letter.signature}
                         </div>
                         <span className="paper-stamp">
-                            <Icon name="check" size={19} /> ACCEPTED
+                            <Icon name="check" size={19} /> {text.letter.stamp}
                         </span>
-                        <span className="paper-note">
-                            UNOFFICIAL. UNREASONABLY RELATABLE.
-                        </span>
+                        <span className="paper-note">{text.letter.note}</span>
                     </div>
                     <div className="ects-ticket">
                         <Icon name="cap" size={25} />
                         <span>
-                            <strong>{TOTAL_ECTS} ECTS</strong>
-                            <small>One ambitious plan</small>
+                            <strong>
+                                {fill(TEXT.common.ectsAmount, {
+                                    ects: TOTAL_ECTS,
+                                })}
+                            </strong>
+                            <small>{text.letter.ticketCaption}</small>
                         </span>
                     </div>
                     <span className="scene-corner bottom">
-                        A STUDENT PARODY, WITH LOVE.
+                        {text.letter.cornerBottom}
                     </span>
                 </div>
             </div>
-            <div className="journey-strip" aria-label="Your journey">
-                {[
-                    [
-                        "01",
-                        "Make it your degree",
-                        "Build a character. Pick your look.",
-                    ],
-                    [
-                        "02",
-                        "Take it one year at a time",
-                        `${YEARS.length} years. ${TOTAL_ECTS} credits. Deep breaths.`,
-                    ],
-                    [
-                        "03",
-                        "Get the last word",
-                        "Graduate. Finally update that bio.",
-                    ],
-                ].map(([number, title, description]) => (
-                    <div className="journey-item" key={number}>
-                        <span className="step-number">{number}</span>
+            <div className="journey-strip" aria-label={text.journeyLabel}>
+                {text.journey.map((step, index) => (
+                    <div className="journey-item" key={index}>
+                        <span className="step-number">
+                            {String(index + 1).padStart(2, "0")}
+                        </span>
                         <div>
-                            <strong>{title}</strong>
-                            <p>{description}</p>
+                            <strong>{step.title}</strong>
+                            <p>
+                                {fill(step.description, {
+                                    years: YEARS.length,
+                                    ects: TOTAL_ECTS,
+                                })}
+                            </p>
                         </div>
                     </div>
                 ))}
@@ -167,23 +150,10 @@ function Swatches({
     );
 }
 
-const HAIR_LENGTH_OPTIONS: [HairLength, string][] = [
-    ["short", "Short"],
-    ["long", "Long"],
-];
-
-const GLASSES_OPTIONS: [Glasses, string][] = [
-    ["none", "None"],
-    ["glasses", "Glasses"],
-    ["sunglasses", "Sunglasses"],
-];
-
-const GENDER_OPTIONS: [Gender, string][] = [
-    ["unspecified", "Prefer not to say"],
-    ["female", "Female"],
-    ["male", "Male"],
-    ["nonbinary", "Non-binary"],
-];
+const BUILDER = TEXT.characterBuilder;
+const HAIR_LENGTH_OPTIONS: HairLength[] = ["short", "long"];
+const GLASSES_OPTIONS: Glasses[] = ["none", "glasses", "sunglasses"];
+const GENDER_OPTIONS: Gender[] = ["unspecified", "female", "male", "nonbinary"];
 
 export function CharacterBuilder({
     player,
@@ -212,9 +182,7 @@ export function CharacterBuilder({
     function submit(event: FormEvent) {
         event.preventDefault();
         if (!name.trim()) {
-            setValidation(
-                "Your student needs a name. Even the paperwork agrees.",
-            );
+            setValidation(BUILDER.name.missing);
             nameInput.current?.focus();
             return;
         }
@@ -227,26 +195,30 @@ export function CharacterBuilder({
             aria-busy={initializing}
         >
             <div className="section-heading">
-                <span className="eyebrow">01 / YOUR STUDENT RECORD</span>
-                <h1>Meet your future self.</h1>
-                <p>Same big plans. A slightly more organized haircut.</p>
+                <span className="eyebrow">{BUILDER.eyebrow}</span>
+                <h1>{BUILDER.title}</h1>
+                <p>{BUILDER.subtitle}</p>
             </div>
             <div className="builder-layout">
                 <div className="character-preview panel">
                     <div className="preview-top">
-                        <span>STUDENT ID</span>
-                        <span>CS / 001</span>
+                        <span>{BUILDER.idCard.label}</span>
+                        <span>{BUILDER.idCard.number}</span>
                     </div>
                     <div className="portrait-frame">
                         <Avatar
                             character={character}
-                            label={`Preview of ${name.trim() || "your student"}`}
+                            label={fill(BUILDER.idCard.previewLabel, {
+                                name:
+                                    name.trim() ||
+                                    BUILDER.idCard.previewFallbackName,
+                            })}
                         />
                     </div>
-                    <h2>{name.trim() || "Future legend"}</h2>
+                    <h2>{name.trim() || BUILDER.idCard.nameFallback}</h2>
                     <p>{DEPARTMENT}</p>
                     <span className="badge neutral">
-                        <Icon name="cap" size={15} /> Incoming student
+                        <Icon name="cap" size={15} /> {BUILDER.idCard.badge}
                     </span>
                     <div className="id-bottom">
                         <svg
@@ -269,9 +241,7 @@ export function CharacterBuilder({
                             ))}
                         </svg>
                         <span>
-                            VALID UNTIL YOU GRADUATE.
-                            <br />
-                            OPTIMISTIC, WE KNOW.
+                            <MultiLine text={BUILDER.idCard.validity} />
                         </span>
                     </div>
                 </div>
@@ -281,13 +251,13 @@ export function CharacterBuilder({
                             className="initialization-ring"
                             aria-hidden="true"
                         />
-                        <span>Initializing student profile…</span>
+                        <span>{BUILDER.initializing}</span>
                         <button
                             type="button"
                             className="skip-animation"
                             onClick={onSkip}
                         >
-                            Skip animation
+                            {TEXT.common.skipAnimation}
                         </button>
                     </div>
                 )}
@@ -299,7 +269,7 @@ export function CharacterBuilder({
                     <div className="field">
                         <div className="label-row">
                             <label htmlFor="character-name">
-                                Character name
+                                {BUILDER.name.label}
                             </label>
                             <span>{name.length} / 24</span>
                         </div>
@@ -310,7 +280,7 @@ export function CharacterBuilder({
                             autoFocus
                             maxLength={24}
                             value={name}
-                            placeholder="What should we call you?"
+                            placeholder={BUILDER.name.placeholder}
                             aria-invalid={!!validation}
                             aria-describedby="name-help"
                             disabled={busy}
@@ -323,8 +293,7 @@ export function CharacterBuilder({
                             id="name-help"
                             className={validation ? "error-text" : ""}
                         >
-                            {validation ||
-                                "This name appears on your student record and the scoreboard."}
+                            {validation || BUILDER.name.help}
                         </small>
                     </div>
                     <PhotoAvatar
@@ -338,29 +307,31 @@ export function CharacterBuilder({
                     />
                     <fieldset className="appearance-fields" disabled={busy}>
                         <legend className="sr-only">
-                            Character appearance
+                            {BUILDER.appearanceLegend}
                         </legend>
                         <Swatches
-                            label="Hair color"
+                            label={BUILDER.hairColor}
                             colors={COLORS.hair}
                             value={character.hairColor}
                             onChange={(color) => choose("hairColor", color)}
                         />
                         <Swatches
-                            label="Skin color"
+                            label={BUILDER.skinColor}
                             colors={COLORS.skin}
                             value={character.skinColor}
                             onChange={(color) => choose("skinColor", color)}
                         />
                         <Swatches
-                            label="Eye color"
+                            label={BUILDER.eyeColor}
                             colors={COLORS.eyes}
                             value={character.eyeColor}
                             onChange={(color) => choose("eyeColor", color)}
                         />
                     </fieldset>
                     <div className="field">
-                        <label htmlFor="hair-length">Hair length</label>
+                        <label htmlFor="hair-length">
+                            {BUILDER.hairLength.label}
+                        </label>
                         <select
                             id="hair-length"
                             value={character.hairLength}
@@ -373,15 +344,15 @@ export function CharacterBuilder({
                                 }))
                             }
                         >
-                            {HAIR_LENGTH_OPTIONS.map(([value, label]) => (
+                            {HAIR_LENGTH_OPTIONS.map((value) => (
                                 <option key={value} value={value}>
-                                    {label}
+                                    {BUILDER.hairLength.options[value]}
                                 </option>
                             ))}
                         </select>
                     </div>
                     <div className="field">
-                        <label htmlFor="glasses">Glasses</label>
+                        <label htmlFor="glasses">{BUILDER.glasses.label}</label>
                         <select
                             id="glasses"
                             value={character.glasses}
@@ -393,15 +364,15 @@ export function CharacterBuilder({
                                 }))
                             }
                         >
-                            {GLASSES_OPTIONS.map(([value, label]) => (
+                            {GLASSES_OPTIONS.map((value) => (
                                 <option key={value} value={value}>
-                                    {label}
+                                    {BUILDER.glasses.options[value]}
                                 </option>
                             ))}
                         </select>
                     </div>
                     <div className="field">
-                        <label htmlFor="gender">Gender</label>
+                        <label htmlFor="gender">{BUILDER.gender.label}</label>
                         <select
                             id="gender"
                             value={character.gender}
@@ -413,21 +384,21 @@ export function CharacterBuilder({
                                 }))
                             }
                         >
-                            {GENDER_OPTIONS.map(([value, label]) => (
+                            {GENDER_OPTIONS.map((value) => (
                                 <option key={value} value={value}>
-                                    {label}
+                                    {BUILDER.gender.options[value]}
                                 </option>
                             ))}
                         </select>
                     </div>
                     <div className="field">
-                        <label htmlFor="major">Department</label>
+                        <label htmlFor="major">
+                            {BUILDER.department.label}
+                        </label>
                         <select id="major" value={DEPARTMENT} disabled>
                             <option value={DEPARTMENT}>{DEPARTMENT}</option>
                         </select>
-                        <small>
-                            One department. Plenty of existential questions.
-                        </small>
+                        <small>{BUILDER.department.help}</small>
                     </div>
                     {error && (
                         <p role="alert" className="error-box">
@@ -441,10 +412,10 @@ export function CharacterBuilder({
                             disabled={busy}
                             onClick={() => onBack(draft)}
                         >
-                            <Icon name="back" /> Back
+                            <Icon name="back" /> {TEXT.common.back}
                         </button>
                         <button className="button primary" disabled={busy}>
-                            {busy ? "Saving…" : "Continue"}{" "}
+                            {busy ? TEXT.common.saving : TEXT.common.continue}{" "}
                             <Icon name="arrow" />
                         </button>
                     </div>
@@ -480,10 +451,10 @@ export function AcceptanceScreen({
     return (
         <section className="story-wrap" data-phase={phase}>
             <div className="admission-status">
-                <span className="eyebrow">02 / A VERY IMPORTANT LETTER</span>
+                <span className="eyebrow">{TEXT.admission.eyebrow}</span>
                 {!finished && (
                     <button className="skip-animation" onClick={onSkip}>
-                        Skip animation
+                        {TEXT.common.skipAnimation}
                     </button>
                 )}
             </div>
@@ -495,16 +466,14 @@ export function AcceptanceScreen({
                     >
                         <Icon name="cap" size={32} />
                         <span>
-                            THE UNOFFICIAL
-                            <br />
-                            ADMISSIONS OFFICE
+                            <MultiLine text={TEXT.admission.emblem} />
                         </span>
                     </div>
                     <span
                         className="admission-stamp"
                         data-visible={reached("stamp")}
                     >
-                        <Icon name="check" size={17} /> ACCEPTED
+                        <Icon name="check" size={17} /> {TEXT.admission.stamp}
                         <span className="stamp-sparks" aria-hidden="true">
                             <i />
                             <i />
@@ -546,9 +515,13 @@ export function AcceptanceScreen({
                 </div>
                 <div className="story-footer" data-visible={reached("edit")}>
                     <span>
-                        {YEARS.length} years <span aria-hidden="true">/</span>{" "}
-                        {TOTAL_ECTS} ECTS <span aria-hidden="true">/</span>{" "}
-                        You’ve got this.
+                        {fill(TEXT.admission.footerYears, {
+                            years: YEARS.length,
+                        })}{" "}
+                        <span aria-hidden="true">/</span>{" "}
+                        {fill(TEXT.common.ectsAmount, { ects: TOTAL_ECTS })}{" "}
+                        <span aria-hidden="true">/</span>{" "}
+                        {TEXT.admission.footerCheer}
                     </span>
                 </div>
             </div>
@@ -565,7 +538,7 @@ export function AcceptanceScreen({
                     disabled={busy || !reached("begin")}
                     inert={!reached("begin")}
                 >
-                    <Icon name="back" /> Edit character
+                    <Icon name="back" /> {TEXT.common.editCharacter}
                 </button>
                 <button
                     className="button primary large admission-begin"
@@ -574,7 +547,8 @@ export function AcceptanceScreen({
                     disabled={busy || !finished}
                     inert={!finished}
                 >
-                    {busy ? "Saving…" : "Begin Year 1"} <Icon name="arrow" />
+                    {busy ? TEXT.common.saving : TEXT.admission.begin}{" "}
+                    <Icon name="arrow" />
                 </button>
             </div>
         </section>
@@ -597,6 +571,7 @@ interface GraduationScreenArgs {
 
 export function GraduationScreen(args: GraduationScreenArgs) {
     const [diplomaOpen, setDiplomaOpen] = useState(true);
+    const text = TEXT.graduation;
 
     function handleLeaderboard() {
         setDiplomaOpen(false);
@@ -607,45 +582,40 @@ export function GraduationScreen(args: GraduationScreenArgs) {
         <>
             <section className={`${diplomaStyles.screen} panel`}>
                 <span className="eyebrow reward-text">
-                    {args.preview ? "GRADUATION PREVIEW" : "DEGREE COMPLETE"}
+                    {args.preview ? text.previewEyebrow : text.eyebrow}
                 </span>
                 <div className={diplomaStyles.portrait}>
                     <Avatar
                         character={args.player.character}
-                        label={`Graduate ${args.player.name}`}
+                        label={fill(TEXT.common.graduateAvatarLabel, {
+                            name: args.player.name,
+                        })}
                     />
                     <span className={diplomaStyles.seal}>
                         <Icon name="cap" size={26} />
                     </span>
                 </div>
                 <h1>
-                    {args.preview ? "Your graduation preview" : "You did it"},{" "}
-                    {args.player.name}.
+                    {fill(args.preview ? text.previewTitle : text.title, {
+                        name: args.player.name,
+                    })}
                 </h1>
                 <p className={diplomaStyles.lead}>
-                    {args.preview
-                        ? "Take a peek at the finish line."
-                        : "Officially done. Unofficially legendary."}
+                    {args.preview ? text.previewLead : text.lead}
                 </p>
                 <p>
                     {departmentLabel(args.player.major)}{" "}
                     <span aria-hidden="true">·</span>{" "}
                     <strong className="reward-text">
-                        {args.ects} ECTS earned
+                        {fill(text.ectsEarned, { ects: args.ects })}
                     </strong>
                 </p>
                 <p className={diplomaStyles.copy}>
-                    {args.preview
-                        ? "Test preview · Your progress and leaderboard are unchanged."
-                        : "Your degree and progress are staying right here. Your next deadline? Entirely your problem."}
+                    {args.preview ? TEXT.common.previewNotice : text.copy}
                 </p>
                 {!args.preview && args.submissionError && (
                     <div className={diplomaStyles.submission} role="status">
-                        <p>
-                            Your completed run is saved in this browser. Your
-                            diploma is ready; the leaderboard update needs
-                            another try.
-                        </p>
+                        <p>{text.submissionFailed}</p>
                         <p className="error-text">{args.submissionError}</p>
                         {args.onRetry && (
                             <button
@@ -654,8 +624,8 @@ export function GraduationScreen(args: GraduationScreenArgs) {
                                 onClick={args.onRetry}
                             >
                                 {args.submitting
-                                    ? "Submitting…"
-                                    : "Retry leaderboard update"}
+                                    ? TEXT.common.submitting
+                                    : TEXT.common.retryLeaderboard}
                             </button>
                         )}
                     </div>
@@ -665,16 +635,16 @@ export function GraduationScreen(args: GraduationScreenArgs) {
                         className="button primary"
                         onClick={() => setDiplomaOpen(true)}
                     >
-                        <Icon name="cap" /> View diploma
+                        <Icon name="cap" /> {text.viewDiploma}
                     </button>
                     <button
                         className="button secondary"
                         onClick={handleLeaderboard}
                     >
-                        <Icon name="trophy" /> View leaderboard
+                        <Icon name="trophy" /> {TEXT.common.viewLeaderboard}
                     </button>
                     <button className="button ghost" onClick={args.onReturn}>
-                        <Icon name="back" /> Return to overview
+                        <Icon name="back" /> {TEXT.common.returnToOverview}
                     </button>
                 </div>
             </section>

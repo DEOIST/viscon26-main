@@ -10,6 +10,7 @@ import {
     reducedMotion,
     useAnimatedNumber,
 } from "../misc/motion";
+import { fill, TEXT } from "../misc/text";
 import styles from "./GameWorkspace.module.css";
 
 export interface CompletionFeedback {
@@ -17,6 +18,8 @@ export interface CompletionFeedback {
     delta: number;
     unlockedYears: number[];
 }
+
+const T = TEXT.workspace;
 
 const ENTRIES = YEARS.flatMap((year, yearIndex) =>
     year.games.map((game) => ({ game, year, yearIndex })),
@@ -99,7 +102,11 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
     const { game, year, yearIndex } = entry;
     const completed = args.progress.completedGameIds.includes(game.id);
     const unlocked = isYearUnlocked(yearIndex, args.progress.completedGameIds);
-    const state = !unlocked ? "Locked" : completed ? "Completed" : "Available";
+    const state = !unlocked
+        ? T.state.locked
+        : completed
+          ? T.state.completed
+          : T.state.available;
 
     function handleMove(delta: number) {
         if (args.selectedGame || args.busy) return;
@@ -159,8 +166,8 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                 <button
                     type="button"
                     className={styles.portrait}
-                    title="Edit character"
-                    aria-label="Edit character"
+                    title={TEXT.common.editCharacter}
+                    aria-label={TEXT.common.editCharacter}
                     disabled={args.busy || !!args.selectedGame}
                     onClick={() => void handleCloseMenu(args.onEditCharacter)}
                 >
@@ -168,11 +175,11 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                 </button>
                 <h1>{args.player.name}</h1>
                 <span className={styles.department}>D-INFK</span>
-                <small>Anonymous student</small>
+                <small>{T.anonymousStudent}</small>
             </div>
             <div className={styles.progress}>
                 <div>
-                    <span>Degree progress</span>
+                    <span>{T.degreeProgress}</span>
                     <strong>
                         {displayedEcts} / {TOTAL_ECTS}
                     </strong>
@@ -180,44 +187,46 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                 <progress
                     value={displayedEcts}
                     max={TOTAL_ECTS}
-                    aria-label="Degree ECTS earned"
+                    aria-label={T.progressLabel}
                 />
                 <small>
-                    ECTS earned · {args.progress.completedGameIds.length} /{" "}
-                    {GAMES.length} games
+                    {fill(T.progressSummary, {
+                        completed: args.progress.completedGameIds.length,
+                        total: GAMES.length,
+                    })}
                 </small>
             </div>
-            <nav className={styles.studentActions} aria-label="Student actions">
+            <nav
+                className={styles.studentActions}
+                aria-label={T.studentActions}
+            >
                 <button
                     className="button secondary compact"
                     onClick={() => {
                         void handleCloseMenu(args.onScoreboard);
                     }}
                 >
-                    <Icon name="trophy" size={17} /> Scoreboard
+                    <Icon name="trophy" size={17} /> {TEXT.app.scoreboard}
                 </button>
             </nav>
-            <p className={styles.recordNote}>
-                Progress stays in this browser. Your chosen name appears on the
-                leaderboard.
-            </p>
+            <p className={styles.recordNote}>{T.recordNote}</p>
             <div className={styles.sidebarBottom}>
-                <span>ETH After Hours</span>
-                <small>Unofficial student parody.</small>
+                <span>{T.sidebarTitle}</span>
+                <small>{T.sidebarTagline}</small>
             </div>
         </>
     );
 
     return (
         <div className={styles.workspace}>
-            <aside className={styles.sidebar} aria-label="Student record">
+            <aside className={styles.sidebar} aria-label={T.studentRecord}>
                 {studentRecord}
             </aside>
             <div className={styles.rail}>
                 <button
                     ref={menuTrigger}
                     className="icon-button"
-                    aria-label="Student menu"
+                    aria-label={T.studentMenu}
                     aria-haspopup="dialog"
                     onClick={() => studentMenu.current?.showModal()}
                 >
@@ -225,13 +234,13 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                 </button>
                 <span>
                     {displayedEcts}
-                    <small>ECTS</small>
+                    <small>{T.railEcts}</small>
                 </span>
             </div>
             <dialog
                 ref={studentMenu}
                 className={styles.drawer}
-                aria-label="Student record"
+                aria-label={T.studentRecord}
                 onCancel={(event) => {
                     event.preventDefault();
                     void handleCloseMenu();
@@ -242,7 +251,7 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
             >
                 <button
                     className={`icon-button ${styles.closeDrawer}`}
-                    aria-label="Close student menu"
+                    aria-label={T.closeStudentMenu}
                     onClick={() => void handleCloseMenu()}
                 >
                     <Icon name="close" />
@@ -251,10 +260,13 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
             </dialog>
             <section
                 className={styles.gameArea}
-                aria-label="Minigames"
+                aria-label={T.minigames}
                 onKeyDown={handleKeyDown}
             >
-                <nav className={styles.navigation} aria-label="Game navigation">
+                <nav
+                    className={styles.navigation}
+                    aria-label={T.gameNavigation}
+                >
                     <div className={styles.years}>
                         {YEARS.map((item, index) => {
                             const isUnlocked = isYearUnlocked(
@@ -300,7 +312,7 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                     <div className={styles.arrows}>
                         <button
                             className="icon-button"
-                            aria-label="Previous game"
+                            aria-label={T.previousGame}
                             disabled={
                                 !!args.selectedGame ||
                                 args.busy ||
@@ -311,13 +323,16 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                             <Icon name="back" size={18} />
                         </button>
                         <span
-                            aria-label={`Game ${activeIndex + 1} of ${ENTRIES.length}`}
+                            aria-label={fill(T.gamePosition, {
+                                current: activeIndex + 1,
+                                total: ENTRIES.length,
+                            })}
                         >
                             {activeIndex + 1} / {ENTRIES.length}
                         </span>
                         <button
                             className="icon-button"
-                            aria-label="Next game"
+                            aria-label={T.nextGame}
                             disabled={
                                 !!args.selectedGame ||
                                 args.busy ||
@@ -332,7 +347,7 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                 <div
                     className={styles.gameSelectors}
                     role="group"
-                    aria-label={`${year.title} games`}
+                    aria-label={fill(T.yearGames, { year: year.title })}
                 >
                     {year.games.map((item) => (
                         <button
@@ -360,7 +375,7 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                     className={styles.panel}
                     role="region"
                     aria-roledescription="carousel"
-                    aria-label="Active game"
+                    aria-label={T.activeGame}
                     tabIndex={0}
                 >
                     <header className={styles.gameHeading}>
@@ -370,7 +385,9 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                         </div>
                         <div className={styles.gameMeta}>
                             <span className={styles.reward}>
-                                {game.ects} ECTS
+                                {fill(TEXT.common.ectsAmount, {
+                                    ects: game.ects,
+                                })}
                             </span>
                             <span
                                 className={
@@ -397,7 +414,8 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                                     disabled={args.busy}
                                     onClick={args.onExit}
                                 >
-                                    <Icon name="back" size={14} /> Overview
+                                    <Icon name="back" size={14} />{" "}
+                                    {TEXT.common.overview}
                                 </button>
                             )}
                         </div>
@@ -433,20 +451,22 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                                 </span>
                                 <h3>
                                     {!unlocked
-                                        ? `${year.title} is still locked.`
+                                        ? fill(T.lockedTitle, {
+                                              year: year.title,
+                                          })
                                         : completed
-                                          ? "Ready for another visit?"
+                                          ? T.revisitTitle
                                           : game.title}
                                 </h3>
                                 <p>
                                     {!unlocked
-                                        ? `Complete every minigame in Year ${year.id - 1} to unlock this game.`
+                                        ? fill(T.lockedDescription, {
+                                              previousYear: year.id - 1,
+                                          })
                                         : year.description}
                                 </p>
                                 {!game.implemented && unlocked && (
-                                    <small>
-                                        Preview component · no ECTS awarded
-                                    </small>
+                                    <small>{T.previewNote}</small>
                                 )}
                                 <button
                                     className="button primary"
@@ -462,12 +482,12 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                                     }}
                                 >
                                     {!unlocked
-                                        ? "Locked"
+                                        ? T.launch.locked
                                         : game.implemented
                                           ? completed
-                                              ? "Open game"
-                                              : "Launch game"
-                                          : "Open preview"}
+                                              ? T.launch.open
+                                              : T.launch.launch
+                                          : T.launch.preview}
                                     <Icon
                                         name={unlocked ? "arrow" : "lock"}
                                         size={17}
@@ -484,15 +504,17 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                             className={styles.ectsPopup}
                             role="status"
                         >
-                            +{feedback.delta} ECTS
+                            {fill(T.ectsGained, { ects: feedback.delta })}
                         </span>
                     )}
                     <p aria-live="polite">
                         {args.error && !args.selectedGame
                             ? args.error
                             : args.eligible
-                              ? "All years complete. Your diploma is ready."
-                              : `${TOTAL_ECTS - args.ects} ECTS to graduation.`}
+                              ? T.readyToGraduate
+                              : fill(T.ectsRemaining, {
+                                    ects: TOTAL_ECTS - args.ects,
+                                })}
                     </p>
                     <button
                         className="button primary compact"
@@ -504,12 +526,12 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                         onClick={args.onGraduate}
                     >
                         {args.busy
-                            ? "Saving…"
+                            ? TEXT.common.saving
                             : !args.eligible && args.graduationPreview
-                              ? "Preview graduation"
+                              ? T.graduate.preview
                               : args.progress.graduated
-                                ? "View graduation"
-                                : "Graduate"}
+                                ? T.graduate.view
+                                : T.graduate.graduate}
                         <Icon
                             name={
                                 args.eligible || args.graduationPreview

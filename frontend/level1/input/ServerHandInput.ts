@@ -8,6 +8,7 @@ import { FALLBACK_FRAME_MS, FRAME_WIDTH, JPEG_QUALITY } from "../config";
 import { GAME_HEIGHT, GAME_WIDTH } from "../gameSize";
 import { boxForAspect, isSameBox } from "./box";
 import { cameraErrorMessage, closeMessage, cvStreamUrl } from "./cvStream";
+import { TEXT } from "../../src/misc/text";
 import type {
     CvBoxMessage,
     CvRecenterMessage,
@@ -83,7 +84,7 @@ export default class ServerHandInput implements InputSource {
     private async run() {
         try {
             if (!navigator.mediaDevices?.getUserMedia)
-                throw new Error("the camera needs https:// or localhost");
+                throw new Error(TEXT.shooter.camera.insecureOrigin);
             this.stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     width: { ideal: 640 },
@@ -97,7 +98,7 @@ export default class ServerHandInput implements InputSource {
             // Unplugged, or the permission revoked: stopping it ourselves doesn't fire "ended".
             for (const track of this.stream.getVideoTracks())
                 track.addEventListener("ended", () =>
-                    this.fail("the camera was disconnected"),
+                    this.fail(TEXT.shooter.camera.disconnected),
                 );
             this.video = createVideo(this.stream);
             this.parent.prepend(this.video);

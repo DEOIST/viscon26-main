@@ -24,6 +24,7 @@ import { COLORS, makeTextures } from "./textures";
 import { loadBest, saveBest, swissGrade, verdictFor } from "./verdict";
 import type { BestRun, BestStorage } from "./verdict";
 import { pickLine } from "../src/games/shared/minigame";
+import { fill, TEXT } from "../src/misc/text";
 import type { MinigameResult } from "../src/games/shared/minigame";
 
 export interface ThesisSceneArgs {
@@ -93,7 +94,9 @@ export default class ThesisScene extends Scene {
     constructor(args: ThesisSceneArgs) {
         super("thesis-defense");
         this.args = args;
-        this.lines = committeeLines(args.playerName || "Candidate");
+        this.lines = committeeLines(
+            args.playerName || TEXT.thesisDefense.defaultName,
+        );
     }
 
     create() {
@@ -128,9 +131,7 @@ export default class ThesisScene extends Scene {
         this.hud.setVisible(false);
         this.overlays.showTitle(this.best);
         this.committee.setLead(null, PHASE_LOOK.opening.color);
-        this.args.announce(
-            "Thesis defense. Press D, F, J and K as the questions reach the line. Press Space to begin.",
-        );
+        this.args.announce(TEXT.thesisDefense.announcements.intro);
 
         window.addEventListener("keydown", this.handleKeyDown);
         window.addEventListener("keyup", this.handleKeyUp);
@@ -287,7 +288,11 @@ export default class ThesisScene extends Scene {
             submitted: this.submitted,
         });
         this.args.announce(
-            `${verdict.title}. Grade ${grade.toFixed(2)}. Score ${state.score}. Press R to defend again or Enter to submit your thesis.`,
+            fill(TEXT.thesisDefense.announcements.results, {
+                verdict: verdict.title,
+                grade: grade.toFixed(2),
+                score: state.score,
+            }),
         );
     }
 
@@ -347,14 +352,16 @@ export default class ThesisScene extends Scene {
                     );
                     break;
                 case "eureka-ready":
-                    this.args.announce("Eureka is ready. Press Space.");
+                    this.args.announce(
+                        TEXT.thesisDefense.announcements.eurekaReady,
+                    );
                     break;
                 case "eureka-start":
                     this.highway.setEureka(true);
                     this.cameras.main.flash(220, 255, 230, 140);
                     this.committee.react("amazed", 1500);
                     this.say(this.speaker(), "eureka", true);
-                    this.hud.showMilestone("EUREKA! ×2");
+                    this.hud.showMilestone(TEXT.thesisDefense.hud.eurekaActive);
                     break;
                 case "eureka-end":
                     this.highway.setEureka(false);

@@ -7,6 +7,7 @@
 // ("D", "FK", "DFJK"); a leading "*" makes the whole step golden.
 
 import { BPM, LANE_KEYS, LEAD_IN_MS } from "./config";
+import { TEXT } from "../src/misc/text";
 
 export type Phase = "opening" | "cross" | "meltdown" | "final";
 
@@ -79,11 +80,12 @@ export function buildChart(sections: Section[], start = LEAD_IN_MS): Chart {
 
 // --- The defense ------------------------------------------------------------
 
+const SECTIONS = TEXT.thesisDefense.sections;
+
 export const DEFENSE: Section[] = [
     {
         phase: "opening",
-        title: "OPENING QUESTIONS",
-        subtitle: "Prof. Lemma clears her throat.",
+        ...SECTIONS.opening,
         bars: [
             ".",
             "D . F .",
@@ -97,8 +99,7 @@ export const DEFENSE: Section[] = [
     },
     {
         phase: "cross",
-        title: "CROSS-EXAMINATION",
-        subtitle: "Prof. Bootstrap wants error bars.",
+        ...SECTIONS.cross,
         bars: [
             ".",
             "D J F K D J F K",
@@ -113,8 +114,7 @@ export const DEFENSE: Section[] = [
     },
     {
         phase: "meltdown",
-        title: "PROFESSOR MELTDOWN",
-        subtitle: "Prof. Gradient has diverged.",
+        ...SECTIONS.meltdown,
         bars: [
             ".",
             "D F D F . . J K J K . . DJ . FK .",
@@ -127,8 +127,7 @@ export const DEFENSE: Section[] = [
     },
     {
         phase: "final",
-        title: "FINAL DEFENSE",
-        subtitle: "The whole committee leans forward.",
+        ...SECTIONS.final,
         bars: [
             ".",
             "DJ . FK . D F J K . . DK . FJ . . .",

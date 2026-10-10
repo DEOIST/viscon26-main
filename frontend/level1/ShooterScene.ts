@@ -9,6 +9,7 @@ import { drawHandOverlay } from "./handOverlay";
 import { glideAim } from "./glide";
 import { floatText, muzzleFlash, shatter, textStyle } from "./effects";
 import { pickLine } from "../src/games/shared/minigame";
+import { fill, TEXT } from "../src/misc/text";
 import { GAME_HEIGHT, GAME_WIDTH } from "./gameSize";
 import {
     APPROACH_SECONDS,
@@ -49,12 +50,8 @@ interface Target {
 
 type Phase = "practice" | "countdown" | "playing" | "over";
 
-const BUILT_IN_QUESTIONS = [
-    "Prove it.",
-    "Is P = NP?",
-    "Integrate this.",
-    "Why?",
-];
+const T = TEXT.shooter;
+const BUILT_IN_QUESTIONS = T.questions;
 const PAPER = 0xfdfcf7;
 const HIT_FLASH = 0xf2c14e;
 const MISS_FLASH = 0xff4d4d;
@@ -123,7 +120,7 @@ export default class ShooterScene extends Scene {
             )
             .setOrigin(0.5)
             .setDepth(2002);
-        this.say("intro", `Basisprüfung time, ${this.args.playerName}!`);
+        this.say("intro", fill(T.intro, { name: this.args.playerName }));
         this.startPractice();
     }
 
@@ -174,7 +171,10 @@ export default class ShooterScene extends Scene {
             .text(
                 0,
                 0,
-                `Practice\n${this.practiceIndex + 1} / ${PRACTICE_POINTS.length}`,
+                fill(T.practiceTarget, {
+                    current: this.practiceIndex + 1,
+                    total: PRACTICE_POINTS.length,
+                }),
                 { ...textStyle(28, "#111318", "bold"), strokeThickness: 0 },
             )
             .setAlign("center")
@@ -261,17 +261,17 @@ export default class ShooterScene extends Scene {
         if (this.phase !== "playing") return;
         this.secondsLeft -= 1;
         if (this.secondsLeft === Math.floor(ROUND_SECONDS / 2))
-            this.say("halfway", "Halfway there.");
+            this.say("halfway", T.halfway);
         if (this.secondsLeft === FINAL_STRETCH_SECONDS)
-            this.say("boss", "Final stretch!");
+            this.say("boss", T.finalStretch);
         if (this.secondsLeft <= 0) this.endRound();
     }
 
     private endRound() {
         this.phase = "over";
-        this.banner.setText("Pens down!");
+        this.banner.setText(T.pensDown);
         this.backdrop.pulse(GAME_WIDTH / 2, GAME_HEIGHT / 2, HIT_FLASH, 1);
-        this.say("end", "Time's up!");
+        this.say("end", T.timeUp);
         this.time.delayedCall(1400, () =>
             this.args.finish({
                 score: shooterScore(this.points),
@@ -304,7 +304,7 @@ export default class ShooterScene extends Scene {
                 .rectangle(0, 0, 210, 120, TARGET_COLORS.deadline)
                 .setStrokeStyle(4, 0xffffff);
             const label = this.add
-                .text(0, 0, "DEADLINE\n23:59", textStyle(30, "#ffffff", "bold"))
+                .text(0, 0, T.deadlineTarget, textStyle(30, "#ffffff", "bold"))
                 .setOrigin(0.5)
                 .setAlign("center");
             return this.add.container(0, 0, [card, label]);
@@ -317,7 +317,7 @@ export default class ShooterScene extends Scene {
                 .text(
                     0,
                     0,
-                    `☕ +${COFFEE_BONUS_SECONDS}s`,
+                    fill(T.coffeeTarget, { seconds: COFFEE_BONUS_SECONDS }),
                     textStyle(30, "#ffffff", "bold"),
                 )
                 .setOrigin(0.5);
@@ -384,7 +384,7 @@ export default class ShooterScene extends Scene {
             this.streak = 0;
             this.backdrop.pulse(x, y, MISS_FLASH, 0.45);
             floatText(this, x, y, `${gained}`, "#ff8a8a");
-            if ((this.shots - this.hits) % 3 === 1) this.say("miss", "Missed!");
+            if ((this.shots - this.hits) % 3 === 1) this.say("miss", T.miss);
             return;
         }
         this.hits += 1;
@@ -394,7 +394,7 @@ export default class ShooterScene extends Scene {
         floatText(this, target.view.x, target.view.y, `+${gained}`, "#f2c14e");
         this.cameras.main.shake(90, 0.004);
         if (this.streak === 3 || this.streak % 6 === 0)
-            this.say("streak", "What a streak!");
+            this.say("streak", T.streak);
         this.removeTarget(target, true);
     }
 
@@ -414,24 +414,34 @@ export default class ShooterScene extends Scene {
         const { input } = this.args;
         if (input.mode === "mouse" && input.notice) return input.notice;
         if (input.mode === "camera" && input.tracking === "calibrating")
-            return "Hold your finger gun still, pointing at the centre";
+            return T.hints.calibrating;
         if (input.mode === "camera" && input.tracking === "noPose")
-            return "Make a finger gun 👉  thumb up, drop it to shoot";
+            return T.hints.noPose;
         if (input.mode === "camera" && input.tracking === "lost")
-            return "Show your hand to the camera";
-        if (this.phase === "practice")
-            return "Warm-up: shoot the practice paper (Enter skips)";
+            return T.hints.lost;
+        if (this.phase === "practice") return T.hints.practice;
         return "";
     }
 
     private updateHud() {
         const { input } = this.args;
+        const latency =
+            input.latencyMs === null
+                ? T.hud.latencyPending
+                : fill(T.hud.latency, { ms: Math.round(input.latencyMs) });
         const device =
             input.mode === "camera"
-                ? `✋ ${input.latencyMs === null ? "…" : `${Math.round(input.latencyMs)} ms`}${input.recording ? "   ● REC (R to stop)" : ""}`
-                : "🖱 mouse";
+                ? fill(T.hud.camera, { latency }) +
+                  (input.recording ? T.hud.recording : "")
+                : T.hud.mouse;
         this.hud.setText(
-            `Points ${this.points}   Hits ${this.hits}/${this.shots}   ${Math.max(0, this.secondsLeft)} s   ${device}`,
+            fill(T.hud.status, {
+                points: this.points,
+                hits: this.hits,
+                shots: this.shots,
+                seconds: Math.max(0, this.secondsLeft),
+                device,
+            }),
         );
     }
 

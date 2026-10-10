@@ -5,6 +5,7 @@
 
 import MouseInput from "./MouseInput";
 import ServerHandInput from "./ServerHandInput";
+import { fill, TEXT } from "../../src/misc/text";
 import type { Tracking } from "./cvStream";
 import type { AimPoint, InputSource } from "./InputSource";
 
@@ -16,7 +17,7 @@ export default class SwitchableInput implements InputSource {
     constructor(parent: HTMLElement, cooldownMs: number | null) {
         this.parent = parent;
         const camera = new ServerHandInput(parent, cooldownMs, (reason) =>
-            this.useMouse(`Mouse mode: ${reason}`),
+            this.useMouse(fill(TEXT.shooter.camera.mouseMode, { reason })),
         );
         this.current = camera;
         window.addEventListener("keydown", this.handleKey);
@@ -65,7 +66,7 @@ export default class SwitchableInput implements InputSource {
 
     private readonly handleKey = (event: KeyboardEvent) => {
         if (event.key === "m" || event.key === "M")
-            this.useMouse("Mouse mode (operator)");
+            this.useMouse(TEXT.shooter.camera.operatorMouse);
         if (!(this.current instanceof ServerHandInput)) return;
         if (event.key === "r" || event.key === "R")
             this.current.toggleRecording();

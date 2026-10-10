@@ -1,6 +1,7 @@
 import type { Player, Progress, Snapshot } from "./types";
 import { GAMES, profileMajor } from "./config";
 import type { PublicConfig, ShellPlayer } from "./misc/CommonInt";
+import { TEXT } from "./misc/text";
 /** Suggested colors read from a photo; all null when the AI is unavailable */
 export type AvatarSuggestion = {
     hairColor: string | null;
@@ -62,10 +63,7 @@ async function request<T>(
             ...(body === undefined ? {} : { body: JSON.stringify(body) }),
         });
     } catch {
-        throw new ApiError(
-            "Cannot reach the server. Your progress is kept in this browser. Try again when connected.",
-            0,
-        );
+        throw new ApiError(TEXT.errors.offline, 0);
     }
     const data = await response.json().catch(() => null);
     if (!response.ok) {
@@ -73,8 +71,8 @@ async function request<T>(
             typeof data?.detail === "string"
                 ? data.detail
                 : response.status === 422
-                  ? "Please check your details and try again."
-                  : "The server could not finish that request. Please try again.",
+                  ? TEXT.errors.invalidInput
+                  : TEXT.errors.serverFailed,
             response.status,
         );
     }
@@ -137,6 +135,4 @@ export const api = {
         }),
 };
 export const errorMessage = (error: unknown) =>
-    error instanceof Error
-        ? error.message
-        : "Something went wrong. Please try again.";
+    error instanceof Error ? error.message : TEXT.errors.unknown;

@@ -9,6 +9,7 @@
 import type { Scene } from "phaser";
 import { BLACKJACK_YELLOWS, DEALER_STANDS_AT } from "./config";
 import { BELT, CENTER, HEIGHT, WIDTH } from "./layout";
+import { fill, TEXT } from "../src/misc/text";
 
 import backJson from "./assets/back.json";
 import backPng from "./assets/back.png";
@@ -156,7 +157,7 @@ function drawFelt(ctx: CanvasRenderingContext2D) {
     }
     arcText(
         ctx,
-        `BLACKJACK · ${BLACKJACK_YELLOWS} YELLOW BALLS · PAYS 3 TO 2`,
+        fill(TEXT.blackjack.feltRules.payout, { yellows: BLACKJACK_YELLOWS }),
         x,
         y,
         radius - 4,
@@ -165,7 +166,7 @@ function drawFelt(ctx: CanvasRenderingContext2D) {
     );
     arcText(
         ctx,
-        `DEALER DRAWS BELOW ${DEALER_STANDS_AT} BALLS · ANY RED BALL BUSTS`,
+        fill(TEXT.blackjack.feltRules.dealer, { standsAt: DEALER_STANDS_AT }),
         x,
         y,
         radius + 30,

@@ -5,7 +5,10 @@ import type { Player } from "../types";
 import { Avatar } from "./Avatar";
 import { Dialog } from "./Dialogs";
 import { Icon } from "./Icon";
+import { fill, TEXT } from "../misc/text";
 import styles from "./Diploma.module.css";
+
+const T = TEXT.diploma;
 
 interface DiplomaArgs {
     player: Player;
@@ -35,22 +38,18 @@ export default function Diploma(args: DiplomaArgs) {
                   day: "numeric",
               })
             : args.preview
-              ? "Not graduated"
-              : "Date not recorded";
+              ? T.notGraduated
+              : T.dateMissing;
 
     return (
         <Dialog
-            title={
-                args.preview
-                    ? "Your game diploma · Preview"
-                    : "Your game diploma"
-            }
+            title={args.preview ? T.previewDialogTitle : T.dialogTitle}
             onClose={args.onClose}
-            closeLabel="Close diploma"
+            closeLabel={T.close}
             className={styles.dialog}
             wide
         >
-            <article className={styles.certificate} aria-label="Game diploma">
+            <article className={styles.certificate} aria-label={T.label}>
                 <div className={styles.celebration} aria-hidden="true">
                     {Array.from({ length: 8 }, (_, i) => (
                         <i
@@ -60,47 +59,43 @@ export default function Diploma(args: DiplomaArgs) {
                     ))}
                 </div>
                 <div className={styles.certificateBrand}>
-                    <Icon name="cap" size={24} /> ETH AFTER HOURS
+                    <Icon name="cap" size={24} /> {T.brand}
                 </div>
                 {args.preview && (
                     <p className={styles.completedGames}>
-                        Test preview · Your progress and leaderboard are
-                        unchanged.
+                        {TEXT.common.previewNotice}
                     </p>
                 )}
-                <p className={styles.certificateTitle}>
-                    Diploma of determined survival
-                </p>
-                <h2>Congratulations, {args.player.name}!</h2>
+                <p className={styles.certificateTitle}>{T.title}</p>
+                <h2>{fill(T.congratulations, { name: args.player.name })}</h2>
                 <div className={styles.certificateHero}>
                     <div className={styles.avatarFrame}>
                         <Avatar
                             character={args.player.character}
-                            label={`Graduate ${args.player.name}`}
+                            label={fill(TEXT.common.graduateAvatarLabel, {
+                                name: args.player.name,
+                            })}
                         />
                     </div>
                     <div>
-                        <p>
-                            {args.preview
-                                ? "A preview of the diploma awaiting your completed degree."
-                                : "Awarded for an impressive commitment to the degree, the deadlines, and the plot."}
-                        </p>
+                        <p>{args.preview ? T.previewCitation : T.citation}</p>
                         <p className={styles.resultLabel}>
-                            {args.preview ? "Current result" : "Final result"} ·
-                            Total earned ECTS
+                            {args.preview
+                                ? T.previewResultLabel
+                                : T.resultLabel}
                         </p>
                         <strong className={styles.result}>
-                            {args.ects} ECTS
+                            {fill(TEXT.common.ectsAmount, { ects: args.ects })}
                         </strong>
                     </div>
                 </div>
                 <dl className={styles.records}>
                     <div>
-                        <dt>Department</dt>
+                        <dt>{T.records.department}</dt>
                         <dd>{DEPARTMENT}</dd>
                     </div>
                     <div>
-                        <dt>Graduation date</dt>
+                        <dt>{T.records.graduationDate}</dt>
                         <dd>
                             {date && !Number.isNaN(date.getTime()) ? (
                                 <time dateTime={args.graduatedAt!}>
@@ -112,13 +107,13 @@ export default function Diploma(args: DiplomaArgs) {
                         </dd>
                     </div>
                     <div>
-                        <dt>Completed years</dt>
+                        <dt>{T.records.completedYears}</dt>
                         <dd>
                             {years.length} / {YEARS.length}
                         </dd>
                     </div>
                     <div>
-                        <dt>Completed minigames</dt>
+                        <dt>{T.records.completedGames}</dt>
                         <dd>
                             {games.length} / {GAMES.length}
                         </dd>
@@ -129,20 +124,12 @@ export default function Diploma(args: DiplomaArgs) {
                         {games.map((game) => game.title).join(" · ")}
                     </p>
                 )}
-                <p className={styles.congratulations}>
-                    You may now close those 47 browser tabs. You have earned it.
-                </p>
-                <p className={styles.unofficial}>
-                    Unofficial game diploma · No affiliation with or endorsement
-                    by ETH Zürich. This is not an academic qualification.
-                </p>
+                <p className={styles.congratulations}>{T.closing}</p>
+                <p className={styles.unofficial}>{T.disclaimer}</p>
             </article>
             {!args.preview && args.submissionError && (
                 <div className={styles.submission} role="status">
-                    <p>
-                        Your completed run and diploma are saved in this
-                        browser. The leaderboard update needs another try.
-                    </p>
+                    <p>{T.submissionFailed}</p>
                     <p className="error-text">{args.submissionError}</p>
                     {args.onRetry && (
                         <button
@@ -151,18 +138,18 @@ export default function Diploma(args: DiplomaArgs) {
                             onClick={args.onRetry}
                         >
                             {args.submitting
-                                ? "Submitting…"
-                                : "Retry leaderboard update"}
+                                ? TEXT.common.submitting
+                                : TEXT.common.retryLeaderboard}
                         </button>
                     )}
                 </div>
             )}
             <div className={styles.actions}>
                 <button className="button primary" onClick={args.onLeaderboard}>
-                    <Icon name="trophy" /> View leaderboard
+                    <Icon name="trophy" /> {TEXT.common.viewLeaderboard}
                 </button>
                 <button className="button secondary" onClick={args.onClose}>
-                    Back to graduation
+                    {T.backToGraduation}
                 </button>
             </div>
         </Dialog>

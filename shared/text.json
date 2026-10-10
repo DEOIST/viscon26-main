@@ -1,0 +1,612 @@
+{
+    "_about": "Every player-facing string in the game, grouped by screen and minigame. Edit the values, keep the keys. {name}-style placeholders are filled in by the code, \\n is a line break and **text** is bold (admission letter only).",
+    "app": {
+        "brand": "ETH SIMULATOR",
+        "brandTagline": "AFTER HOURS",
+        "skipToContent": "Skip to content",
+        "actionsLabel": "Application actions",
+        "scoreboard": "Scoreboard",
+        "switchToLight": "Switch to light theme",
+        "switchToDark": "Switch to dark theme",
+        "dismissMessage": "Dismiss message",
+        "syncFailed": "Leaderboard sync: {error}",
+        "retrySync": "Retry sync",
+        "gameCompleted": "Minigame completed. ECTS earned. Your library chair misses you already.",
+        "placeholderNoEcts": "Placeholder previews cannot award ECTS.",
+        "footerDisclaimer": "Unofficial student parody. No affiliation with or endorsement by ETH Zürich.",
+        "footerTagline": "Made for the plot. And the credits."
+    },
+    "common": {
+        "back": "Back",
+        "continue": "Continue",
+        "saving": "Saving…",
+        "submitting": "Submitting…",
+        "cancel": "Cancel",
+        "tryAgain": "Try again",
+        "skipAnimation": "Skip animation",
+        "editCharacter": "Edit character",
+        "overview": "Overview",
+        "returnToOverview": "Return to overview",
+        "viewLeaderboard": "View leaderboard",
+        "retryLeaderboard": "Retry leaderboard update",
+        "previewNotice": "Test preview · Your progress and leaderboard are unchanged.",
+        "closeDialog": "Close dialog",
+        "avatarLabel": "Your character",
+        "graduateAvatarLabel": "Graduate {name}",
+        "ectsAmount": "{ects} ECTS"
+    },
+    "errors": {
+        "offline": "Cannot reach the server. Your progress is kept in this browser. Try again when connected.",
+        "invalidInput": "Please check your details and try again.",
+        "serverFailed": "The server could not finish that request. Please try again.",
+        "unknown": "Something went wrong. Please try again."
+    },
+    "welcome": {
+        "eyebrow": "ADMISSIONS OPEN · FREE TIME CLOSED",
+        "title": "ETH Simulator",
+        "lead": "Big ambitions.\nVery little free time.",
+        "description": "Your unofficial university adventure. Create a student, work your way through three years, and earn those very expensive letters.",
+        "start": "Start your degree",
+        "finePrint": "Create your character and play. Coffee not included.",
+        "letter": {
+            "cornerTop": "EST. AFTER HOURS",
+            "office": "OFFICE OF\nBIG BEGINNINGS",
+            "kicker": "YOUR NEXT CHAPTER",
+            "headline": "You’re in.",
+            "body": "Dear future student,\n\nWe saw your potential.\nWe also saw your curiosity,\nand we liked it.",
+            "signature": "See you on campus.",
+            "stamp": "ACCEPTED",
+            "note": "UNOFFICIAL. UNREASONABLY RELATABLE.",
+            "ticketCaption": "One ambitious plan",
+            "cornerBottom": "A STUDENT PARODY, WITH LOVE."
+        },
+        "journeyLabel": "Your journey",
+        "journey": [
+            {
+                "title": "Make it your degree",
+                "description": "Build a character. Pick your look."
+            },
+            {
+                "title": "Take it one year at a time",
+                "description": "{years} years. {ects} credits. Deep breaths."
+            },
+            {
+                "title": "Get the last word",
+                "description": "Graduate. Finally update that bio."
+            }
+        ]
+    },
+    "characterBuilder": {
+        "eyebrow": "01 / YOUR STUDENT RECORD",
+        "title": "Meet your future self.",
+        "subtitle": "Same big plans. A slightly more organized haircut.",
+        "idCard": {
+            "label": "STUDENT ID",
+            "number": "CS / 001",
+            "previewLabel": "Preview of {name}",
+            "previewFallbackName": "your student",
+            "nameFallback": "Future legend",
+            "badge": "Incoming student",
+            "validity": "VALID UNTIL YOU GRADUATE.\nOPTIMISTIC, WE KNOW."
+        },
+        "initializing": "Initializing student profile…",
+        "name": {
+            "label": "Character name",
+            "placeholder": "What should we call you?",
+            "help": "This name appears on your student record and the scoreboard.",
+            "missing": "Your student needs a name. Even the paperwork agrees."
+        },
+        "appearanceLegend": "Character appearance",
+        "hairColor": "Hair color",
+        "skinColor": "Skin color",
+        "eyeColor": "Eye color",
+        "hairLength": {
+            "label": "Hair length",
+            "options": {
+                "short": "Short",
+                "long": "Long"
+            }
+        },
+        "glasses": {
+            "label": "Glasses",
+            "options": {
+                "none": "None",
+                "glasses": "Glasses",
+                "sunglasses": "Sunglasses"
+            }
+        },
+        "gender": {
+            "label": "Gender",
+            "options": {
+                "unspecified": "Prefer not to say",
+                "female": "Female",
+                "male": "Male",
+                "nonbinary": "Non-binary"
+            }
+        },
+        "department": {
+            "label": "Department",
+            "help": "One department. Plenty of big questions."
+        }
+    },
+    "photoAvatar": {
+        "open": "Use a photo to pick my colors",
+        "instructions": "Fit your face in the oval, facing a light. Skin tone is measured on your device. A small copy of the photo is sent to OpenAI to suggest hair color, eye color, hair length, glasses and gender. This app never saves the photo.",
+        "takePhoto": "Take photo",
+        "reading": "Reading your photo…",
+        "cameraDenied": "Camera access was denied. Pick your colors below instead.",
+        "noCamera": "No camera available. Pick your colors below instead.",
+        "failedSkinOnly": "{error} Skin tone was set; pick hair and eyes below.",
+        "aiUnavailable": "Skin tone set from your photo. The AI is unavailable right now, so pick hair and eyes below.",
+        "result": "Suggestions set from your photo. Glasses: {glasses}. Gender preset: {gender}. Change anything below, including gender.",
+        "noGlasses": "none",
+        "genderUnclear": "not set"
+    },
+    "admission": {
+        "eyebrow": "02 / A VERY IMPORTANT LETTER",
+        "emblem": "THE UNOFFICIAL\nADMISSIONS OFFICE",
+        "stamp": "ACCEPTED",
+        "footerYears": "{years} years",
+        "footerCheer": "You’ve got this.",
+        "begin": "Begin Year 1",
+        "letter": {
+            "greeting": "DEAR {name},",
+            "headline": "Welcome to the\nnext three years.",
+            "acceptance": "Congratulations, **{name}**! You have been accepted into **{department}**.",
+            "body": "Your potential is impressive. Your free time has been successfully unenrolled.",
+            "signoff": "Warm regards,\n**The unofficial admissions team**"
+        }
+    },
+    "workspace": {
+        "studentRecord": "Student record",
+        "anonymousStudent": "Anonymous student",
+        "degreeProgress": "Degree progress",
+        "progressLabel": "Degree ECTS earned",
+        "progressSummary": "ECTS earned · {completed} / {total} games",
+        "studentActions": "Student actions",
+        "recordNote": "Progress stays in this browser. Your chosen name appears on the leaderboard.",
+        "sidebarTitle": "ETH After Hours",
+        "sidebarTagline": "Unofficial student parody.",
+        "studentMenu": "Student menu",
+        "closeStudentMenu": "Close student menu",
+        "railEcts": "ECTS",
+        "minigames": "Minigames",
+        "gameNavigation": "Game navigation",
+        "previousGame": "Previous game",
+        "nextGame": "Next game",
+        "gamePosition": "Game {current} of {total}",
+        "yearGames": "{year} games",
+        "activeGame": "Active game",
+        "state": {
+            "locked": "Locked",
+            "completed": "Completed",
+            "available": "Available"
+        },
+        "lockedTitle": "{year} is still locked.",
+        "lockedDescription": "Complete every minigame in Year {previousYear} to unlock this game.",
+        "revisitTitle": "Ready for another visit?",
+        "previewNote": "Preview component · no ECTS awarded",
+        "launch": {
+            "locked": "Locked",
+            "open": "Open game",
+            "launch": "Launch game",
+            "preview": "Open preview"
+        },
+        "ectsGained": "+{ects} ECTS",
+        "readyToGraduate": "All years complete. Your diploma is ready.",
+        "ectsRemaining": "{ects} ECTS to graduation.",
+        "graduate": {
+            "preview": "Preview graduation",
+            "view": "View graduation",
+            "graduate": "Graduate"
+        }
+    },
+    "minigameHost": {
+        "eyebrow": "MINIGAME",
+        "placeholderEyebrow": "PLACEHOLDER PREVIEW",
+        "savingCompletion": "Saving completion…",
+        "retrySaving": "Retry saving",
+        "failedTitle": "This minigame could not open.",
+        "failedHelp": "Your saved progress is safe. Return to the overview and try again.",
+        "returnToGames": "Return to games",
+        "opening": "Opening minigame…",
+        "playArea": "Minigame play area",
+        "placeholder": {
+            "eyebrow": "A LITTLE ROOM FOR WHAT’S NEXT",
+            "title": "Minigame component will be connected here",
+            "body": "This is a preview slot. There’s nothing to play yet,\nand no ECTS are awarded here."
+        }
+    },
+    "scoreboard": {
+        "title": "The student scoreboard",
+        "intro": "Big effort. Small bragging rights. Anonymous player runs.",
+        "loading": "Checking the student records…",
+        "emptyTitle": "A very exclusive club of zero.",
+        "emptyBody": "No student records yet. Create your character and play to get listed.",
+        "caption": "Top 100 students, ordered by ECTS, then run creation order",
+        "columns": {
+            "rank": "Rank",
+            "student": "Student / major",
+            "ects": "ECTS",
+            "status": "Status"
+        },
+        "status": {
+            "graduated": "Graduated",
+            "studying": "Studying"
+        },
+        "footnote": "ECTS come from completed minigames. Placeholder previews award none. Ties follow run creation order. Names are chosen by players; they do not verify identity."
+    },
+    "graduation": {
+        "eyebrow": "DEGREE COMPLETE",
+        "previewEyebrow": "GRADUATION PREVIEW",
+        "title": "You did it, {name}.",
+        "previewTitle": "Your graduation preview, {name}.",
+        "lead": "Officially done. Unofficially legendary.",
+        "previewLead": "Take a peek at the finish line.",
+        "ectsEarned": "{ects} ECTS earned",
+        "copy": "Your degree and progress are staying right here. Your next deadline can wait a moment.",
+        "submissionFailed": "Your completed run is saved in this browser. Your diploma is ready; the leaderboard update needs another try.",
+        "viewDiploma": "View diploma"
+    },
+    "diploma": {
+        "dialogTitle": "Your game diploma",
+        "previewDialogTitle": "Your game diploma · Preview",
+        "close": "Close diploma",
+        "label": "Game diploma",
+        "brand": "ETH AFTER HOURS",
+        "title": "Diploma of determined survival",
+        "congratulations": "Congratulations, {name}!",
+        "citation": "Awarded for an impressive commitment to the degree, the deadlines, and the plot.",
+        "previewCitation": "A preview of the diploma awaiting your completed degree.",
+        "resultLabel": "Final result · Total earned ECTS",
+        "previewResultLabel": "Current result · Total earned ECTS",
+        "records": {
+            "department": "Department",
+            "graduationDate": "Graduation date",
+            "completedYears": "Completed years",
+            "completedGames": "Completed minigames"
+        },
+        "notGraduated": "Not graduated",
+        "dateMissing": "Date not recorded",
+        "closing": "You may now close those 47 browser tabs. You have earned it.",
+        "disclaimer": "Unofficial game diploma · No affiliation with or endorsement by ETH Zürich. This is not an academic qualification.",
+        "submissionFailed": "Your completed run and diploma are saved in this browser. The leaderboard update needs another try.",
+        "backToGraduation": "Back to graduation"
+    },
+    "shooter": {
+        "intro": "Basisprüfung time, {name}!",
+        "practiceTarget": "Practice\n{current} / {total}",
+        "halfway": "Halfway there.",
+        "finalStretch": "Final stretch!",
+        "pensDown": "Pens down!",
+        "timeUp": "Time's up!",
+        "miss": "Missed!",
+        "streak": "What a streak!",
+        "questions": ["Prove it.", "Is P = NP?", "Integrate this.", "Why?"],
+        "deadlineTarget": "DEADLINE\n23:59",
+        "coffeeTarget": "☕ +{seconds}s",
+        "hints": {
+            "calibrating": "Hold your hand still and point at the centre",
+            "noPose": "Point your index finger 👉  thumb up, lower your thumb to click",
+            "lost": "Show your hand to the camera",
+            "practice": "Warm-up: hit the practice paper (Enter skips)"
+        },
+        "hud": {
+            "status": "Points {points}   Hits {hits}/{shots}   {seconds} s   {device}",
+            "camera": "✋ {latency}",
+            "latencyPending": "…",
+            "latency": "{ms} ms",
+            "recording": "   ● REC (R to stop)",
+            "mouse": "🖱 mouse"
+        },
+        "camera": {
+            "mouseMode": "Mouse mode: {reason}",
+            "operatorMouse": "Mouse mode (operator)",
+            "insecureOrigin": "the camera needs https:// or localhost",
+            "disconnected": "the camera was disconnected",
+            "engineBusy": "the finger-detection engine is busy",
+            "engineUnavailable": "the finger-detection engine is unavailable",
+            "idle": "the camera stopped sending frames",
+            "connectionLost": "the connection to the finger-detection engine was lost",
+            "permissionDenied": "camera permission was denied",
+            "notFound": "no camera was found",
+            "inUse": "the camera is in use by another app"
+        }
+    },
+    "blackjack": {
+        "loading": "SHUFFLING THE DECK…",
+        "seats": {
+            "dealer": "DEALER",
+            "player": "YOU"
+        },
+        "chips": "CHIPS {chips}",
+        "buttons": {
+            "deal": "DEAL",
+            "hit": "HIT",
+            "stand": "STAND",
+            "double": "DOUBLE",
+            "nextHand": "NEXT HAND",
+            "continue": "CONTINUE"
+        },
+        "bet": "BET {amount}",
+        "placeBet": "PLACE YOUR BET · MIN {min}",
+        "hand": "HAND {hand} / {hands}",
+        "balls": {
+            "one": "{count} BEAD",
+            "other": "{count} BEADS"
+        },
+        "callouts": {
+            "double": "DOUBLE!",
+            "red": "RED!",
+            "threeYellow": "3 YELLOW!"
+        },
+        "outcomes": {
+            "bust": {
+                "title": "BUST!",
+                "detail": "A red bead. You lose {amount}"
+            },
+            "blackjack": {
+                "title": "BLACKJACK!",
+                "detail": "Three yellow beads pay 3:2  +{amount}"
+            },
+            "dealer-bust": {
+                "title": "DEALER BUSTS!",
+                "detail": "A red bead on the dealer's board  +{amount}"
+            },
+            "dealer-blackjack": {
+                "title": "DEALER BLACKJACK",
+                "detail": "Three yellow beads for the house  −{amount}"
+            },
+            "more": {
+                "title": "YOU WIN!",
+                "detail": "{mine} beads beat {theirs}  +{amount}"
+            },
+            "fewer": {
+                "title": "DEALER WINS",
+                "detail": "{mine} beads against {theirs}  −{amount}"
+            },
+            "equal": {
+                "title": "PUSH",
+                "detail": "{mine} beads each. Your bet comes back"
+            }
+        },
+        "gameOver": {
+            "title": "GAME OVER",
+            "chips": "You finished with {chips} chips",
+            "gain": "+{diff} on the night",
+            "loss": "{diff} on the night",
+            "score": "SCORE {score} / 100"
+        },
+        "feltRules": {
+            "payout": "BLACKJACK · {yellows} YELLOW BEADS · PAYS 3 TO 2",
+            "dealer": "DEALER DRAWS BELOW {standsAt} BEADS · ANY RED BEAD BUSTS"
+        },
+        "announcements": {
+            "betting": "Hand {hand} of {hands}. Place your bet: {bet} on the table, {chips} chips in total.",
+            "player": "Your turn: {mine} beads against the dealer's {theirs}. Hit, stand or double.",
+            "settled": "{outcome} You have {chips} chips. Next hand when you're ready.",
+            "gameOver": "{outcome} Game over. You finished with {chips} chips."
+        },
+        "dealerLines": {
+            "intro": [
+                "Welcome to casino night, {name}. Watch out for the red beads.",
+                "Place your bet. The curve is watching."
+            ],
+            "deal": ["Cards out, beads rolling.", "Let's see where they land."],
+            "playerBlackjack": [
+                "Three yellow! Blackjack pays 3 to 2.",
+                "Right on the curve, three times. Impressive."
+            ],
+            "playerBust": [
+                "A red bead. That's a bust.",
+                "Over the curve. The house thanks you."
+            ],
+            "dealerBust": [
+                "Red on my board. You win this one.",
+                "I went over the curve. Enjoy it."
+            ],
+            "win": ["More beads than me. Well played.", "You win this hand."],
+            "lose": [
+                "The house takes this one.",
+                "My board wins. Better luck next hand."
+            ],
+            "push": [
+                "Same count. Your bet comes back.",
+                "A tie. Nobody moves."
+            ],
+            "broke": [
+                "Out of chips, {name}. Good thing they were only play chips.",
+                "No chips left. Luckily, no real money was involved."
+            ],
+            "cashOut": [
+                "Leaving ahead of the house. That is rare.",
+                "Ten hands and still in profit. Respect."
+            ]
+        }
+    },
+    "thesisDefense": {
+        "defaultName": "Candidate",
+        "lanes": ["Theory", "Proofs", "Experiments", "Critique"],
+        "professors": [
+            {
+                "name": "PROF. LEMMA",
+                "field": "THEORY"
+            },
+            {
+                "name": "PROF. GRADIENT",
+                "field": "CHAIR · ML"
+            },
+            {
+                "name": "PROF. BOOTSTRAP",
+                "field": "EXPERIMENTS"
+            }
+        ],
+        "chalkboard": [
+            "∀ε>0 ∃δ>0",
+            "P ≟ NP",
+            "∇·E = ρ/ε₀",
+            "p = 0.051 :(",
+            "O(n log n)",
+            "λx. x x",
+            "E[X] = Σ x·p(x)",
+            "git push --force",
+            "∂L/∂θ = 0 ?",
+            "det(A) ≠ 0 ⇒ hope",
+            "sudo make thesis",
+            "lim coffee(n) = ∞"
+        ],
+        "titleCard": {
+            "eyebrow": "YEAR 3 · THE FINAL BOSS",
+            "heading": "THESIS DEFENSE",
+            "instructions": "Questions fly at you. Press the lane's key as each one hits the line.",
+            "goldHint": "★ Golden questions fill EUREKA. Then SPACE doubles your points.",
+            "personalBest": "PERSONAL BEST  {score}  ·  {accuracy}%  ·  {combo} COMBO",
+            "noPersonalBest": "NO PERSONAL BEST YET. MAKE HISTORY.",
+            "start": "PRESS SPACE TO BEGIN THE DEFENSE"
+        },
+        "countdownGo": "DEFEND!",
+        "pause": {
+            "title": "COFFEE BREAK",
+            "subtitle": "The committee waits. Impatiently.",
+            "keys": "SPACE · CONTINUE      R · RESTART"
+        },
+        "hud": {
+            "combo": "COMBO",
+            "confidence": "THESIS CONFIDENCE",
+            "eureka": "EUREKA",
+            "progress": "DEFENSE PROGRESS",
+            "pressSpace": "PRESS SPACE!",
+            "accuracy": "ACCURACY {accuracy}%",
+            "eurekaActive": "EUREKA! ×2"
+        },
+        "judgments": {
+            "perfect": "PERFECT",
+            "great": "GREAT",
+            "good": "GOOD",
+            "miss": "MISS"
+        },
+        "timing": {
+            "early": "EARLY",
+            "late": "LATE"
+        },
+        "sections": {
+            "opening": {
+                "title": "OPENING QUESTIONS",
+                "subtitle": "Prof. Lemma clears her throat."
+            },
+            "cross": {
+                "title": "CROSS-EXAMINATION",
+                "subtitle": "Prof. Bootstrap wants error bars."
+            },
+            "meltdown": {
+                "title": "LIGHTNING ROUND",
+                "subtitle": "Prof. Gradient has diverged."
+            },
+            "final": {
+                "title": "FINAL DEFENSE",
+                "subtitle": "The whole committee leans forward."
+            }
+        },
+        "milestones": {
+            "combo10": "PROMISING RESEARCH",
+            "combo25": "PEER REVIEW SURVIVED",
+            "combo50": "ACADEMIC POWERHOUSE",
+            "combo75": "CITED BY EVERYONE",
+            "combo100": "TENURE TRACK UNLOCKED",
+            "combo150": "FIELDS MEDAL SPEEDRUN",
+            "perfectStreak": "NOBEL PRIZE INCOMING"
+        },
+        "verdicts": {
+            "summaCumLaude": {
+                "title": "SUMMA CUM LAUDE",
+                "line": "The committee requests a selfie. Prof. Lemma is crying."
+            },
+            "defended": {
+                "title": "THESIS DEFENDED",
+                "line": "\"Solid work.\" The highest praise this committee gives."
+            },
+            "conditionalPass": {
+                "title": "CONDITIONAL PASS",
+                "line": "Pass, if you fix the typo on page 3. And chapter 4."
+            },
+            "majorRevisions": {
+                "title": "MAJOR REVISIONS REQUIRED",
+                "line": "Reviewer 2 has entered the chat."
+            },
+            "destroyed": {
+                "title": "BACK TO THE DRAWING BOARD",
+                "line": "Every great thesis has a second draft. Try again!"
+            }
+        },
+        "results": {
+            "heading": "THE COMMITTEE HAS REACHED A VERDICT",
+            "grade": "SWISS GRADE  {grade}",
+            "score": "SCORE      {score}",
+            "accuracy": "ACCURACY   {accuracy}",
+            "maxCombo": "MAX COMBO  {combo}",
+            "counts": "PERFECT {perfect}   GREAT {great}   GOOD {good}   MISS {miss}",
+            "newBest": "★ NEW PERSONAL BEST ★",
+            "best": "PERSONAL BEST  {score}",
+            "retry": "R · DEFEND AGAIN",
+            "submit": "ENTER · SUBMIT THESIS",
+            "submitAnyway": "ENTER · SUBMIT ANYWAY",
+            "submitted": "THESIS SUBMITTED ✓"
+        },
+        "announcements": {
+            "intro": "Thesis defense. Press D, F, J and K as the questions reach the line. Press Space to begin.",
+            "results": "{verdict}. Grade {grade}. Score {score}. Press R to defend again or Enter to submit your thesis.",
+            "eurekaReady": "Eureka is ready. Press Space."
+        },
+        "committeeLines": {
+            "intro": [
+                "{name}, you may begin.",
+                "Let's start with something easy.",
+                "Please, define 'thesis'."
+            ],
+            "miss": [
+                "Is that your final answer?",
+                "Interesting. Wrong, but interesting.",
+                "Did you read your own thesis?",
+                "Page 42 disagrees with you.",
+                "My PhD students would weep.",
+                "Hmm. Citation needed.",
+                "That's not even wrong."
+            ],
+            "stray": [
+                "Nobody asked that.",
+                "Answering questions I didn't ask?",
+                "Focus, please."
+            ],
+            "streak": [
+                "Who supervised this?!",
+                "Hm. Not bad.",
+                "I may have to re-read my notes.",
+                "Fine. FINE.",
+                "Is this... novel?"
+            ],
+            "meltdown": [
+                "WHY IS YOUR p-VALUE 0.051?!",
+                "DEFINE 'CONVERGES'!",
+                "THE LEARNING RATE! THE LEARNING RATE!",
+                "HAVE YOU TRIED A LARGER n?!"
+            ],
+            "final": [
+                "One last question...",
+                "Convince all three of us.",
+                "Defend. Your. Thesis."
+            ],
+            "eureka": [
+                "Wait, that actually makes sense.",
+                "Eureka?! In MY defense?"
+            ],
+            "failed": [
+                "We'll need to talk to your supervisor.",
+                "Let's schedule a follow-up, shall we?"
+            ],
+            "passed": [
+                "Congratulations, Dr. {name}.",
+                "The committee will now deliberate. Over coffee."
+            ]
+        }
+    }
+}
