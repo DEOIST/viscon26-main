@@ -59,7 +59,8 @@ class Character(CamelModel):
     name: CharacterName
     pronouns: Pronouns
     department: DepartmentId
-    archetype: ArchetypeId
+    # Compatibility with older runs; the current character builder never sets this field.
+    archetype: ArchetypeId | None = None
     # Preset portrait id such as "a3"; the frontend owns the list of portraits.
     avatar: str = Field(pattern=r"^a[1-8]$")
     hair_color: str = "#70432E"
@@ -137,3 +138,67 @@ class DialoguePack(CamelModel):
 class Epilogue(CamelModel):
     text: str
     source: AiSource
+
+
+# --- account shell ---
+
+
+class Credentials(CamelModel):
+    model_config = ConfigDict(extra="forbid")
+    identifier: str = Field(min_length=3, max_length=48, pattern=r"^[a-zA-Z0-9_.-]+$")
+    password: str = Field(min_length=10, max_length=128)
+
+
+class ProfileInput(CamelModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    name: str = Field(min_length=1, max_length=24)
+    hair_color: str
+    skin_color: str
+    eye_color: str
+    major: Literal["Computer Science", "D-INFK", "infk"] = "Computer Science"
+    onboarding_stage: Literal["acceptance", "main"]
+
+    @field_validator("hair_color", "skin_color", "eye_color")
+    @classmethod
+    def preset_color(cls, value: str, info: ValidationInfo) -> str:
+        group = {"hair_color": "hair", "skin_color": "skin", "eye_color": "eyes"}[info.field_name]
+        if value not in {color["value"] for color in CONFIG["colors"][group]}:
+            raise ValueError("Choose a preset color")
+        return value
+
+
+class ShellCharacter(CamelModel):
+    hair_color: str
+    skin_color: str
+    eye_color: str
+
+
+class ShellProfile(CamelModel):
+    name: str
+    character: ShellCharacter
+    major: str
+    onboarding_stage: Literal["acceptance", "main"]
+
+
+class ShellProgress(CamelModel):
+    completed_game_ids: list[str] = Field(default_factory=list)
+    graduated: bool = False
+    ects: int = 0
+
+
+class AccountIdentity(CamelModel):
+    id: int
+
+
+class ShellSession(CamelModel):
+    user: AccountIdentity | None
+    csrf_token: str
+    profile: ShellProfile | None
+    progress: ShellProgress
+
+
+class ScoreboardEntry(CamelModel):
+    name: str
+    major: str
+    ects: int
+    graduated: bool

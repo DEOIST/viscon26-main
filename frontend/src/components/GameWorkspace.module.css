@@ -1,0 +1,411 @@
+.workspace {
+    display: grid;
+    grid-template-columns: 208px minmax(0, 1fr);
+    gap: 16px;
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
+    flex: 1;
+}
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px 16px;
+    min-height: 0;
+    overflow: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+.studentIdentity {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 7px;
+}
+.portrait {
+    width: 90px;
+    height: 98px;
+    display: flex;
+    align-items: end;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 38px 38px 12px 12px;
+    overflow: hidden;
+}
+.portrait svg {
+    width: 100%;
+    height: 100%;
+}
+.studentIdentity h1 {
+    font-size: 20px;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+}
+.studentIdentity small,
+.progress small {
+    font-size: 10px;
+    color: var(--text-muted);
+}
+.department {
+    font-size: 12px;
+    color: var(--secondary);
+    letter-spacing: 0.06em;
+}
+.progress {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+.progress > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+    font-size: 10px;
+}
+.progress strong {
+    color: var(--reward);
+    white-space: nowrap;
+}
+.studentActions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.recordNote {
+    font-size: 10px;
+    line-height: 1.6;
+}
+.sidebarBottom {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    color: var(--text-muted);
+    font-size: 10px;
+}
+.sidebarBottom small {
+    font-size: 9px;
+}
+.rail {
+    display: none;
+}
+.drawer {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    width: min(280px, calc(100% - 24px));
+    max-height: calc(100dvh - 24px);
+    overflow: auto;
+}
+.drawer[open] {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.drawer::backdrop {
+    background: #060b16c9;
+}
+.closeDrawer {
+    align-self: end;
+    margin: -12px -12px -22px 0;
+    z-index: 1;
+}
+.gameArea {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+    min-width: 0;
+}
+.navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.years {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    min-width: 0;
+    padding: 3px;
+}
+.years button {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 11px;
+    white-space: nowrap;
+}
+.years button.activeYear {
+    color: var(--primary);
+    background: var(--surface);
+    border-color: var(--border);
+}
+.arrows {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+.arrows > span {
+    color: var(--text-muted);
+    font-size: 10px;
+    white-space: nowrap;
+    min-width: 28px;
+    text-align: center;
+}
+.gameSelectors {
+    display: flex;
+    gap: 5px;
+    overflow-x: auto;
+    padding: 3px;
+    min-height: 0;
+    flex-shrink: 0;
+}
+.gameSelectors button {
+    background: transparent;
+    color: var(--text-muted);
+    border: 0;
+    border-bottom: 2px solid transparent;
+    padding: 3px 8px 6px;
+    font-size: 10px;
+    white-space: nowrap;
+}
+.gameSelectors button.activeGame {
+    color: var(--text);
+    border-color: var(--secondary);
+}
+.panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+.gameHeading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+.gameHeading > div:first-child {
+    min-width: 0;
+}
+.gameHeading h2 {
+    font-size: 17px;
+    overflow-wrap: anywhere;
+}
+.gameHeading > div > span {
+    font-size: 9px;
+    color: var(--text-muted);
+}
+.gameMeta {
+    display: flex;
+    align-items: center;
+    justify-content: end;
+    gap: 12px;
+    flex-shrink: 0;
+}
+.gameMeta .reward {
+    font-size: 11px;
+    color: var(--reward);
+    white-space: nowrap;
+}
+.gameState,
+.completed {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    white-space: nowrap;
+    color: var(--text-muted);
+}
+.gameMeta .completed {
+    color: var(--success);
+}
+.gameContent {
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+}
+.launchPanel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 13px;
+    padding: 24px;
+    text-align: center;
+}
+.launchIcon {
+    color: var(--primary);
+}
+.launchPanel h3 {
+    font-size: clamp(20px, 2.5vw, 30px);
+}
+.launchPanel p {
+    font-size: 13px;
+    max-width: 380px;
+}
+.launchPanel small {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+.launchPanel button {
+    margin-top: 8px;
+}
+.degreeActions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+.degreeActions p {
+    font-size: 10px;
+}
+
+@media (max-width: 760px) {
+    .workspace {
+        grid-template-columns: 42px minmax(0, 1fr);
+        gap: 8px;
+    }
+    .sidebar {
+        display: none;
+    }
+    .rail {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 5px 0;
+    }
+    .rail > span {
+        color: var(--reward);
+        font-size: 14px;
+        text-align: center;
+    }
+    .rail small {
+        display: block;
+        font-size: 7px;
+        color: var(--text-muted);
+    }
+    .years button {
+        font-size: 10px;
+        padding: 6px;
+        gap: 3px;
+    }
+    .years button svg {
+        display: none;
+    }
+    .arrows :global(.icon-button) {
+        width: 29px;
+        height: 32px;
+    }
+    .gameHeading {
+        padding: 10px;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .gameHeading h2 {
+        font-size: 15px;
+    }
+    .gameMeta {
+        gap: 9px;
+        flex-wrap: wrap;
+    }
+    .gameMeta :global(.button) {
+        padding: 5px 8px;
+        min-height: 30px;
+        font-size: 10px;
+    }
+    .launchPanel {
+        padding: 18px 12px;
+        gap: 10px;
+    }
+    .launchPanel p {
+        font-size: 11px;
+    }
+    .degreeActions p {
+        font-size: 9px;
+    }
+    .degreeActions :global(.button) {
+        padding: 8px 9px;
+        font-size: 10px;
+        min-height: 34px;
+    }
+}
+@media (max-height: 550px) {
+    .sidebar {
+        padding: 12px;
+        gap: 12px;
+    }
+    .studentIdentity {
+        gap: 3px;
+    }
+    .portrait {
+        width: 46px;
+        height: 50px;
+        border-radius: 16px 16px 7px 7px;
+    }
+    .studentIdentity h1 {
+        font-size: 16px;
+    }
+    .recordNote,
+    .sidebarBottom {
+        display: none;
+    }
+    .gameArea {
+        gap: 4px;
+    }
+    .gameHeading {
+        padding-top: 6px;
+        padding-bottom: 6px;
+    }
+    .gameHeading > div:first-child > span {
+        display: none;
+    }
+    .launchPanel {
+        gap: 6px;
+        padding: 10px;
+    }
+    .launchIcon {
+        display: none;
+    }
+    .launchPanel h3 {
+        font-size: 19px;
+    }
+    .launchPanel button {
+        margin-top: 0;
+        padding: 8px 12px;
+        min-height: 34px;
+    }
+    .gameSelectors {
+        display: none;
+    }
+}

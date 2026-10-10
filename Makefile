@@ -1,18 +1,18 @@
 # Thin wrappers around the real commands — see CLAUDE.md → "Commands" for the raw versions.
 PY := backend/.venv/bin
-URL ?= http://localhost:8000
+URL ?= http://localhost:5173
 .DEFAULT_GOAL := help
 
 .PHONY: install dev dev-frontend dev-backend build test check format prod prod-logs prod-down smoke redis ai-check help
 
 help:
 	@echo "make install     npm install + backend venv"
-	@echo "make dev         frontend watcher + backend autoreload → http://localhost:8000"
+	@echo "make dev         Vite + backend autoreload at http://localhost:5173"
 	@echo "make check       typecheck, prettier, ruff, pytest (run before every push)"
 	@echo "make format      prettier --write + ruff fix/format"
 	@echo "make test        backend tests only"
 	@echo "make build       minified production frontend build"
-	@echo "make prod        production stack in Docker → http://localhost:8000"
+	@echo "make prod        local Docker stack at http://localhost:5173"
 	@echo "make prod-logs   follow production container logs"
 	@echo "make prod-down   stop the production stack"
 	@echo "make smoke       end-to-end check of a running app (URL=... to target another)"
@@ -20,29 +20,29 @@ help:
 	@echo "make ai-check    check every OpenAI key, free (LIVE=1: one tiny call per key)"
 
 install:
-	cd frontend && npm install
+	cd frontend && npm ci
 	python3 -m venv backend/.venv
 	$(PY)/pip install -r backend/requirements-dev.txt
 
-# Frontend watcher + backend autoreload in one terminal. Ctrl-C stops both.
+# Vite + backend autoreload at http://localhost:5173. Ctrl-C stops both.
 dev:
 	$(MAKE) -j2 dev-frontend dev-backend
 
 dev-frontend:
-	cd frontend && node build.js -w
+	cd frontend && npm run dev
 
 dev-backend:
 	cd backend && .venv/bin/uvicorn app.main:app --reload --port 8000
 
 build:
-	cd frontend && node build.js --prod
+	cd frontend && npm run build
 
 test:
 	cd backend && .venv/bin/pytest -q
 
 # Run before every push.
 check:
-	cd frontend && npx tsc --noEmit && npx prettier --check .
+	cd frontend && npm run check && npm test
 	cd backend && .venv/bin/ruff check . && .venv/bin/ruff format --check . && .venv/bin/pytest -q
 
 format:

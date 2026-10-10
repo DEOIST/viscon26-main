@@ -46,6 +46,10 @@ def mount_frontend(app: FastAPI) -> None:
     def index_page() -> FileResponse:
         return _page_response("index")
 
+    @app.get("/favicon.svg", include_in_schema=False)
+    def favicon() -> FileResponse:
+        return FileResponse(settings.frontend_dist / "favicon.svg", headers=NO_CACHE)
+
     @app.get("/{page_name}", include_in_schema=False)
     def named_page(page_name: str) -> FileResponse:
         return _page_response(page_name)
