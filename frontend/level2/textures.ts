@@ -1,44 +1,52 @@
-// Sprite sheets from ./assets (atlas JSON next to each PNG), plus the few textures generated
+// Sprite sheets from ./assets (atlas JSON next to each SVG), plus the few textures generated
 // here as stand-ins until real art exists: felt, neutral falling ball, avatars and particle
 // shapes. The normal curve is drawn in code (BoardView) so it can follow the tuned rules in
 // board.ts.
 //
-// Each PNG import is a hashed URL and each JSON import is the parsed atlas, which Phaser's
+// Each SVG import is a hashed URL and each JSON import is the parsed atlas, which Phaser's
 // loader accepts in place of a URL. That works unchanged in both bundlers (esbuild and Vite).
+// The browser rasterises a sheet at the pixel size in its width/height attributes, which is
+// the size its atlas frames are measured in, so those attributes must match the JSON.
 
 import type { Scene } from "phaser";
 import { BLACKJACK_YELLOWS, DEALER_STANDS_AT } from "./config";
 import { BELT, CENTER, HEIGHT, WIDTH } from "./layout";
+import { fill, TEXT } from "../src/misc/text";
 
 import backJson from "./assets/back.json";
-import backPng from "./assets/back.png";
+import backSvg from "./assets/back.svg";
 import ballsJson from "./assets/balls.json";
-import ballsPng from "./assets/balls.png";
+import ballsSvg from "./assets/balls.svg";
 import chipsJson from "./assets/chips.json";
-import chipsPng from "./assets/chips.png";
+import chipsSvg from "./assets/chips.svg";
 import framesJson from "./assets/frames.json";
-import framesPng from "./assets/frames.png";
+import framesSvg from "./assets/frames.svg";
 import boardsJson from "./assets/gaussian.json";
-import boardsPng from "./assets/gaussian.png";
+import boardsSvg from "./assets/gaussian.svg";
 import numbersJson from "./assets/numbers.json";
-import numbersPng from "./assets/numbers.png";
+import numbersSvg from "./assets/numbers.svg";
 import peopleJson from "./assets/people.json";
-import peoplePng from "./assets/people.png";
+import peopleSvg from "./assets/people.svg";
 import facesJson from "./assets/symbol_faces.json";
-import facesPng from "./assets/symbol_faces.png";
+import facesSvg from "./assets/symbol_faces.svg";
 import symbolsJson from "./assets/symbols.json";
-import symbolsPng from "./assets/symbols.png";
+import symbolsSvg from "./assets/symbols.svg";
+import betShot from "./assets/tutorial/bet.webp";
+import curveShot from "./assets/tutorial/curve.webp";
+import dropShot from "./assets/tutorial/drop.webp";
+import turnShot from "./assets/tutorial/turn.webp";
+import winShot from "./assets/tutorial/win.webp";
 
 const ATLASES: [string, string, object][] = [
-    ["balls", ballsPng, ballsJson],
-    ["back", backPng, backJson],
-    ["chips", chipsPng, chipsJson],
-    ["faces", facesPng, facesJson],
-    ["frames", framesPng, framesJson],
-    ["boards", boardsPng, boardsJson],
-    ["numbers", numbersPng, numbersJson],
-    ["people", peoplePng, peopleJson],
-    ["symbols", symbolsPng, symbolsJson],
+    ["balls", ballsSvg, ballsJson],
+    ["back", backSvg, backJson],
+    ["chips", chipsSvg, chipsJson],
+    ["faces", facesSvg, facesJson],
+    ["frames", framesSvg, framesJson],
+    ["boards", boardsSvg, boardsJson],
+    ["numbers", numbersSvg, numbersJson],
+    ["people", peopleSvg, peopleJson],
+    ["symbols", symbolsSvg, symbolsJson],
 ];
 
 export const BALL_FRAMES = {
@@ -54,8 +62,22 @@ export const COLORS = {
     gold: 0xf5c451,
 };
 
+// The screenshots in the how-to-play window (Tutorial.ts), loaded as `tutorial-<name>`. They
+// are real captures of this table, taken with the game rendered at twice its resolution and
+// saved at 1.5 times the size they have on the table. Retake them when the table's look changes.
+const TUTORIAL_SHOTS = {
+    bet: betShot,
+    drop: dropShot,
+    curve: curveShot,
+    turn: turnShot,
+    win: winShot,
+};
+export type TutorialShot = keyof typeof TUTORIAL_SHOTS;
+
 export function loadAssets(scene: Scene) {
-    for (const [key, png, json] of ATLASES) scene.load.atlas(key, png, json);
+    for (const [key, svg, json] of ATLASES) scene.load.atlas(key, svg, json);
+    for (const [name, url] of Object.entries(TUTORIAL_SHOTS))
+        scene.load.image(`tutorial-${name}`, url);
 }
 
 function canvas(
@@ -156,7 +178,7 @@ function drawFelt(ctx: CanvasRenderingContext2D) {
     }
     arcText(
         ctx,
-        `BLACKJACK · ${BLACKJACK_YELLOWS} YELLOW BALLS · PAYS 3 TO 2`,
+        fill(TEXT.blackjack.feltRules.payout, { yellows: BLACKJACK_YELLOWS }),
         x,
         y,
         radius - 4,
@@ -165,7 +187,7 @@ function drawFelt(ctx: CanvasRenderingContext2D) {
     );
     arcText(
         ctx,
-        `DEALER DRAWS BELOW ${DEALER_STANDS_AT} BALLS · ANY RED BALL BUSTS`,
+        fill(TEXT.blackjack.feltRules.dealer, { standsAt: DEALER_STANDS_AT }),
         x,
         y,
         radius + 30,

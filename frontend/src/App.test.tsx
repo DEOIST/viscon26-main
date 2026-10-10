@@ -47,16 +47,20 @@ vi.mock("./components/GameWorkspace", () => ({
         eligible: boolean;
         graduationPreview: boolean;
         onGraduate: () => void;
+        onEditCharacter: () => void;
     }) {
         return (
-            <button
-                disabled={!args.eligible && !args.graduationPreview}
-                onClick={args.onGraduate}
-            >
-                {!args.eligible && args.graduationPreview
-                    ? "Preview graduation"
-                    : "Graduate"}
-            </button>
+            <>
+                <button
+                    disabled={!args.eligible && !args.graduationPreview}
+                    onClick={args.onGraduate}
+                >
+                    {!args.eligible && args.graduationPreview
+                        ? "Preview graduation"
+                        : "Graduate"}
+                </button>
+                <button onClick={args.onEditCharacter}>Edit character</button>
+            </>
         );
     },
 }));
@@ -128,6 +132,31 @@ function renderApp() {
         </Provider>,
     );
 }
+
+it("edits the character during the degree and returns to the workspace without the admission", async () => {
+    store.dispatch(
+        replacePlayer({
+            ...defaultPlayer,
+            name: "Ada",
+            onboardingStage: "main",
+        }),
+    );
+    vi.mocked(api.synchronize).mockResolvedValue(emptyProgress);
+    renderApp();
+    fireEvent.click(screen.getByRole("button", { name: "Edit character" }));
+    const name = screen.getByLabelText("Character name");
+    fireEvent.change(name, { target: { value: "Grace" } });
+    fireEvent.submit(name.closest("form")!);
+    await waitFor(() =>
+        expect(screen.getByRole("button", { name: "Graduate" })).toBeTruthy(),
+    );
+    expect(store.getState().player).toMatchObject({
+        name: "Grace",
+        onboardingStage: "main",
+    });
+    expect(screen.queryByText("Initializing student profile…")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Begin Year 1" })).toBeNull();
+});
 
 it("restores a named character builder without sending an unfinished profile to the server", () => {
     store.dispatch(

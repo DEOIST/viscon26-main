@@ -112,6 +112,40 @@ it("shows saved acceptance immediately without replaying or saving", () => {
     expect(onSave).not.toHaveBeenCalled();
 });
 
+it("saves an edit after the first build straight back to the letter without replaying", async () => {
+    const { container, onSave } = renderFlow(async () => true, "acceptance");
+    fireEvent.click(screen.getByRole("button", { name: "Edit character" }));
+    fireEvent.change(screen.getByLabelText("Character name"), {
+        target: { value: "Grace" },
+    });
+    await act(async () => {
+        fireEvent.submit(container.querySelector("form")!);
+    });
+    expect(onSave).toHaveBeenCalledOnce();
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+        name: "Grace",
+        onboardingStage: "acceptance",
+    });
+    expect(screen.queryByText("Initializing student profile…")).toBeNull();
+    expect(container.querySelector("[data-admission-phase=idle]")).toBeTruthy();
+    expect(container.querySelector(".terminal-cursor")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Skip animation" })).toBeNull();
+    expect(
+        screen
+            .getByRole("button", { name: "Begin Year 1" })
+            .hasAttribute("disabled"),
+    ).toBe(false);
+});
+
+it("returns from an edit to the letter without saving", () => {
+    const { container, onSave } = renderFlow(async () => true, "acceptance");
+    fireEvent.click(screen.getByRole("button", { name: "Edit character" }));
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(container.querySelector("form")).toBeNull();
+    expect(screen.getByRole("button", { name: "Begin Year 1" })).toBeTruthy();
+    expect(onSave).not.toHaveBeenCalled();
+});
+
 it("completes promptly with reduced motion after the save succeeds", async () => {
     vi.stubGlobal("matchMedia", () => ({
         matches: true,

@@ -4,6 +4,7 @@
 // grid, and the four phases start on the track's own break bars. Song time is track time.
 
 import { TRACK_CHART } from "./trackChart";
+import { TEXT } from "../src/misc/text";
 
 export type Phase = "opening" | "cross" | "meltdown" | "final";
 
@@ -41,27 +42,14 @@ export interface TrackChart {
     notes: [number, number, boolean][];
 }
 
+// Titles and subtitles are in shared/text.json (thesisDefense.sections).
+const SECTION_TEXT = TEXT.thesisDefense.sections;
+
 export const SECTIONS: Record<Phase, Section> = {
-    opening: {
-        phase: "opening",
-        title: "OPENING QUESTIONS",
-        subtitle: "Prof. Lemma clears her throat.",
-    },
-    cross: {
-        phase: "cross",
-        title: "CROSS-EXAMINATION",
-        subtitle: "Prof. Bootstrap wants error bars.",
-    },
-    meltdown: {
-        phase: "meltdown",
-        title: "PROFESSOR MELTDOWN",
-        subtitle: "Prof. Gradient has diverged.",
-    },
-    final: {
-        phase: "final",
-        title: "FINAL DEFENSE",
-        subtitle: "The whole committee leans forward.",
-    },
+    opening: { phase: "opening", ...SECTION_TEXT.opening },
+    cross: { phase: "cross", ...SECTION_TEXT.cross },
+    meltdown: { phase: "meltdown", ...SECTION_TEXT.meltdown },
+    final: { phase: "final", ...SECTION_TEXT.final },
 };
 
 export function buildTrackChart(track: TrackChart): Chart {

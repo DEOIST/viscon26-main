@@ -24,6 +24,9 @@ import { loadBest, saveBest, swissGrade, verdictFor } from "./verdict";
 import type { BestRun, BestStorage } from "./verdict";
 import { pickLine } from "../src/games/shared/minigame";
 import type { MinigameResult } from "../src/games/shared/minigame";
+import { fill, TEXT as COPY_TEXT } from "../src/misc/text";
+
+const COPY = COPY_TEXT.thesisDefense;
 
 export interface ThesisSceneArgs {
     playerName: string;
@@ -90,7 +93,7 @@ export default class ThesisScene extends Scene {
     constructor(args: ThesisSceneArgs) {
         super("thesis-defense");
         this.args = args;
-        this.lines = committeeLines(args.playerName || "Candidate");
+        this.lines = committeeLines(args.playerName || COPY.defaultName);
     }
 
     create() {
@@ -121,9 +124,7 @@ export default class ThesisScene extends Scene {
         this.best = loadBest(this.args.storage);
         this.hud.setSound(this.soundtrack.muted);
         this.showTitle();
-        this.args.announce(
-            "Thesis defense. Press D, F, J and K as the references reach the rule. Press Space to begin, F for fullscreen.",
-        );
+        this.args.announce(COPY.announcements.intro);
         window.addEventListener("keydown", this.handleKeyDown);
         window.addEventListener("keyup", this.handleKeyUp);
         window.addEventListener("blur", this.handleBlur);
@@ -302,7 +303,11 @@ export default class ThesisScene extends Scene {
             submitted: this.submitted,
         });
         this.args.announce(
-            `${verdict.title}. Grade ${grade.toFixed(2)}. Score ${state.score}. Press R to revise and resubmit, or Enter to submit your thesis.`,
+            fill(COPY.announcements.results, {
+                verdict: verdict.title,
+                grade: grade.toFixed(2),
+                score: state.score,
+            }),
         );
     }
 
@@ -356,12 +361,12 @@ export default class ThesisScene extends Scene {
                     );
                     break;
                 case "eureka-ready":
-                    this.args.announce("Eureka is ready. Press Space.");
+                    this.args.announce(COPY.announcements.eurekaReady);
                     break;
                 case "eureka-start":
                     this.figure.setEureka(true);
                     this.committee.react("amazed", 1500);
-                    this.committee.scribble("Eureka! ×2");
+                    this.committee.scribble(COPY.page.eurekaActive);
                     this.say(this.speaker(), "eureka", true);
                     break;
                 case "eureka-end":

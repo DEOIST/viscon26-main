@@ -7,6 +7,9 @@ import {
     SKIN_LIGHTNESS_OFFSET,
 } from "../photo-avatar";
 import type { Character } from "../types";
+import { fill, TEXT } from "../misc/text";
+
+const T = TEXT.photoAvatar;
 
 type Detected = Pick<AvatarSuggestion, "glasses" | "gender"> & {
     aiUnavailable: boolean;
@@ -46,9 +49,7 @@ export function PhotoAvatar({
             })
             .catch((e: DOMException) =>
                 setError(
-                    e?.name === "NotAllowedError"
-                        ? "Camera access was denied. Pick your colors below instead."
-                        : "No camera available. Pick your colors below instead.",
+                    e?.name === "NotAllowedError" ? T.cameraDenied : T.noCamera,
                 ),
             );
         return () => {
@@ -112,9 +113,7 @@ export function PhotoAvatar({
         } catch (e) {
             // Skin was measured locally, so still apply it
             onApply({ skinColor: skin.value });
-            setError(
-                `${errorMessage(e)} Skin tone was set; pick hair and eyes below.`,
-            );
+            setError(fill(T.failedSkinOnly, { error: errorMessage(e) }));
         } finally {
             setBusy(false);
         }
@@ -132,7 +131,7 @@ export function PhotoAvatar({
                         setError("");
                     }}
                 >
-                    Use a photo to pick my colors
+                    {T.open}
                 </button>
             ) : (
                 <div className="photo-capture">
@@ -140,12 +139,7 @@ export function PhotoAvatar({
                         <video ref={videoRef} autoPlay playsInline muted />
                         <div className="photo-oval" aria-hidden="true" />
                     </div>
-                    <small>
-                        Fit your face in the oval, facing a light. Skin tone is
-                        measured on your device; a small copy of the photo is
-                        sent to OpenAI to read hair and eye color. Nothing is
-                        stored.
-                    </small>
+                    <small>{T.instructions}</small>
                     <div className="form-actions">
                         <button
                             type="button"
@@ -153,7 +147,7 @@ export function PhotoAvatar({
                             disabled={busy}
                             onClick={() => setOpen(false)}
                         >
-                            Cancel
+                            {TEXT.common.cancel}
                         </button>
                         <button
                             type="button"
@@ -161,7 +155,7 @@ export function PhotoAvatar({
                             disabled={busy || disabled}
                             onClick={capture}
                         >
-                            {busy ? "Reading your photo…" : "Take photo"}
+                            {busy ? T.reading : T.takePhoto}
                         </button>
                     </div>
                 </div>
@@ -174,14 +168,21 @@ export function PhotoAvatar({
             {detected && !error && (
                 <p className="photo-result" role="status">
                     {detected.aiUnavailable
-                        ? "Skin tone set from your photo. The AI is unavailable right now, so pick hair and eyes below."
-                        : `Colors set from your photo. Glasses: ${
-                              detected.glasses ?? "none"
-                          }. Gender guess: ${
-                              detected.gender === "unclear" || !detected.gender
-                                  ? "couldn't tell"
-                                  : detected.gender
-                          }. Adjust anything below.`}
+                        ? T.aiUnavailable
+                        : fill(T.result, {
+                              glasses: detected.glasses
+                                  ? TEXT.characterBuilder.glasses.options[
+                                        detected.glasses
+                                    ]
+                                  : T.noGlasses,
+                              gender:
+                                  detected.gender === "unclear" ||
+                                  !detected.gender
+                                      ? T.genderUnclear
+                                      : TEXT.characterBuilder.gender.options[
+                                            detected.gender
+                                        ],
+                          })}
                 </p>
             )}
         </div>

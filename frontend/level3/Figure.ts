@@ -26,13 +26,12 @@ import {
     progress,
 } from "./layout";
 import { COLORS, CSS, hand, penLine, serif } from "./textures";
+import { TEXT } from "../src/misc/text";
+
+const COPY = TEXT.thesisDefense;
 
 const BEAT_MS = BAR_MS / 4;
-const WORDS: Record<Hit, string> = {
-    perfect: "perfect",
-    great: "great",
-    good: "ok",
-};
+const WORDS: Record<Hit, string> = COPY.judgments;
 
 interface Token {
     root: GameObjects.Container;
@@ -91,7 +90,7 @@ export default class Figure {
             .text(
                 COLUMN.x,
                 HIT_Y + 104,
-                "Figure 3.1: Live defense. Highlight each reference as it reaches the rule.",
+                COPY.page.figureCaption,
                 serif(14, CSS.ink, "italic"),
             )
             .setDepth(4);
@@ -202,11 +201,11 @@ export default class Figure {
                 strike.destroy();
             },
         });
-        this.say(note.lane, "miss", CSS.redPen);
+        this.say(note.lane, COPY.judgments.miss, CSS.redPen);
     }
 
     stray(lane: number) {
-        this.say(lane, "?", CSS.redPen);
+        this.say(lane, COPY.judgments.stray, CSS.redPen);
     }
 
     clear() {

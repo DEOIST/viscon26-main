@@ -17,10 +17,21 @@ import {
     TOOLBAR_H,
     WIDTH,
 } from "./layout";
-import { COLORS, CSS, MONO, TEXT, hand, penCircle, serif } from "./textures";
+import {
+    COLORS,
+    CSS,
+    MONO,
+    TEXT as RASTER,
+    hand,
+    penCircle,
+    serif,
+} from "./textures";
+import { fill, TEXT } from "../src/misc/text";
+
+const COPY = TEXT.thesisDefense;
 
 const PAGES = 58; // the thesis' length, for the page counter
-const SECTIONS = ["Opening", "Cross-exam.", "Meltdown", "Final"];
+const SECTIONS = COPY.viewer.sections;
 const THUMB = { w: 92, h: 118, gap: 34, top: 74 } as const;
 const BAR_W = MARGIN.w - 34;
 const RIGHT = MARGIN.x + MARGIN.w - 14; // right edge of the margin's table
@@ -72,7 +83,7 @@ export default class Hud {
                 .text(
                     SIDEBAR_W / 2,
                     THUMB.top + i * (THUMB.h + THUMB.gap) + THUMB.h + 9,
-                    `3.${i + 1}  ${name}`,
+                    fill(COPY.viewer.sectionThumb, { number: i + 1, name }),
                     serif(13, CSS.chrome),
                 )
                 .setOrigin(0.5, 0)
@@ -90,10 +101,10 @@ export default class Hud {
         bar.lineStyle(2, CHROME, 1);
         for (const y of [15, 22, 29]) bar.lineBetween(18, y, 34, y);
         scene.add
-            .text(52, TOOLBAR_H / 2, "thesis_FINAL_v7_really_final.pdf", {
+            .text(52, TOOLBAR_H / 2, COPY.viewer.fileName, {
                 fontFamily: MONO,
                 fontSize: "15px",
-                resolution: TEXT.resolution,
+                resolution: RASTER.resolution,
                 color: CSS.chrome,
             })
             .setOrigin(0, 0.5)
@@ -107,7 +118,7 @@ export default class Hud {
             .text(
                 WIDTH / 2 - 2,
                 TOOLBAR_H / 2,
-                `/  ${PAGES}`,
+                fill(COPY.viewer.pageOf, { pages: PAGES }),
                 serif(15, CSS.chromeMuted),
             )
             .setOrigin(0, 0.5)
@@ -118,7 +129,12 @@ export default class Hud {
             .setDepth(41);
         this.drawSpeaker(bar, WIDTH - 104, TOOLBAR_H / 2);
         scene.add
-            .text(WIDTH - 54, TOOLBAR_H / 2, "F", serif(14, CSS.chromeMuted))
+            .text(
+                WIDTH - 54,
+                TOOLBAR_H / 2,
+                COPY.viewer.fullscreenKey,
+                serif(14, CSS.chromeMuted),
+            )
             .setOrigin(1, 0.5)
             .setDepth(41);
         this.drawFullscreenIcon(bar, WIDTH - 32, TOOLBAR_H / 2);
@@ -130,7 +146,9 @@ export default class Hud {
             .text(
                 COLUMN.x,
                 80,
-                `${playerName || "Candidate"} · Bachelor Thesis · ETH Zürich`.toUpperCase(),
+                fill(COPY.page.runningHead, {
+                    name: playerName || COPY.defaultName,
+                }).toUpperCase(),
                 { ...serif(12, CSS.inkSoft), letterSpacing: 1.5 },
             )
             .setOrigin(0, 0.5)
@@ -157,32 +175,35 @@ export default class Hud {
                     letterSpacing: 1.6,
                 })
                 .setDepth(2);
-        field(68, "Soundtrack");
+        field(68, COPY.pane.soundtrack);
         this.nowPlaying = scene.add
-            .text(px, 88, "Silence, until you begin.", {
+            .text(px, 88, COPY.pane.soundtrackIdle, {
                 ...serif(15, CSS.chrome, "italic"),
                 wordWrap: { width: WIDTH - px - 18 },
                 lineSpacing: 3,
             })
             .setDepth(2);
-        field(196, "Timing");
+        field(196, COPY.pane.timing);
         scene.add
-            .text(px, 260, "early", serif(12, CSS.chromeMuted, "italic"))
+            .text(
+                px,
+                260,
+                COPY.pane.early,
+                serif(12, CSS.chromeMuted, "italic"),
+            )
             .setDepth(2);
         scene.add
-            .text(WIDTH - 24, 260, "late", serif(12, CSS.chromeMuted, "italic"))
+            .text(
+                WIDTH - 24,
+                260,
+                COPY.pane.late,
+                serif(12, CSS.chromeMuted, "italic"),
+            )
             .setOrigin(1, 0)
             .setDepth(2);
         this.meter = scene.add.graphics().setDepth(2);
-        field(296, "Keys");
-        const keys: [string, string][] = [
-            ["D F J K", "answer"],
-            ["Space", "start, Eureka"],
-            ["Esc", "pause"],
-            ["R", "revise"],
-            ["M", "sound"],
-            ["F", "fullscreen"],
-        ];
+        field(296, COPY.pane.keys);
+        const keys = COPY.pane.keyHints as [string, string][];
         keys.forEach(([key, what], i) =>
             this.keyHint(px, 324 + i * 32, key, what),
         );
@@ -201,7 +222,7 @@ export default class Hud {
             .image(MARGIN.x + 12, 435, "td-marker-2")
             .setOrigin(0, 0.5)
             .setDepth(8);
-        const eurekaLabel = label(462, "EUREKA");
+        const eurekaLabel = label(462, COPY.page.eureka);
         this.eurekaInk = scene.add
             .image(MARGIN.x + 12, 491, "td-marker-0")
             .setOrigin(0, 0.5)
@@ -214,7 +235,12 @@ export default class Hud {
             .container(RIGHT - 52, 491, [
                 ring,
                 scene.add
-                    .text(0, 0, "Space!", hand(24, CSS.redPen, true))
+                    .text(
+                        0,
+                        0,
+                        COPY.page.eurekaHint,
+                        hand(24, CSS.redPen, true),
+                    )
                     .setOrigin(0.5),
             ])
             .setDepth(9)
@@ -237,17 +263,12 @@ export default class Hud {
         const cell = (y: number, text: string) =>
             scene.add.text(MARGIN.x + 12, y, text, serif(15)).setDepth(8);
         const caption = scene.add
-            .text(
-                MARGIN.x + 12,
-                522,
-                "Table 3.1: The defense so far.",
-                serif(13),
-            )
+            .text(MARGIN.x + 12, 522, COPY.page.tableCaption, serif(13))
             .setDepth(8);
         const rows = [
-            cell(554, "Score"),
-            cell(582, "Accuracy"),
-            cell(620, "Combo"),
+            cell(554, COPY.page.score),
+            cell(582, COPY.page.accuracy),
+            cell(620, COPY.page.combo),
         ];
         this.score = scene.add
             .text(RIGHT, 550, "0", serif(22, CSS.ink, "bold"))
@@ -307,7 +328,11 @@ export default class Hud {
         this.section = index;
         this.drawThumbs();
         const [number, name, line] = this.heading;
-        number.setText(index < 0 ? "" : `3.${index + 1}`);
+        number.setText(
+            index < 0
+                ? ""
+                : fill(COPY.page.sectionNumber, { number: index + 1 }),
+        );
         name.setText(title);
         line.setText(subtitle);
         if (index < 0) return;
@@ -329,7 +354,9 @@ export default class Hud {
     }
 
     setSound(isMuted: boolean) {
-        this.sound.setText(isMuted ? "M  sound off" : "M  sound on");
+        this.sound.setText(
+            isMuted ? COPY.viewer.soundOff : COPY.viewer.soundOn,
+        );
     }
 
     addTick(delta: number) {
@@ -385,7 +412,7 @@ export default class Hud {
         const confidence = state.confidence / 100;
         const danger = state.confidence < 30;
         this.confidence.setText(
-            `CONFIDENCE  ${Math.round(state.confidence)} %`,
+            fill(COPY.page.confidence, { value: Math.round(state.confidence) }),
         );
         const tint =
             confidence > 0.6

@@ -2,25 +2,19 @@
 // must stay playable muted, so the timing windows are a little wider than a music game's and
 // the note lead is long enough to read the highway like sheet music.
 
+import { TEXT } from "../src/misc/text";
+
+const COPY = TEXT.thesisDefense;
+
 export const LANE_KEYS = ["D", "F", "J", "K"] as const;
-export const LANE_NAMES = [
-    "Theory",
-    "Proofs",
-    "Experiments",
-    "Critique",
-] as const;
+export const LANE_NAMES = COPY.lanes;
 export const LANE_GLYPHS = ["∀", "∫", "χ²", "?!"] as const;
 // Highlighter inks, one per lane. Yellow is reserved for golden notes and Eureka.
 export const LANE_COLORS = [0x5ec8ff, 0xff7ad9, 0x8cf27a, 0xffa94d] as const;
 export const LANE_CSS = ["#5ec8ff", "#ff7ad9", "#8cf27a", "#ffa94d"] as const;
 export const GOLD_INK = 0xfff23a;
 // What each lane's questions look like on the page: references a thesis is made of.
-export const LANE_TOKENS = [
-    ["Thm. 4.2", "Lemma 3", "Def. 2.1", "Cor. 1", "Axiom 7", "Thm. 3.9"],
-    ["eq. (3.7)", "eq. (4.1)", "Prop. 5", "(A.12)", "eq. (2.4)", "Proof"],
-    ["Fig. 3.4", "Tab. 2", "χ² = 3.8", "n = 12", "Fig. 5.1", "p < .05"],
-    ["[42]", "[Rev. 2]", "[17]", "[ibid.]", "[sic]", "[3, 9]"],
-] as const;
+export const LANE_TOKENS = COPY.laneTokens;
 export const ACTIVATE_KEY = " "; // Space spends a full Eureka meter
 
 // The chart is written on a sixteenth-note grid at this tempo (chart.ts).
@@ -60,15 +54,15 @@ export const EUREKA_DURATION_MS = 8000;
 
 // Combo milestones (cumulative combo) and the flawless streak callout.
 export const MILESTONES: readonly [number, string][] = [
-    [10, "PROMISING RESEARCH"],
-    [25, "PEER REVIEW SURVIVED"],
-    [50, "ACADEMIC WEAPON"],
-    [75, "MENSA QUEUE SKIPPED"],
-    [100, "TENURE TRACK UNLOCKED"],
-    [150, "FIELDS MEDAL SPEEDRUN"],
+    [10, COPY.milestones.combo10],
+    [25, COPY.milestones.combo25],
+    [50, COPY.milestones.combo50],
+    [75, COPY.milestones.combo75],
+    [100, COPY.milestones.combo100],
+    [150, COPY.milestones.combo150],
 ];
 export const PERFECT_STREAK = 25;
-export const PERFECT_STREAK_TITLE = "NOBEL PRIZE INCOMING";
+export const PERFECT_STREAK_TITLE = COPY.milestones.perfectStreak;
 
 // Personal best survives page loads in this browser only (no server state for a practice
 // score; the year's credit is what the shell saves).

@@ -1,5 +1,6 @@
 // Code-native bug sprites and cartoon bombs. Fuse fire crawls toward the bomb as time runs out.
 import { textStyle } from "./effects";
+import { TEXT } from "../src/misc/text";
 import type { GameObjects, Scene } from "phaser";
 
 export function makeBug(scene: Scene): GameObjects.Container {
@@ -54,7 +55,7 @@ export function makeBug(scene: Scene): GameObjects.Container {
         });
     });
     const label = scene.add
-        .text(0, 77, "BUG", {
+        .text(0, 77, TEXT.shooter.bugLabel, {
             ...textStyle(16, "#d7ffe6", "bold"),
             fontFamily: "monospace",
             strokeThickness: 3,
@@ -67,11 +68,11 @@ export function makeCodeBomb(scene: Scene): GameObjects.Container {
     const card = scene.add
         .rectangle(0, 0, 236, 130, 0x193931)
         .setStrokeStyle(3, 0x76d8ad);
-    const title = scene.add.text(-101, -48, "✓ WORKING CODE", {
+    const title = scene.add.text(-101, -48, TEXT.shooter.workingCode, {
         ...textStyle(17, "#9ff3c6", "bold"),
         strokeThickness: 0,
     });
-    const code = scene.add.text(-101, -16, "if (ready) {\n  ship();\n}", {
+    const code = scene.add.text(-101, -16, TEXT.shooter.codeSnippet, {
         fontFamily: "monospace",
         fontSize: "19px",
         color: "#d0e5db",

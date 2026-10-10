@@ -8,6 +8,7 @@ import Synth from "./Synth";
 import type { SoundStorage } from "./Synth";
 import trackM4a from "./assets/music/thesis-defense.m4a";
 import trackOgg from "./assets/music/thesis-defense.ogg";
+import { TEXT } from "../src/misc/text";
 
 const VELOCITY = { perfect: 1, great: 0.85, good: 0.65 } as const;
 const FAIL_FADE_MS = 600;
@@ -69,7 +70,7 @@ export default class Soundtrack {
 
     nowPlaying(phase: Phase): string {
         void phase;
-        return "Now playing: Thesis Defense, the original soundtrack.";
+        return TEXT.thesisDefense.pane.nowPlaying;
     }
 
     // The song clock reads `song` ms right now: play the track from there (or start it in the

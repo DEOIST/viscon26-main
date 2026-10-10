@@ -24,6 +24,9 @@ import {
     serif,
 } from "./textures";
 import type { BestRun, Verdict } from "./verdict";
+import { fill, TEXT as COPY_TEXT } from "../src/misc/text";
+
+const COPY = COPY_TEXT.thesisDefense;
 
 export interface RunSummary {
     verdict: Verdict;
@@ -68,7 +71,7 @@ export default class Overlays {
         onSubmit: () => void,
     ) {
         this.scene = scene;
-        this.playerName = playerName || "Candidate";
+        this.playerName = playerName || COPY.defaultName;
         this.title = this.makeTitle(onStart);
         this.titleBest = this.title.getByName("best") as GameObjects.Text;
         this.countdown = scene.add
@@ -116,38 +119,48 @@ export default class Overlays {
             scene.add.text(
                 COLUMN.x,
                 168,
-                "Bachelor of Science ETH in Computer Science",
+                COPY.transcript.degree,
                 serif(15, CSS.inkSoft, "italic"),
             ),
-            scene.add.text(COLUMN.x, 214, "Course", serif(14, CSS.ink, "bold")),
+            scene.add.text(
+                COLUMN.x,
+                214,
+                COPY.transcript.course,
+                serif(14, CSS.ink, "bold"),
+            ),
             scene.add
-                .text(COLUMN.x + 330, 214, "ECTS", serif(14, CSS.ink, "bold"))
+                .text(
+                    COLUMN.x + 330,
+                    214,
+                    COPY.transcript.ects,
+                    serif(14, CSS.ink, "bold"),
+                )
                 .setOrigin(1, 0),
             scene.add
                 .text(
                     COLUMN.x + TABLE_W - 10,
                     214,
-                    "Grade",
+                    COPY.transcript.grade,
                     serif(14, CSS.ink, "bold"),
                 )
                 .setOrigin(1, 0),
             scene.add.text(
                 COLUMN.x,
                 250,
-                "Bachelor Thesis: Defense",
+                COPY.transcript.courseName,
                 serif(20),
             ),
             scene.add.text(
                 COLUMN.x,
                 410,
-                "Table 2: The defense in numbers.",
+                COPY.transcript.tableCaption,
                 serif(14),
             ),
             // The institution signs the transcript at its foot, like the real one.
             scene.add.text(
                 COLUMN.x,
                 688,
-                "ETH Zürich, Leistungsüberblick (transcript of records). Unofficial, like everything here.",
+                COPY.transcript.footer,
                 serif(12, CSS.inkSoft, "italic"),
             ),
         ];
@@ -160,7 +173,7 @@ export default class Overlays {
             COLUMN.x,
             640,
             "R",
-            "Revise and resubmit",
+            COPY.transcript.revise,
             17,
             CSS.inkSoft,
             onRetry,
@@ -174,7 +187,7 @@ export default class Overlays {
             submitX,
             638,
             "Enter",
-            "Submit final version",
+            COPY.transcript.submit,
             23,
             CSS.ink,
             onSubmit,
@@ -200,8 +213,12 @@ export default class Overlays {
     showTitle(best: BestRun | null) {
         this.titleBest.setText(
             best
-                ? `Previous best: ${points(best.score)} points, ${best.accuracy.toFixed(1)} % accuracy, combo ${best.maxCombo}.`
-                : "No defense on record yet.",
+                ? fill(COPY.titlePage.best, {
+                      score: points(best.score),
+                      accuracy: best.accuracy.toFixed(1),
+                      combo: best.maxCombo,
+                  })
+                : COPY.titlePage.noBest,
         );
         this.title.setVisible(true);
     }
@@ -223,7 +240,7 @@ export default class Overlays {
         this.shownCount = value;
         const isGo = value === "DEFEND!";
         this.countdown
-            .setText(isGo ? "\\begin{defense}" : value)
+            .setText(isGo ? COPY.countdownGo : value)
             .setStyle(
                 isGo
                     ? {
@@ -274,19 +291,23 @@ export default class Overlays {
         p.ects.setText(summary.failed ? "(60)" : "60");
         p.remark.setText(verdict.line);
         p.career
-            .setText(`Career forecast: ${verdict.career}.`)
+            .setText(fill(COPY.transcript.career, { career: verdict.career }))
             .setY(p.remark.y + p.remark.height + 8);
         const c = state.counts;
         p.stats.setText(
-            `Score ${points(state.score)}    Accuracy ${summary.accuracy.toFixed(1)} %    Max. combo ${state.maxCombo}`,
+            fill(COPY.transcript.stats, {
+                score: points(state.score),
+                accuracy: summary.accuracy.toFixed(1),
+                combo: state.maxCombo,
+            }),
         );
-        p.counts.setText(
-            `Perfect ${c.perfect} · Great ${c.great} · Good ${c.good} · Missed ${c.miss}`,
-        );
+        p.counts.setText(fill(COPY.transcript.counts, { ...c }));
         p.best.setText(
             summary.isNewBest
-                ? "A new personal best."
-                : `Personal best: ${points(summary.best.score)} points.`,
+                ? COPY.transcript.newBest
+                : fill(COPY.transcript.best, {
+                      score: points(summary.best.score),
+                  }),
         );
         this.recordInk.clear();
         if (summary.isNewBest) {
@@ -328,9 +349,7 @@ export default class Overlays {
 
     setSubmitted(isSubmitted: boolean) {
         this.submitLabel.setText(
-            isSubmitted
-                ? "Submitted. The ECTS are yours."
-                : "Submit final version",
+            isSubmitted ? COPY.transcript.submitted : COPY.transcript.submit,
         );
         this.submitLabel.setColor(isSubmitted ? CSS.inkSoft : CSS.ink);
     }
@@ -367,27 +386,16 @@ export default class Overlays {
             items.push(item);
             return item;
         };
-        add(128, "Thesis Defense", 64, CSS.ink, "bold");
-        add(
-            208,
-            "or: How I Learned to Stop Worrying and Love the Committee",
-            20,
-            CSS.ink,
-            "italic",
-        );
-        add(252, `Bachelor Thesis by ${this.playerName}`, 19);
-        add(278, "Department of Computer Science, ETH Zürich", 15, CSS.inkSoft);
-        add(
-            300,
-            "Examiners: Prof. Dr. Lemma, Prof. Dr. Gradient, Prof. Dr. Bootstrap",
-            15,
-            CSS.inkSoft,
-        );
+        add(128, COPY.titlePage.title, 64, CSS.ink, "bold");
+        add(208, COPY.titlePage.subtitle, 20, CSS.ink, "italic");
+        add(252, fill(COPY.titlePage.author, { name: this.playerName }), 19);
+        add(278, COPY.titlePage.department, 15, CSS.inkSoft);
+        add(300, COPY.titlePage.examiners, 15, CSS.inkSoft);
 
         // Table 1, booktabs style: the key bindings.
         const left = CX - 230;
         const right = CX + 230;
-        add(344, "Table 1: How to answer the committee.", 14);
+        add(344, COPY.titlePage.tableCaption, 14);
         const rules = scene.add.graphics();
         rules.lineStyle(1.4, COLORS.ink, 1);
         rules.lineBetween(left, 368, right, 368);
@@ -405,9 +413,10 @@ export default class Overlays {
             items.push(item);
             return item;
         };
-        cell(left + 14, 371, "Key", "bold");
-        cell(left + 96, 371, "Answer with", "bold");
-        cell(right - 110, 371, "Notation", "bold");
+        const [keyHead, answerHead, notationHead] = COPY.titlePage.tableHead;
+        cell(left + 14, 371, keyHead, "bold");
+        cell(left + 96, 371, answerHead, "bold");
+        cell(right - 110, 371, notationHead, "bold");
         const rows: [string, string, string, number][] = LANE_KEYS.map(
             (key, lane) => [
                 key,
@@ -416,7 +425,7 @@ export default class Overlays {
                 LANE_COLORS[lane],
             ],
         );
-        rows.push(["Space", "Eureka (golden references)", "×2", GOLD_INK]);
+        rows.push(["Space", COPY.titlePage.eurekaRow, "×2", GOLD_INK]);
         rows.forEach(([key, what, glyph, ink], i) => {
             const y = 402 + i * 29;
             items.push(
@@ -431,12 +440,7 @@ export default class Overlays {
         });
 
         const start = scene.add
-            .text(
-                CX,
-                584,
-                "Press Space to begin your defense",
-                serif(28, CSS.ink, "bold"),
-            )
+            .text(CX, 584, COPY.titlePage.start, serif(28, CSS.ink, "bold"))
             .setOrigin(0.5, 0)
             .setInteractive({ useHandCursor: true })
             .on("pointerdown", onStart);
@@ -474,7 +478,7 @@ export default class Overlays {
             .text(
                 PAGE.x + PAGE.w - 56,
                 318,
-                "good luck :)",
+                COPY.titlePage.luck,
                 hand(22, CSS.redPen),
             )
             .setOrigin(1, 0)
@@ -506,7 +510,7 @@ export default class Overlays {
                     .text(
                         WIDTH / 2,
                         324,
-                        "Paused",
+                        COPY.pause.title,
                         serif(32, CSS.chrome, "bold"),
                     )
                     .setOrigin(0.5, 0),
@@ -514,7 +518,7 @@ export default class Overlays {
                     .text(
                         WIDTH / 2,
                         370,
-                        "The committee went for a Kafi.",
+                        COPY.pause.subtitle,
                         serif(17, CSS.chromeMuted, "italic"),
                     )
                     .setOrigin(0.5, 0),
@@ -522,7 +526,7 @@ export default class Overlays {
                     .text(
                         WIDTH / 2,
                         408,
-                        "Space  continue      R  revise and restart",
+                        COPY.pause.keys,
                         serif(16, CSS.chrome),
                     )
                     .setOrigin(0.5, 0),

@@ -6,6 +6,9 @@
 import type { GameObjects, Scene } from "phaser";
 import { COLUMN, FIGURE_TOP, HIT_Y, MARGIN } from "./layout";
 import { COLORS, CSS, hand, penCircle, penLine, seeded } from "./textures";
+import { TEXT } from "../src/misc/text";
+
+const COPY = TEXT.thesisDefense;
 
 export type Mood =
     "neutral" | "impressed" | "amazed" | "disappointed" | "furious";
@@ -13,7 +16,7 @@ export type Mood =
 const HEAD_Y = 152;
 const HEAD_R = 21;
 const HEAD_GAP = 72;
-const NAMES = ["Lemma", "Gradient", "Bootstrap"];
+const NAMES = COPY.professors;
 const NOTE_TOP = 222;
 // The errata timeline runs down the gutter between the figure and the margin.
 const SCAR_X = COLUMN.x + COLUMN.w + 18;
@@ -187,7 +190,12 @@ export default class Committee {
             .setAlpha(0);
         this.scrawlLine = scene.add.graphics().setDepth(30);
         scene.add
-            .text(SCAR_X - 4, HIT_Y + 24, "errata", hand(14, CSS.redPen))
+            .text(
+                SCAR_X - 4,
+                HIT_Y + 24,
+                COPY.page.errata,
+                hand(14, CSS.redPen),
+            )
             .setOrigin(0, 0.5)
             .setAngle(-90)
             .setDepth(8);

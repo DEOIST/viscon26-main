@@ -8,6 +8,7 @@ import {
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { GAMES, YEARS } from "../config";
 import { defaultPlayer } from "../store";
+import { TEXT } from "../misc/text";
 import { GraduationScreen } from "./Screens";
 
 beforeEach(() => {
@@ -199,17 +200,16 @@ it("names the career that the earned ECTS buy, with its photo and jokes", () => 
     const args = graduationArgs(); // 120 of 180 ECTS = 66 %: the PhD tier
     render(<GraduationScreen {...args} />);
     const diploma = within(screen.getByRole("dialog"));
-    expect(diploma.getByText("PhD student at ETH, year 7")).toBeTruthy();
-    expect(diploma.getByText("Magna cum laude")).toBeTruthy();
-    expect(diploma.getByText("Your office desk, after 22:00")).toBeTruthy();
-    expect(
-        diploma.getByRole("img", {
-            name: /doctoral hat built from pizza boxes/,
-        }),
-    ).toBeTruthy();
+    const phd = TEXT.endings.phd;
+    expect(diploma.getByText(phd.title)).toBeTruthy();
+    expect(diploma.getByText(phd.stamp)).toBeTruthy();
+    expect(diploma.getByText(phd.housing)).toBeTruthy();
+    expect(diploma.getByRole("img", { name: phd.alt })).toBeTruthy();
     cleanup();
-    render(<GraduationScreen {...args} ects={30} />);
+    render(<GraduationScreen {...args} ects={30} />); // 16 %: the lowest tier
     expect(
-        within(screen.getByRole("dialog")).getByText("Homeless in Zürich"),
+        within(screen.getByRole("dialog")).getByText(
+            TEXT.endings.homeless.title,
+        ),
     ).toBeTruthy();
 });

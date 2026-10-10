@@ -1,13 +1,18 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import { api, errorMessage } from "./api";
 import { GAMES, YEARS } from "./config";
-import { GraduationScreen, WelcomeScreen } from "./components/Screens";
+import {
+    CharacterBuilder,
+    GraduationScreen,
+    WelcomeScreen,
+} from "./components/Screens";
 import { ScoreboardDialog } from "./components/Dialogs";
 import { Icon } from "./components/Icon";
 import GameWorkspace, {
     type CompletionFeedback,
 } from "./components/GameWorkspace";
 import AdmissionFlow from "./components/AdmissionFlow";
+import { fill, TEXT } from "./misc/text";
 import {
     completeGame,
     calculateEcts,
@@ -36,6 +41,8 @@ export function App() {
     const [graduation, setGraduation] = useState(progress.graduated);
     const [graduationPreview, setGraduationPreview] = useState(false);
     const [previewingGraduation, setPreviewingGraduation] = useState(false);
+    // Editing during the degree keeps the saved stage, so it never replays the admission.
+    const [editingCharacter, setEditingCharacter] = useState(false);
     const [busy, setBusy] = useState(false);
     const [syncing, setSyncing] = useState(false);
     const [syncError, setSyncError] = useState("");
@@ -140,6 +147,7 @@ export function App() {
         selectedGame?.id,
         graduation,
         previewingGraduation,
+        editingCharacter,
     ]);
 
     async function savePlayer(
@@ -178,7 +186,7 @@ export function App() {
         }
         if (score === undefined) return;
         if (!GAMES.find((game) => game.id === selectedGame.id)?.implemented) {
-            setError("Placeholder previews cannot award ECTS.");
+            setError(TEXT.app.placeholderNoEcts);
             return;
         }
         dispatch(completeGame({ gameId: selectedGame.id, score }));
@@ -198,9 +206,7 @@ export function App() {
             ),
         });
         setSelectedGame(null);
-        setNotice(
-            "Minigame completed. ECTS earned. Your library chair misses you already.",
-        );
+        setNotice(TEXT.app.gameCompleted);
         void synchronize();
     }
     function graduate() {
@@ -218,11 +224,11 @@ export function App() {
     const inDegree = player.onboardingStage === "main";
     const showGraduation =
         graduation || (graduationPreview && previewingGraduation);
-    const gameScreen = inDegree && !showGraduation;
+    const gameScreen = inDegree && !showGraduation && !editingCharacter;
     return (
         <div className={`app-shell ${gameScreen ? "game-screen" : ""}`}>
             <a className="skip-link" href="#main-content">
-                Skip to content
+                {TEXT.app.skipToContent}
             </a>
             <header className="topbar">
                 <div className="brand">
@@ -230,23 +236,30 @@ export function App() {
                         <Icon name="cap" size={25} />
                     </span>
                     <span>
-                        ETH SIMULATOR<small>AFTER HOURS</small>
+                        {TEXT.app.brand}
+                        <small>{TEXT.app.brandTagline}</small>
                     </span>
                 </div>
-                <nav className="top-actions" aria-label="Application actions">
+                <nav className="top-actions" aria-label={TEXT.app.actionsLabel}>
                     {!inDegree && (
                         <button
                             className="button ghost compact"
-                            aria-label="Scoreboard"
+                            aria-label={TEXT.app.scoreboard}
                             onClick={() => setScoreboard(true)}
                         >
                             <Icon name="trophy" size={17} />
-                            <span className="nav-label">Scoreboard</span>
+                            <span className="nav-label">
+                                {TEXT.app.scoreboard}
+                            </span>
                         </button>
                     )}
                     <button
                         className="icon-button theme-button"
-                        aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+                        aria-label={
+                            theme === "dark"
+                                ? TEXT.app.switchToLight
+                                : TEXT.app.switchToDark
+                        }
                         onClick={() =>
                             setTheme(theme === "dark" ? "light" : "dark")
                         }
@@ -265,7 +278,7 @@ export function App() {
                         <button
                             className="icon-button"
                             onClick={() => setNotice("")}
-                            aria-label="Dismiss message"
+                            aria-label={TEXT.app.dismissMessage}
                         >
                             <Icon name="close" size={16} />
                         </button>
@@ -273,13 +286,15 @@ export function App() {
                 )}
                 {syncError && !showGraduation && (
                     <div className="notice" role="status">
-                        <span>Leaderboard sync: {syncError}</span>
+                        <span>
+                            {fill(TEXT.app.syncFailed, { error: syncError })}
+                        </span>
                         <button
                             className="button secondary compact"
                             disabled={syncing}
                             onClick={() => void synchronize()}
                         >
-                            Retry sync
+                            {TEXT.app.retrySync}
                         </button>
                     </div>
                 )}
@@ -304,10 +319,7 @@ export function App() {
                             );
                             setError("");
                         }}
-                        onEdit={() => {
-                            dispatch(setStage("builder"));
-                            setError("");
-                        }}
+                        onEdit={() => setError("")}
                         onBegin={() =>
                             void savePlayer({
                                 ...player,
@@ -336,6 +348,24 @@ export function App() {
                                 setPreviewingGraduation(false);
                             }}
                         />
+                    ) : editingCharacter ? (
+                        <CharacterBuilder
+                            player={player}
+                            busy={busy}
+                            error={error}
+                            onBack={() => {
+                                setEditingCharacter(false);
+                                setError("");
+                            }}
+                            onContinue={(draft) =>
+                                void savePlayer({
+                                    ...draft,
+                                    onboardingStage: "main",
+                                }).then((saved) => {
+                                    if (saved) setEditingCharacter(false);
+                                })
+                            }
+                        />
                     ) : (
                         <GameWorkspace
                             player={player}
@@ -348,7 +378,7 @@ export function App() {
                             selectedGame={selectedGame}
                             completionFeedback={completionFeedback}
                             onEditCharacter={() => {
-                                dispatch(setStage("builder"));
+                                setEditingCharacter(true);
                                 setError("");
                                 setNotice("");
                             }}
@@ -371,10 +401,9 @@ export function App() {
             </main>
             <footer className="site-footer">
                 <span>
-                    <Icon name="cap" size={16} /> Unofficial student parody. No
-                    affiliation with or endorsement by ETH Zürich.
+                    <Icon name="cap" size={16} /> {TEXT.app.footerDisclaimer}
                 </span>
-                <span>Made for the plot. And the credits.</span>
+                <span>{TEXT.app.footerTagline}</span>
             </footer>
             {scoreboard && (
                 <ScoreboardDialog onClose={() => setScoreboard(false)} />

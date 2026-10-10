@@ -5,6 +5,7 @@ from collections.abc import Callable
 from fastapi.testclient import TestClient
 
 from app.prompts import dialogue_instructions
+from app.text import TEXT
 from level2.dialogue import EVENTS, FALLBACK_LINES, SPEAKER
 
 MAX_WORDS = 18  # the limit the AI's lines get (app/prompts.py); the fallbacks keep to it too
@@ -39,5 +40,7 @@ def test_with_ai_off_the_story_api_serves_the_dealers_lines_for_this_player(
     pack = res.json()
     assert pack["source"] == "fallback"
     assert set(pack["lines"]) == set(EVENTS)
-    assert pack["lines"]["intro"][0] == "Welcome to casino night, Zoë. Your stipend looks nervous."
-    assert pack["lines"]["playerBust"][0] == "Bust. A very Physics way to lose."
+    lines = TEXT["story"]["blackjack"]
+    assert pack["lines"]["intro"][0] == lines["intro"][0].replace("{name}", "Zoë")
+    assert pack["lines"]["win"][0] == lines["win"][0].replace("{department}", "Physics")
+    assert not any("{" in line for event in pack["lines"].values() for line in event)

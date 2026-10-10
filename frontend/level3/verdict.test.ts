@@ -18,7 +18,7 @@ describe("verdictFor", () => {
         expect(verdictFor(false, 3.75).title).toBe("SO CLOSE");
         expect(verdictFor(false, 3.25).title).toBe("MAJOR REVISIONS REQUIRED");
         expect(verdictFor(false, 1).title).toBe("EXMATRIKULIERT");
-        expect(verdictFor(true, 3.5).title).toBe("ACADEMICALLY DESTROYED");
+        expect(verdictFor(true, 3.5).title).toBe("BACK TO THE DRAWING BOARD");
         expect(verdictFor(true, 1.25).title).toBe(
             "SENT BACK TO THE BASISPRÜFUNG",
         );

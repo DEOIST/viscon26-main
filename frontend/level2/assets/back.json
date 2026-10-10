@@ -23,7 +23,7 @@
     },
     "meta": {
         "app": "poker-cards/build.py",
-        "image": "back.png",
+        "image": "back.svg",
         "format": "RGBA8888",
         "size": {
             "w": 508,

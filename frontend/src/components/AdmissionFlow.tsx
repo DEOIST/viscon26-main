@@ -1,4 +1,5 @@
-// This transient controller exists only in memory; saved acceptance screens never replay.
+// This transient controller exists only in memory; saved acceptance screens never replay, and
+// the presentation belongs to the first build only: edits keep the stage and skip it.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { AdmissionPhase } from "../misc/admission";
 import { PresentationTimeline, useReducedMotion } from "../misc/motion";
@@ -19,6 +20,7 @@ interface AdmissionFlowArgs {
 export default function AdmissionFlow(args: AdmissionFlowArgs) {
     const [phase, setPhase] = useState<AdmissionPhase>("idle");
     const [characters, setCharacters] = useState(0);
+    const [editing, setEditing] = useState(false);
     const root = useRef<HTMLDivElement>(null);
     const timeline = useRef<PresentationTimeline | null>(null);
     const transfer = useRef<{ avatar: SVGSVGElement; rect: DOMRect } | null>(
@@ -207,20 +209,30 @@ export default function AdmissionFlow(args: AdmissionFlowArgs) {
         timeline.current?.dispose();
         transfer.current = null;
         setPhase("idle");
+        setEditing(true);
         args.onEdit();
+    }
+
+    // The letter was already presented once, so an update saves straight back to it.
+    async function handleUpdate(next: Player) {
+        if (await args.onSave(next)) setEditing(false);
     }
 
     return (
         <div ref={root} data-admission-phase={phase}>
-            {args.player.onboardingStage === "builder" ? (
+            {args.player.onboardingStage === "builder" || editing ? (
                 <CharacterBuilder
                     player={args.player}
                     busy={args.busy || phase === "initializing"}
                     error={args.error}
                     initializing={phase === "initializing"}
                     onSkip={skip}
-                    onBack={args.onBack}
-                    onContinue={(next) => void handleContinue(next)}
+                    onBack={editing ? () => setEditing(false) : args.onBack}
+                    onContinue={(next) =>
+                        void (editing
+                            ? handleUpdate(next)
+                            : handleContinue(next))
+                    }
                 />
             ) : (
                 <AcceptanceScreen
