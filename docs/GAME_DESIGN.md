@@ -92,8 +92,9 @@ new "over 21"; landing on it three times without going over is the new blackjack
   screenshot of the table (`assets/tutorial/`) and a few lines of text, with
   Next and Back, and Skip on every step but the last. The table waits
   underneath, the dealer greets the player once the window is closed, and
-  each step is also sent to the screen-reader live region. The screenshots
-  are captures of the real table: retake them when its look changes.
+  each step is also sent to the screen-reader live region. The wording is
+  `blackjack.tutorial` in `shared/text.json`. The screenshots are captures of
+  the real table: retake them when its look or its wording changes.
 - **Bets:** click chips (1, 5, 10, 25, 50, 100, 500, 1000) onto the bet pile;
   click a chip on the pile to take it back. The next hand starts with the same bet.
 - **Deck:** 52 cards without Jokers, freshly shuffled every hand.

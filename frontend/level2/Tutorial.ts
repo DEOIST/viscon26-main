@@ -1,6 +1,6 @@
 // The how-to-play window that opens over the table when a game starts: a screenshot and a few
 // lines for each step. It is drawn by the engine like the rest of the table, so every shell
-// shows it. The numbers in the text come from config.ts.
+// shows it.
 
 import type { GameObjects, Scene } from "phaser";
 import {
@@ -14,52 +14,20 @@ import { CENTER, HEIGHT, TUTORIAL, WIDTH } from "./layout";
 import { COLORS } from "./textures";
 import type { TutorialShot } from "./textures";
 import { Button, FONT, label } from "./ui";
+import { fill, TEXT } from "../src/misc/text";
 
-// One screenshot per step; each string in `text` is a paragraph.
-const STEPS: { shot: TutorialShot; title: string; text: string[] }[] = [
-    {
-        shot: "bet",
-        title: "PLACE YOUR BET",
-        text: [
-            "Click chips to build your bet, and click the pile to take one back.",
-            `The minimum bet is ${MIN_BET}. Press DEAL when you are ready.`,
-        ],
-    },
-    {
-        shot: "drop",
-        title: "CARDS DROP BALLS",
-        text: [
-            "Every card drops one ball for each symbol on it: an ace drops 1, a jack, queen or king drops 10.",
-            "The balls bounce through the pins and stack up in your board.",
-        ],
-    },
-    {
-        shot: "curve",
-        title: "STAY UNDER THE CURVE",
-        text: [
-            "Balls under the curve are green. The ball the curve crosses is yellow.",
-            "A ball above the curve is red, and one red ball busts your board: you lose your bet.",
-        ],
-    },
-    {
-        shot: "turn",
-        title: "YOUR MOVE",
-        text: [
-            "HIT draws another card.",
-            `STAND ends your turn: the dealer turns over its hidden card and draws while it has fewer than ${DEALER_STANDS_AT} balls.`,
-            "DOUBLE doubles your bet for exactly one more card.",
-        ],
-    },
-    {
-        shot: "win",
-        title: "HOW TO WIN",
-        text: [
-            "Finish with more balls than the dealer, or watch the dealer drop a red one.",
-            `${BLACKJACK_YELLOWS} yellow balls without a red one are a BLACKJACK and pay 3 to 2.`,
-            `You play ${HANDS} hands with ${START_CHIPS} chips: leave with as many as you can.`,
-        ],
-    },
-];
+const T = TEXT.blackjack.tutorial;
+
+// One screenshot per step, in order. A step's title and paragraphs are in shared/text.json
+// under the same name; the numbers in them come from config.ts.
+const STEPS: TutorialShot[] = ["bet", "drop", "curve", "turn", "win"];
+const NUMBERS = {
+    minBet: MIN_BET,
+    standsAt: DEALER_STANDS_AT,
+    yellows: BLACKJACK_YELLOWS,
+    hands: HANDS,
+    chips: START_CHIPS,
+};
 
 const GOLD = "#f5c451";
 const FRAME = 8; // the border around a screenshot
@@ -104,11 +72,7 @@ export default class Tutorial {
             .setRounded(28)
             .setStrokeStyle(5, COLORS.gold);
         this.frame = scene.add.rectangle(shot.x, shot.y, 1, 1, COLORS.gold);
-        this.shot = scene.add.image(
-            shot.x,
-            shot.y,
-            `tutorial-${STEPS[0].shot}`,
-        );
+        this.shot = scene.add.image(shot.x, shot.y, `tutorial-${STEPS[0]}`);
 
         this.caption = label(scene, text.x, text.y, "", 22)
             .setOrigin(0, 0.5)
@@ -129,13 +93,7 @@ export default class Tutorial {
         this.dots = STEPS.map((_, i) =>
             scene.add.circle(text.x + 12 + i * 32, controls.y, 9, COLORS.gold),
         );
-        this.skip = label(
-            scene,
-            controls.skipX,
-            controls.y,
-            "SKIP TUTORIAL",
-            24,
-        )
+        this.skip = label(scene, controls.skipX, controls.y, T.skip, 24)
             .setOrigin(0, 0.5)
             .setAlpha(0.75)
             .setInteractive({ useHandCursor: true });
@@ -146,7 +104,7 @@ export default class Tutorial {
             scene,
             controls.backX,
             controls.y,
-            "BACK",
+            T.back,
             "blue",
             () => this.show(this.step - 1),
             170,
@@ -155,7 +113,7 @@ export default class Tutorial {
             scene,
             controls.nextX,
             controls.y,
-            "NEXT",
+            T.next,
             "gold",
             () =>
                 this.step < STEPS.length - 1
@@ -201,7 +159,10 @@ export default class Tutorial {
     private show(step: number) {
         if (this.closed || step < 0 || step >= STEPS.length) return;
         this.step = step;
-        const { shot, title, text } = STEPS[step];
+        const shot = STEPS[step];
+        const { title } = T.steps[shot];
+        const text = T.steps[shot].text.map((line) => fill(line, NUMBERS));
+        const at = { step: step + 1, steps: STEPS.length };
         const last = step === STEPS.length - 1;
 
         const box = TUTORIAL.shot;
@@ -217,12 +178,12 @@ export default class Tutorial {
             this.shot.displayHeight + FRAME,
         );
 
-        this.caption.setText(`HOW TO PLAY  ·  ${step + 1} / ${STEPS.length}`);
+        this.caption.setText(fill(T.caption, at));
         this.title.setText(title);
         this.body.setText(text.join("\n\n"));
         this.dots.forEach((dot, i) => dot.setAlpha(i === step ? 1 : 0.3));
         this.back.setEnabled(step > 0);
-        this.next.setLabel(last ? "PLAY" : "NEXT");
+        this.next.setLabel(last ? T.play : T.next);
         this.skip.setVisible(!last); // PLAY closes the window as well
 
         this.scene.tweens.add({
@@ -231,7 +192,7 @@ export default class Tutorial {
             duration: 180,
         });
         this.announce(
-            `How to play, step ${step + 1} of ${STEPS.length}. ${title}. ${text.join(" ")}`,
+            fill(T.announcement, { ...at, title, text: text.join(" ") }),
         );
     }
 

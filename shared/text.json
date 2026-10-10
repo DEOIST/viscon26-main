@@ -482,6 +482,53 @@
             "settled": "{outcome} You have {chips} chips. Next hand when you're ready.",
             "gameOver": "{outcome} Game over. You finished with {chips} chips."
         },
+        "tutorial": {
+            "caption": "HOW TO PLAY  ·  {step} / {steps}",
+            "skip": "SKIP TUTORIAL",
+            "back": "BACK",
+            "next": "NEXT",
+            "play": "PLAY",
+            "announcement": "How to play, step {step} of {steps}. {title}. {text}",
+            "steps": {
+                "bet": {
+                    "title": "PLACE YOUR BET",
+                    "text": [
+                        "Click chips to build your bet, and click the pile to take one back.",
+                        "The minimum bet is {minBet}. Press DEAL when you are ready."
+                    ]
+                },
+                "drop": {
+                    "title": "CARDS DROP BEADS",
+                    "text": [
+                        "Every card drops one bead for each symbol on it: an ace drops 1, a jack, queen or king drops 10.",
+                        "The beads bounce through the pins and stack up in your board."
+                    ]
+                },
+                "curve": {
+                    "title": "STAY UNDER THE CURVE",
+                    "text": [
+                        "Beads under the curve are green. The bead the curve crosses is yellow.",
+                        "A bead above the curve is red, and one red bead busts your board: you lose your bet."
+                    ]
+                },
+                "turn": {
+                    "title": "YOUR MOVE",
+                    "text": [
+                        "HIT draws another card.",
+                        "STAND ends your turn: the dealer turns over its hidden card and draws while it has fewer than {standsAt} beads.",
+                        "DOUBLE doubles your bet for exactly one more card."
+                    ]
+                },
+                "win": {
+                    "title": "HOW TO WIN",
+                    "text": [
+                        "Finish with more beads than the dealer, or watch the dealer drop a red one.",
+                        "{yellows} yellow beads without a red one are a BLACKJACK and pay 3 to 2.",
+                        "You play {hands} hands with {chips} chips: leave with as many as you can."
+                    ]
+                }
+            }
+        },
         "dealerLines": {
             "intro": [
                 "Welcome to casino night, {name}. Watch out for the red beads.",
@@ -515,7 +562,7 @@
             ],
             "cashOut": [
                 "Leaving ahead of the house. That is rare.",
-                "Ten hands and still in profit. Respect."
+                "Last hand played and still in profit. Respect."
             ]
         }
     },
