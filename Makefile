@@ -4,9 +4,11 @@ URL ?= http://localhost:5173
 # Host port of the local backend, shared with compose.yaml: set BACKEND_PORT=8001 in the root .env
 # when 8000 is taken (e.g. by an editor's port forward to the VM). Only this key is read from .env.
 BACKEND_PORT ?= $(or $(shell sed -n 's/^BACKEND_PORT=//p' .env 2>/dev/null | tail -n 1),8000)
+# Vite's fixed dev port (server.port in frontend/vite.config.ts).
+FRONTEND_PORT := 5173
 .DEFAULT_GOAL := help
 
-.PHONY: install dev dev-db dev-frontend dev-backend build test check format prod prod-logs prod-down smoke redis ai-check help
+.PHONY: install dev dev-ports dev-db dev-frontend dev-backend build test check format prod prod-logs prod-down smoke redis ai-check help
 
 help:
 	@echo "make install     npm install + backend venv"
@@ -28,8 +30,21 @@ install:
 	$(PY)/pip install -r backend/requirements-dev.txt
 
 # Vite + backend autoreload at http://localhost:5173. Ctrl-C stops both.
-dev: dev-db
+dev: dev-ports dev-db
 	$(MAKE) -j2 dev-frontend dev-backend
+
+# Refuse to start when something already holds a dev port on 127.0.0.1. On macOS such a bind
+# wins over Vite's 0.0.0.0 one without any error, so http://localhost:5173 would silently show
+# that other app; VS Code Remote-SSH does this when it forwards the VM's ports to this laptop.
+dev-ports:
+	@for port in $(FRONTEND_PORT) $(BACKEND_PORT); do \
+		python3 -c 'import socket, sys; socket.socket().bind(("127.0.0.1", int(sys.argv[1])))' $$port 2>/dev/null || { \
+			echo "Port $$port is already in use on 127.0.0.1, so localhost:$$port would not reach this checkout."; \
+			echo "  Held by: $$(lsof -nP -iTCP:$$port -sTCP:LISTEN 2>/dev/null | awk 'NR==2{print $$1 " (pid " $$2 ")"}')"; \
+			echo "  If that is VS Code, it is forwarding a remote port (e.g. the VM's): stop it in the Ports panel."; \
+			echo "  The backend port can also move: BACKEND_PORT in the root .env."; \
+			exit 1; }; \
+	done
 
 # The backend needs Postgres for player progress (127.0.0.1:5433, its default). Start the
 # compose `db` service and wait until it is healthy; a running one is left as is. With your own
