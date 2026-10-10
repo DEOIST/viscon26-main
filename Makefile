@@ -1,6 +1,9 @@
 # Thin wrappers around the real commands — see CLAUDE.md → "Commands" for the raw versions.
 PY := backend/.venv/bin
 URL ?= http://localhost:5173
+# Host port of the local backend, shared with compose.yaml: set BACKEND_PORT=8001 in the root .env
+# when 8000 is taken (e.g. by an editor's port forward to the VM). Only this key is read from .env.
+BACKEND_PORT ?= $(or $(shell sed -n 's/^BACKEND_PORT=//p' .env 2>/dev/null | tail -n 1),8000)
 .DEFAULT_GOAL := help
 
 .PHONY: install dev dev-frontend dev-backend build test check format prod prod-logs prod-down smoke redis ai-check help
@@ -28,11 +31,12 @@ install:
 dev:
 	$(MAKE) -j2 dev-frontend dev-backend
 
+# The proxy target follows BACKEND_PORT, so Vite never talks to whatever else holds 8000.
 dev-frontend:
-	cd frontend && npm run dev
+	cd frontend && API_PROXY_TARGET=http://127.0.0.1:$(BACKEND_PORT) npm run dev
 
 dev-backend:
-	cd backend && .venv/bin/uvicorn app.main:app --reload --port 8000
+	cd backend && .venv/bin/uvicorn app.main:app --reload --port $(BACKEND_PORT)
 
 build:
 	cd frontend && npm run build
