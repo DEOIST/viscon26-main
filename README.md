@@ -264,7 +264,7 @@ flowchart LR
 
 At a booth, a login form costs players. Each browser gets a random **player UUID** in `localStorage`, and the server keys profiles, completions and graduation by it ([#27](https://github.com/DEOIST/viscon26-main/pull/27)).
 
-- **The server enforces the rules.** A year unlocks only when every game in the earlier years is complete. Placeholders can't award ECTS. Graduation needs all three years. A display name never grants access to a run.
+- **The server enforces the rules.** A year unlocks only when every game in the earlier years is complete. Placeholders can't award ECTS. Each year pays ECTS in proportion to its score (`POST …/completions/{game_id}` with `{"score": 0–100}`), and your share of the 180 ECTS picks your career. Graduation needs all three years. A display name never grants access to a run.
 - **Safe under concurrency.** Completions and graduation take a per-player row lock (`SELECT … FOR UPDATE`) and are idempotent, so double clicks and retries can't double-award ECTS.
 - **Zero-downtime migration.** An additive migration copies the earlier account records into the new tables without touching the old ones.
 - **Credit-spending guard.** The vision endpoint rejects requests whose `Origin` isn't on the allow-list, so another site can't spend our OpenAI budget through a player's browser.
@@ -342,6 +342,13 @@ make install                          # npm ci + backend/.venv
 make dev                              # Vite + backend autoreload  →  http://localhost:5173
 make check                            # tsc, prettier, vitest, ruff, pytest. Run before every push
 make smoke                            # read-only end-to-end probe of a running app
+```
+
+**On the VIScon VM:** the managed address (`https://18.hackathon.ethz.ch`) doesn't support WebSockets, so the camera stream fails there and Bug Bash falls back to the mouse. Set the team page's ingress mode to **Custom** (server port 443, protocol HTTPS), open the ports with `sudo ufw allow 80,443/tcp`, and tell the Caddy service in `compose.yaml` the VM's domain so it gets a real certificate:
+
+```bash
+echo 'SITE_ADDRESS=18-direct.viscon-hackathon.ch' >> .env   # once, next to compose.yaml
+docker compose up -d --build                                  # → https://18-direct.viscon-hackathon.ch
 ```
 
 `make dev` needs Postgres for player progress: `docker compose up -d db` starts one on `127.0.0.1:5433`, which the backend's defaults already point at (or set `DATABASE_URL`). Redis is optional in development: without `REDIS_URL` the backend uses an in-process fakeredis. `AI_MODE` defaults to `off`, so running the game never spends OpenAI credits. Set it in `backend/.env` (see [`backend/.env.example`](backend/.env.example)).

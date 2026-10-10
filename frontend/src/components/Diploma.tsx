@@ -1,11 +1,14 @@
 // The certificate presents a completed run; opening it never submits results.
+// The career comes from the earned ECTS (config.ts endingFor), the art from misc/endingArt.ts.
 import type { CSSProperties } from "react";
-import { DEPARTMENT, GAMES, YEARS } from "../config";
+import { DEPARTMENT, GAMES, YEARS, endingFor } from "../config";
 import type { Player } from "../types";
 import { Avatar } from "./Avatar";
 import { Dialog } from "./Dialogs";
 import { Icon } from "./Icon";
 import { fill, TEXT } from "../misc/text";
+import EndingPhoto from "./common/EndingPhoto";
+import { ENDING_ART } from "../misc/endingArt";
 import styles from "./Diploma.module.css";
 
 const T = TEXT.diploma;
@@ -25,6 +28,8 @@ interface DiplomaArgs {
 
 export default function Diploma(args: DiplomaArgs) {
     const completed = new Set(args.completedGameIds);
+    const ending = endingFor(args.ects);
+    const art = ENDING_ART[ending.id];
     const games = GAMES.filter((game) => completed.has(game.id));
     const years = YEARS.filter((year) =>
         year.games.every((game) => completed.has(game.id)),
@@ -68,28 +73,34 @@ export default function Diploma(args: DiplomaArgs) {
                 )}
                 <p className={styles.certificateTitle}>{T.title}</p>
                 <h2>{fill(T.congratulations, { name: args.player.name })}</h2>
-                <div className={styles.certificateHero}>
-                    <div className={styles.avatarFrame}>
+                <p>{args.preview ? T.previewCitation : T.citation}</p>
+                <p className={styles.career}>{ending.title}</p>
+                <EndingPhoto
+                    ending={ending.id}
+                    avatar={
                         <Avatar
                             character={args.player.character}
                             label={fill(TEXT.common.graduateAvatarLabel, {
                                 name: args.player.name,
                             })}
                         />
+                    }
+                />
+                <p className={styles.resultLabel}>
+                    {args.preview ? T.previewResultLabel : T.resultLabel}
+                </p>
+                <strong className={styles.result}>
+                    {fill(TEXT.common.ectsAmount, { ects: args.ects })}
+                </strong>
+                <dl className={styles.records}>
+                    <div>
+                        <dt>{T.records.salary}</dt>
+                        <dd>{art.salary}</dd>
                     </div>
                     <div>
-                        <p>{args.preview ? T.previewCitation : T.citation}</p>
-                        <p className={styles.resultLabel}>
-                            {args.preview
-                                ? T.previewResultLabel
-                                : T.resultLabel}
-                        </p>
-                        <strong className={styles.result}>
-                            {fill(TEXT.common.ectsAmount, { ects: args.ects })}
-                        </strong>
+                        <dt>{T.records.housing}</dt>
+                        <dd>{art.housing}</dd>
                     </div>
-                </div>
-                <dl className={styles.records}>
                     <div>
                         <dt>{T.records.department}</dt>
                         <dd>{DEPARTMENT}</dd>

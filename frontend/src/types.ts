@@ -18,6 +18,8 @@ export type Player = {
 };
 export type Progress = {
     completedGameIds: string[];
+    // Game id → 0–100 result. A completed game without one pays its full ECTS.
+    scores: Record<string, number>;
     graduated: boolean;
     graduatedAt?: string | null;
 };
@@ -44,6 +46,6 @@ export type MinigameProps = {
     major: string;
     ectsPoints: number;
     completedGameIds: string[];
-    onComplete: () => void;
+    onComplete: (score: number) => void; // 0–100: scales the year's ECTS
     onExit: () => void;
 };

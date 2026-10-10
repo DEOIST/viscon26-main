@@ -1,5 +1,5 @@
 {
-    "_about": "Every player-facing string in the game, grouped by screen and minigame. Edit the values, keep the keys. {name}-style placeholders are filled in by the code, \\n is a line break and **text** is bold (admission letter only).",
+    "_about": "Editable player-facing copy for the application shell, graduation, minigames and fallback story. Keep the keys and {name}-style placeholders. \\n is a line break; **text** is bold in the admission letter. Game IDs, thresholds and rewards remain in game-config.json.",
     "app": {
         "brand": "ETH SIMULATOR",
         "brandTagline": "AFTER HOURS",
@@ -11,7 +11,7 @@
         "dismissMessage": "Dismiss message",
         "syncFailed": "Leaderboard sync: {error}",
         "retrySync": "Retry sync",
-        "gameCompleted": "Minigame completed. ECTS earned. Your library chair misses you already.",
+        "gameCompleted": "Minigame completed. Your result is saved in this browser. Your library chair misses you already.",
         "placeholderNoEcts": "Placeholder previews cannot award ECTS.",
         "footerDisclaimer": "Unofficial student parody. No affiliation with or endorsement by ETH Zürich.",
         "footerTagline": "Made for the plot. And the credits."
@@ -39,7 +39,16 @@
         "offline": "Cannot reach the server. Your progress is kept in this browser. Try again when connected.",
         "invalidInput": "Please check your details and try again.",
         "serverFailed": "The server could not finish that request. Please try again.",
-        "unknown": "Something went wrong. Please try again."
+        "unknown": "Something went wrong. Please try again.",
+        "player": {
+            "notFound": "Player not found.",
+            "unknownGame": "Unknown minigame.",
+            "placeholder": "This placeholder cannot award ECTS.",
+            "onboardingRequired": "Finish onboarding before playing.",
+            "alreadyGraduated": "This run has already graduated.",
+            "previousYearsRequired": "Complete every minigame in the previous years first.",
+            "graduationRequirements": "Complete all three years first."
+        }
     },
     "welcome": {
         "eyebrow": "ADMISSIONS OPEN · FREE TIME CLOSED",
@@ -131,7 +140,7 @@
     },
     "photoAvatar": {
         "open": "Use a photo to pick my colors",
-        "instructions": "Fit your face in the oval, facing a light. Skin tone is measured on your device. A small copy of the photo is sent to OpenAI to suggest hair color, eye color, hair length, glasses and gender. This app never saves the photo.",
+        "instructions": "Fit your face in the oval, facing a light. Skin tone is measured on your device. A small copy goes to the server for hair color, eye color, hair length, glasses and gender suggestions; when AI is enabled, it may be sent to OpenAI. This app never saves the photo. You can change every suggestion below.",
         "takePhoto": "Take photo",
         "reading": "Reading your photo…",
         "cameraDenied": "Camera access was denied. Pick your colors below instead.",
@@ -194,12 +203,13 @@
         },
         "ectsGained": "+{ects} ECTS",
         "readyToGraduate": "All years complete. Your diploma is ready.",
-        "ectsRemaining": "{ects} ECTS to graduation.",
         "graduate": {
             "preview": "Preview graduation",
             "view": "View graduation",
             "graduate": "Graduate"
-        }
+        },
+        "gamesRemaining": "Minigames to graduation: {games}",
+        "availableEcts": "Up to {ects} ECTS"
     },
     "minigameHost": {
         "eyebrow": "MINIGAME",
@@ -234,14 +244,14 @@
             "graduated": "Graduated",
             "studying": "Studying"
         },
-        "footnote": "ECTS come from completed minigames. Placeholder previews award none. Ties follow run creation order. Names are chosen by players; they do not verify identity."
+        "footnote": "ECTS reflect your minigame scores. Completing all years unlocks graduation. Placeholder previews award none. Ties follow run creation order. Names are chosen by players; they do not verify identity."
     },
     "graduation": {
         "eyebrow": "DEGREE COMPLETE",
         "previewEyebrow": "GRADUATION PREVIEW",
         "title": "You did it, {name}.",
         "previewTitle": "Your graduation preview, {name}.",
-        "lead": "Officially done. Unofficially legendary.",
+        "lead": "Officially done. Next stop: {ending}.",
         "previewLead": "Take a peek at the finish line.",
         "ectsEarned": "{ects} ECTS earned",
         "copy": "Your degree and progress are staying right here. Your next deadline can wait a moment.",
@@ -256,11 +266,14 @@
         "brand": "ETH AFTER HOURS",
         "title": "Diploma of determined survival",
         "congratulations": "Congratulations, {name}!",
-        "citation": "Awarded for an impressive commitment to the degree, the deadlines, and the plot.",
-        "previewCitation": "A preview of the diploma awaiting your completed degree.",
+        "citation": "Awarded for your commitment to the degree, the deadlines and the plot. Your next chapter begins as",
+        "previewCitation": "A preview of the diploma awaiting your completed degree. Your current results suggest a next chapter as",
         "resultLabel": "Final result · Total earned ECTS",
         "previewResultLabel": "Current result · Total earned ECTS",
         "records": {
+            "salary": "Starting salary",
+            "housing": "Housing",
+            "finalAverage": "Final average",
             "department": "Department",
             "graduationDate": "Graduation date",
             "completedYears": "Completed years",
@@ -356,6 +369,43 @@
             "permissionDenied": "camera permission was denied",
             "notFound": "no camera was found",
             "inUse": "the camera is in use by another app"
+        },
+        "backdrop": {
+            "workspace": "WORKSPACE",
+            "projectFolder": "⌄  bug-bash",
+            "sourceFolder": "⌄ src",
+            "mainFile": "main.ts",
+            "bugsFile": "bugs.ts",
+            "releaseFile": "release.ts",
+            "testsFolder": "› tests",
+            "packageFile": "package.json",
+            "typeScript": "TS",
+            "breadcrumb": "src  /  main.ts  /  shipRelease",
+            "terminal": "TERMINAL",
+            "output": "OUTPUT",
+            "watching": "› watching workspace for changes",
+            "initialLine": "line 1",
+            "lineProgress": "line {line}   →",
+            "statusLeft": "main  ·  TypeScript",
+            "statusRight": "UTF-8     LF     TS",
+            "code": {
+                "focusComment": "// a little focus. a little less chaos.",
+                "importWorkspace": "import { build, deploy } from './workspace';",
+                "openFunction": "export async function shipRelease() {",
+                "openProject": "  const project = await workspace.open();",
+                "buildRelease": "  const release = build(project);",
+                "removeComment": "  // remove anything that shouldn't be here",
+                "iterateBugs": "  for (const bug of release.bugs) {",
+                "removeBug": "    await bug.remove();",
+                "closeBlock": "  }",
+                "validateRelease": "  const checks = await release.validate();",
+                "ifPassed": "  if (checks.passed) {",
+                "protectCode": "    protect(release.workingCode);",
+                "deployRelease": "    await deploy(release);",
+                "returnStatus": "  return { status: 'ready to ship' };",
+                "closeFunction": "}",
+                "progressComment": "// keep going. you're making progress."
+            }
         }
     },
     "blackjack": {
@@ -654,5 +704,156 @@
                 "The committee will now deliberate. Over coffee."
             ]
         }
+    },
+    "endings": {
+        "quant": {
+            "title": "Quant researcher in Zug",
+            "epilogue": "{name} took {department} to a hedge fund in Zug and now predicts markets with the same calm once reserved for casino night's probability curves. The models are stochastic, the bonus is not, and the blackboard has not been wiped since 2026.",
+            "alt": "A researcher filling a giant blackboard with formulas",
+            "stamp": "Summa cum laude",
+            "caption": "Casino-night number skills found a new home on a very large blackboard.",
+            "salary": "CHF 400k + a bonus nobody can explain",
+            "housing": "A sunny flat in Zug, with room for a blackboard"
+        },
+        "phd": {
+            "title": "PhD student at ETH, year 7",
+            "epilogue": "{name} stayed in {department} for a PhD. It is year seven, the supervisor wants \"one more paper\", the coffee machine knows {name} by name, and the thesis is \"basically done\". The doctoral hat is already being glued together from pizza boxes.",
+            "alt": "A grinning graduate wearing a doctoral hat built from pizza boxes",
+            "stamp": "Magna cum laude",
+            "caption": "Your doctoral hat is 80 % pizza box. Your thesis is 80 % done. Since 2029.",
+            "salary": "CHF 47k and unlimited Mensa coffee",
+            "housing": "A WG room with space for one more book"
+        },
+        "masters": {
+            "title": "Master's student at ETH (again)",
+            "epilogue": "{name} finished the bachelor in {department} and walked straight back up the steps of the main building for a Master's. Same lecture halls, same Mensa queue, new excuse: \"the job market will be better in two years\".",
+            "alt": "Two students walking down the steps of the ETH main building",
+            "stamp": "Cum laude",
+            "caption": "You left the main building for 4 minutes, then enrolled for a Master's.",
+            "salary": "Negative (semester fees)",
+            "housing": "Same WG, same broken dishwasher"
+        },
+        "mcdonalds": {
+            "title": "Fast-food crew at Zürich HB",
+            "epilogue": "{name} graduated in {department} and now runs the fastest fryer at a burger place in Zürich HB. The throughput is legendary, and the diploma hangs proudly next to the order screen.",
+            "alt": "A cat in a fast-food uniform and headset serving a burger",
+            "stamp": "With extra fries",
+            "caption": "Your new manager is a cat. It is still more organised than your study group.",
+            "salary": "CHF 24/h + all the fries you can carry",
+            "housing": "A short commute from Zürich HB"
+        },
+        "homeless": {
+            "title": "Still flat-hunting in Zürich",
+            "epilogue": "{name} graduated in {department} and joined the famous Zürich flat hunt: a long list of applications, a spreadsheet of viewings and a friend's sofa for now. The next chapter is still being written.",
+            "alt": "A person crouching against a wall, holding up a cardboard sign that says HELP",
+            "stamp": "Next chapter loading",
+            "caption": "The Zürich housing search takes patience. Your next chapter is still being written.",
+            "salary": "A fresh start in progress",
+            "housing": "Waiting list position 4,127"
+        }
+    },
+    "story": {
+        "advisorByStage": [
+            [
+                "Welcome to ETH, {name}! I'm Dr. Gradient, your study advisor.",
+                "{department} is a fine choice. Bring your curiosity.",
+                "Two challenges stand between you and a diploma. Pick one."
+            ],
+            [
+                "One down, {name}. The Polyterrasse is proud of you.",
+                "Don't get comfortable: the second challenge is waiting.",
+                "Remember to take care of yourself between challenges."
+            ],
+            [
+                "{name}, you survived both challenges. I'm almost impressed.",
+                "The rector is already warming up the microphone.",
+                "Go and graduate before anyone checks your grades."
+            ]
+        ],
+        "blackjack": {
+            "intro": [
+                "Welcome to casino night, {name}. Play chips only, so relax.",
+                "Place your bets. The curve is watching."
+            ],
+            "deal": [
+                "Cards are out. Try to look confident.",
+                "Fresh cards, fresh chances."
+            ],
+            "playerBlackjack": [
+                "Blackjack! Somebody tell the Mensa, {name} is buying.",
+                "Three yellow beads. Even the dealer is impressed."
+            ],
+            "playerBust": [
+                "Bust. Shake it off and go again.",
+                "Over the curve, like your weekly lecture hours."
+            ],
+            "dealerBust": [
+                "I busted. Don't tell my professor.",
+                "Dealer busts. Enjoy it."
+            ],
+            "win": [
+                "You win this round. {department} would be proud.",
+                "A win! Your chip stack grows."
+            ],
+            "lose": [
+                "The house wins. The house always wins.",
+                "That hurt, like a Basisprüfung."
+            ],
+            "push": [
+                "A push. Nobody wins, like group projects.",
+                "A tie. Perfectly pointless."
+            ],
+            "broke": [
+                "Out of play chips, {name}. A good moment for a break.",
+                "The chips are gone, but the next round is a fresh start."
+            ],
+            "cashOut": [
+                "Cashing out? Smartest move all semester.",
+                "Leaving while ahead. That should be worth ECTS."
+            ]
+        },
+        "shooter": {
+            "intro": [
+                "Bug Bash time, {name}. Pinch the bugs, throw them out, and keep the code working!",
+                "Open hand ready? Swipe or slide to save the code."
+            ],
+            "streak": [
+                "What a streak! The bug tracker is worried.",
+                "Clean code! Keep that streak alive."
+            ],
+            "miss": [
+                "That bug escaped. It has opened a follow-up ticket.",
+                "Missed. The code could use a saving hand."
+            ],
+            "halfway": [
+                "Halfway to shipping. Keep those bugs moving.",
+                "Half done. Save the code and dodge the interruptions."
+            ],
+            "boss": [
+                "Final release push. The bugs are getting ambitious.",
+                "One last debugging sprint. Don't let the code burn."
+            ],
+            "end": [
+                "Build complete! You may put your hands down.",
+                "Shift over, {name}. The bug tracker says 'mostly fixed'."
+            ]
+        }
+    },
+    "legacyGraduation": {
+        "label": "Your diploma",
+        "brand": "ETH Life · Diploma of determined survival",
+        "certifies": "This certifies that",
+        "citation": "of {department} completed {ects} ECTS and is ready for a next chapter as",
+        "sameFate": "{percent}% of graduates share this outcome.",
+        "disclaimer": "Unofficial game diploma. No affiliation with or endorsement by ETH Zürich. This is not an academic qualification.",
+        "saveFailed": "Your diploma could not be saved. Please try again.",
+        "nextChapter": "YOUR NEXT CHAPTER",
+        "closing": "You may now close those 47 browser tabs.",
+        "playAgain": "Play again",
+        "waiting": "Your diploma is waiting.",
+        "ready": "The rector approaches the podium…",
+        "incomplete": "Complete every minigame before claiming your diploma.",
+        "open": "Open your diploma",
+        "returnToCampus": "Return to campus"
     }
 }

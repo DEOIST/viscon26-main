@@ -114,6 +114,7 @@ export const api = {
                             progress = await request<Progress>(
                                 `${playerPath()}/completions/${encodeURIComponent(game.id)}`,
                                 "POST",
+                                { score: snapshot.progress.scores[game.id] },
                             );
                         }
                     }

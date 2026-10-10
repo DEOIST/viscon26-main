@@ -6,71 +6,14 @@ are the only placeholders; names can't contain braces (schemas.CharacterName).
 
 from app.prompts import DEPARTMENT_NAMES, DIALOGUE_EVENTS
 from app.schemas import DialogueScene, EndingId, Run
+from app.text import TEXT
 from level2 import dialogue as level2_dialogue
 
-# The advisor's three lines depend on how many minigames are finished.
-_ADVISOR_BY_STAGE: tuple[tuple[str, ...], ...] = (
-    (
-        "Welcome to ETH, {name}! I'm Dr. Gradient, your study advisor.",
-        "{department} is a fine choice. Mostly.",
-        "Two challenges stand between you and a diploma. Pick one.",
-    ),
-    (
-        "One down, {name}. The Polyterrasse is proud of you.",
-        "Don't get comfortable: the second challenge is waiting.",
-        "Remember: sleep is optional, ECTS are not.",
-    ),
-    (
-        "{name}, you survived both challenges. I'm almost impressed.",
-        "The rector is already warming up the microphone.",
-        "Go and graduate before anyone checks your grades.",
-    ),
-)
-
-_SCENE_LINES: dict[DialogueScene, dict[str, tuple[str, ...]]] = {
-    "blackjack": level2_dialogue.FALLBACK_LINES,  # level 2 (backend/level2/)
-    "shooter": {
-        "intro": (
-            "Basisprüfung time, {name}. Questions incoming. Shoot them down!",
-            "Finger gun ready? The exam won't wait.",
-        ),
-        "streak": ("What a streak! The professors are worried.", "On fire! Open a window."),
-        "miss": ("Missed. That question will haunt you.", "Aim for the paper, not the ceiling."),
-        "halfway": ("Halfway there. Keep that finger steady.", "Half done. The hard half is next."),
-        "boss": ("Here comes Analysis I. Good luck.", "The final boss of first year. Don't blink."),
-        "end": (
-            "Pens down! The exam is over.",
-            "Time's up, {name}. Results in six to eight weeks.",
-        ),
-    },
-}
-
-_EPILOGUES: dict[EndingId, str] = {
-    "c_level": (
-        "{name} left {department} and became a C-level executive within a year. {name} now "
-        'flies to Davos, says "synergy" without irony and calls the casino night "strategic '
-        'risk management". ETH sends its regards, and a donation request.'
-    ),
-    "big_tech": (
-        "{name} took {department} straight to a big-tech office in Zürich: free lunch, a nap "
-        "pod and three reorganisations per quarter. {name} still dreams of the Basisprüfung, but "
-        "now gets paid to attend meetings about meetings."
-    ),
-    "phd": (
-        "{name} stayed in {department} for a PhD. It is year seven, the supervisor wants "
-        '"one more paper", the coffee machine knows {name} by name, and the thesis is '
-        '"basically done".'
-    ),
-    "mcdonalds": (
-        "{name} graduated in {department} and now runs the fastest fryer at the McDonald's at "
-        "Zürich HB. The throughput is legendary, and the diploma hangs proudly next to the "
-        "ice-cream machine that never works."
-    ),
-    "unemployed": (
-        "{name} graduated in {department} and is still looking for a job, and for a flat. The "
-        'six-person WG is cozy, the CV is long, and the LinkedIn headline says "open to '
-        'opportunities". Any day now.'
-    ),
+# Advisor stages and scene event keys remain the same; only copy lives in the shared catalog.
+_ADVISOR_BY_STAGE = TEXT["story"]["advisorByStage"]
+_SCENE_LINES = {
+    "blackjack": level2_dialogue.FALLBACK_LINES,
+    "shooter": TEXT["story"]["shooter"],
 }
 
 
@@ -86,8 +29,8 @@ def dialogue_lines(run: Run, scene: DialogueScene) -> dict[str, list[str]]:
 
 
 def epilogue_text(run: Run) -> str:
-    ending_id: EndingId = run.ending.id if run.ending else "unemployed"
-    return _fill(_EPILOGUES[ending_id], run)
+    ending_id: EndingId = run.ending.id if run.ending else "homeless"
+    return _fill(TEXT["endings"][ending_id]["epilogue"], run)
 
 
 def _fill(template: str, run: Run) -> str:

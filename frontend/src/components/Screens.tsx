@@ -3,6 +3,7 @@ import {
     COLORS,
     DEPARTMENT,
     departmentLabel,
+    endingFor,
     TOTAL_ECTS,
     YEARS,
 } from "../config";
@@ -601,7 +602,11 @@ export function GraduationScreen(args: GraduationScreenArgs) {
                     })}
                 </h1>
                 <p className={diplomaStyles.lead}>
-                    {args.preview ? text.previewLead : text.lead}
+                    {args.preview
+                        ? text.previewLead
+                        : fill(text.lead, {
+                              ending: endingFor(args.ects).title,
+                          })}
                 </p>
                 <p>
                     {departmentLabel(args.player.major)}{" "}

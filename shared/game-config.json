@@ -2,6 +2,33 @@
     "version": 1,
     "major": "Computer Science",
     "totalEcts": 180,
+    "endings": [
+        {
+            "id": "quant",
+            "minPercent": 85,
+            "title": "Quant researcher in Zug"
+        },
+        {
+            "id": "phd",
+            "minPercent": 65,
+            "title": "PhD student at ETH, year 7"
+        },
+        {
+            "id": "masters",
+            "minPercent": 45,
+            "title": "Master's student at ETH (again)"
+        },
+        {
+            "id": "mcdonalds",
+            "minPercent": 25,
+            "title": "Fast-food crew at Zürich HB"
+        },
+        {
+            "id": "homeless",
+            "minPercent": 0,
+            "title": "Still flat-hunting in Zürich"
+        }
+    ],
     "colors": {
         "hair": [
             {
@@ -70,14 +97,14 @@
         {
             "id": "blackjack",
             "title": "Casino night",
-            "description": "Bet your semester stipend at blackjack.",
+            "description": "Try your luck at blackjack with play chips.",
             "ects": 90,
             "implemented": true
         },
         {
             "id": "shooter",
             "title": "Bug Bash",
-            "description": "Throw bugs out of your IDE. Slap to save working code and swat interruptions.",
+            "description": "Throw bugs out of your IDE. Swipe to save working code and wave off interruptions.",
             "ects": 90,
             "implemented": true
         }

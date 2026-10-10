@@ -1,34 +1,36 @@
 // A restrained editor backdrop: scrolling syntax-colored code, quiet chrome and a minimap.
 import { GAME_HEIGHT, GAME_WIDTH } from "./gameSize";
+import { fill, TEXT } from "../src/misc/text";
 import type { GameObjects, Scene } from "phaser";
 
+const T = TEXT.shooter.backdrop;
 const CALM = 0x648fc6;
 const HOT = 0xa48bbf;
 const ALARM = 0xd97278;
 const ROW_HEIGHT = 31;
 const CODE: [string, string][] = [
-    ["// a little focus. a little less chaos.", "#667b75"],
-    ["import { build, deploy } from './workspace';", "#a590c2"],
+    [T.code.focusComment, "#667b75"],
+    [T.code.importWorkspace, "#a590c2"],
     ["", "#8994a6"],
-    ["export async function shipRelease() {", "#8faecc"],
-    ["  const project = await workspace.open();", "#adb6c5"],
-    ["  const release = build(project);", "#adb6c5"],
+    [T.code.openFunction, "#8faecc"],
+    [T.code.openProject, "#adb6c5"],
+    [T.code.buildRelease, "#adb6c5"],
     ["", "#8994a6"],
-    ["  // remove anything that shouldn't be here", "#667b75"],
-    ["  for (const bug of release.bugs) {", "#a590c2"],
-    ["    await bug.remove();", "#b6a886"],
-    ["  }", "#8994a6"],
+    [T.code.removeComment, "#667b75"],
+    [T.code.iterateBugs, "#a590c2"],
+    [T.code.removeBug, "#b6a886"],
+    [T.code.closeBlock, "#8994a6"],
     ["", "#8994a6"],
-    ["  const checks = await release.validate();", "#adb6c5"],
-    ["  if (checks.passed) {", "#a590c2"],
-    ["    protect(release.workingCode);", "#8ba99b"],
-    ["    await deploy(release);", "#8faecc"],
-    ["  }", "#8994a6"],
+    [T.code.validateRelease, "#adb6c5"],
+    [T.code.ifPassed, "#a590c2"],
+    [T.code.protectCode, "#8ba99b"],
+    [T.code.deployRelease, "#8faecc"],
+    [T.code.closeBlock, "#8994a6"],
     ["", "#8994a6"],
-    ["  return { status: 'ready to ship' };", "#b6a886"],
-    ["}", "#8994a6"],
+    [T.code.returnStatus, "#b6a886"],
+    [T.code.closeFunction, "#8994a6"],
     ["", "#8994a6"],
-    ["// keep going. you're making progress.", "#667b75"],
+    [T.code.progressComment, "#667b75"],
 ];
 
 export interface Mood {
@@ -65,18 +67,18 @@ export default class Backdrop {
                 })
                 .setDepth(-19);
         // The game's title occupies the top bar; keep the editor chrome below it.
-        label(26, 66, "WORKSPACE", 11, "#69788f");
-        label(26, 115, "⌄  bug-bash", 13, "#a7b2c3");
-        label(39, 156, "⌄ src", 12, "#7e8ba1");
-        label(54, 191, "main.ts", 12, "#b1c0d3");
-        label(54, 222, "bugs.ts", 12, "#718198");
-        label(54, 253, "release.ts", 12, "#718198");
-        label(39, 296, "› tests", 12, "#718198");
-        label(39, 331, "package.json", 12, "#718198");
-        label(215, 64, "TS", 12, "#79a1cc");
-        label(244, 64, "main.ts", 13, "#c3cbd8");
-        label(362, 64, "bugs.ts", 13, "#647189");
-        label(213, 97, "src  /  main.ts  /  shipRelease", 11, "#55647b");
+        label(26, 66, T.workspace, 11, "#69788f");
+        label(26, 115, T.projectFolder, 13, "#a7b2c3");
+        label(39, 156, T.sourceFolder, 12, "#7e8ba1");
+        label(54, 191, T.mainFile, 12, "#b1c0d3");
+        label(54, 222, T.bugsFile, 12, "#718198");
+        label(54, 253, T.releaseFile, 12, "#718198");
+        label(39, 296, T.testsFolder, 12, "#718198");
+        label(39, 331, T.packageFile, 12, "#718198");
+        label(215, 64, T.typeScript, 12, "#79a1cc");
+        label(244, 64, T.mainFile, 13, "#c3cbd8");
+        label(362, 64, T.bugsFile, 13, "#647189");
+        label(213, 97, T.breadcrumb, 11, "#55647b");
         const clip = scene.make.graphics({ x: 0, y: 0 });
         clip.fillStyle(0xffffff).fillRect(195, 121, 950, 445);
         const mask = clip.createGeometryMask();
@@ -91,18 +93,12 @@ export default class Backdrop {
             mask.destroy();
             clip.destroy();
         });
-        label(214, 590, "TERMINAL", 10, "#8293aa");
-        label(310, 590, "OUTPUT", 10, "#46576f");
-        label(214, 620, "› watching workspace for changes", 12, "#6d9684");
-        this.progress = label(968, 591, "line 1", 11, "#62758e");
-        label(21, GAME_HEIGHT - 20, "main  ·  TypeScript", 10, "#8a9cb2");
-        label(
-            GAME_WIDTH - 188,
-            GAME_HEIGHT - 20,
-            "UTF-8     LF     TS",
-            10,
-            "#667c97",
-        );
+        label(214, 590, T.terminal, 10, "#8293aa");
+        label(310, 590, T.output, 10, "#46576f");
+        label(214, 620, T.watching, 12, "#6d9684");
+        this.progress = label(968, 591, T.initialLine, 11, "#62758e");
+        label(21, GAME_HEIGHT - 20, T.statusLeft, 10, "#8a9cb2");
+        label(GAME_WIDTH - 188, GAME_HEIGHT - 20, T.statusRight, 10, "#667c97");
     }
 
     pulse(_x: number, _y: number, color: number, strength: number) {
@@ -128,7 +124,7 @@ export default class Backdrop {
                 .setPosition(234, y)
                 .setAlpha(0.7);
         });
-        this.progress.setText(`line ${line + 1}   →`);
+        this.progress.setText(fill(T.lineProgress, { line: line + 1 }));
         const g = this.graphics;
         g.clear();
         g.fillStyle(0x0c111b).fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);

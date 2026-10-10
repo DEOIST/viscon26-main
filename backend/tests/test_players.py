@@ -178,6 +178,7 @@ def test_no_account_cookie_or_registration_is_needed(client):
     assert result["id"] == path.rsplit("/", 1)[1]
     assert result["progress"] == {
         "completedGameIds": [],
+        "scores": {},
         "graduated": False,
         "graduatedAt": None,
         "ects": 0,
@@ -454,3 +455,52 @@ def test_legacy_migration_preserves_records_and_allows_anonymous_inserts(client)
     with database.engine.connect() as connection:
         for table in metadata.tables.values():
             assert connection.execute(select(table)).all() == original[table.name]
+
+
+def test_scores_scale_the_ects_and_finishing_every_year_graduates(client, connected_games):
+    path = player_path()
+    profile(client, path)
+
+    def complete(game: str, score: int):
+        return client.post(f"{path}/completions/{game}", json={"score": score})
+
+    assert complete("year-1-slot", 50).json()["ects"] == 30
+    # 60 ECTS × 33 % = 19.8, rounded half up.
+    assert complete("year-2-slot", 33).json()["ects"] == 50
+    progress = complete("year-3-slot", 0).json()
+    assert progress["ects"] == 50
+    assert progress["scores"] == {"year-1-slot": 50, "year-2-slot": 33, "year-3-slot": 0}
+    # The first result counts: a replay cannot buy back credits.
+    assert complete("year-1-slot", 100).json()["ects"] == 50
+    graduated = client.post(f"{path}/graduation")
+    assert graduated.status_code == 200
+    assert graduated.json()["graduated"] is True
+    assert graduated.json()["ects"] == 50
+    assert client.get("/api/scoreboard").json()[0]["ects"] == 50
+
+
+def test_scores_outside_0_to_100_are_rejected(client, connected_games):
+    path = player_path()
+    profile(client, path)
+    for score in (-1, 101, 50.5, "high"):
+        response = client.post(f"{path}/completions/year-1-slot", json={"score": score})
+        assert response.status_code == 422
+    assert client.get(path).json()["progress"]["completedGameIds"] == []
+
+
+def test_older_databases_gain_the_score_column_once(monkeypatch):
+    engine = create_engine("sqlite://", poolclass=StaticPool)
+    Table(
+        "player_completions",
+        MetaData(),
+        Column("id", Integer, primary_key=True),
+        Column("player_id", Integer),
+        Column("game_id", String(80)),
+        Column("completed_at", DateTime(timezone=True)),
+    ).create(engine)
+    monkeypatch.setattr(database, "engine", engine)
+    database.add_completion_scores()
+    database.add_completion_scores()
+    columns = [column["name"] for column in inspect(engine).get_columns("player_completions")]
+    assert columns.count("score") == 1
+    engine.dispose()

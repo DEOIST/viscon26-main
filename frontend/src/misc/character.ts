@@ -2,6 +2,7 @@
 // labels and perk texts are presentation and live here. Keep in sync with docs/GAME_DESIGN.md.
 
 import type { DepartmentId, EndingId, GameId, Pronouns } from "./CommonInt";
+import { TEXT } from "./text";
 
 export const DEPARTMENTS: Record<DepartmentId, string> = {
     arch: "Architecture (D-ARCH)",
@@ -32,19 +33,15 @@ export const GAME_IDS: GameId[] = ["blackjack", "shooter"];
 export const GAMES: Record<GameId, { title: string; tagline: string }> = {
     blackjack: {
         title: "Casino night",
-        tagline: "Bet your semester stipend at blackjack.",
+        tagline: "Try your luck at blackjack with play chips.",
     },
     shooter: {
         title: "Bug Bash",
         tagline:
-            "Throw bugs out of your IDE. Slap to save working code and swat interruptions.",
+            "Throw bugs out of your IDE. Swipe to save working code and wave off interruptions.",
     },
 };
 
-export const ENDING_TITLES: Record<EndingId, string> = {
-    c_level: "C-level executive",
-    big_tech: "Big-tech engineer in Zürich",
-    phd: "Eternal PhD student",
-    mcdonalds: "McDonald's at Zürich HB",
-    unemployed: "Unemployed in a 6-person WG",
-};
+export const ENDING_TITLES: Record<EndingId, string> = Object.fromEntries(
+    Object.entries(TEXT.endings).map(([id, ending]) => [id, ending.title]),
+) as Record<EndingId, string>;

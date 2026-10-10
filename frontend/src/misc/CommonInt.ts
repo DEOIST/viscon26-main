@@ -18,8 +18,7 @@ export interface HealthStatus {
 // --- runs ---
 
 export type GameId = "blackjack" | "shooter";
-export type EndingId =
-    "c_level" | "big_tech" | "phd" | "mcdonalds" | "unemployed";
+export type EndingId = "quant" | "phd" | "masters" | "mcdonalds" | "homeless";
 export type Pronouns = "she" | "he" | "they";
 export type DepartmentId =
     | "arch"
@@ -109,6 +108,7 @@ export interface PublicConfig {
 
 export interface ShellProgress {
     completedGameIds: string[];
+    scores: Record<string, number>; // only completions that have a score
     graduated: boolean;
     graduatedAt: string | null;
     ects: number;

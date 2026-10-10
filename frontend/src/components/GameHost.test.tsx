@@ -27,7 +27,7 @@ it("retries a failed save without requiring a finished game to call back twice",
             <button
                 onClick={() => {
                     setFinished(true);
-                    args.onComplete();
+                    args.onComplete(80);
                 }}
             >
                 Finish round

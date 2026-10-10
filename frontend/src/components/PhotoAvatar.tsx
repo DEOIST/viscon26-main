@@ -170,12 +170,18 @@ export function PhotoAvatar({
                     {detected.aiUnavailable
                         ? T.aiUnavailable
                         : fill(T.result, {
-                              glasses: detected.glasses ?? T.noGlasses,
+                              glasses: detected.glasses
+                                  ? TEXT.characterBuilder.glasses.options[
+                                        detected.glasses
+                                    ]
+                                  : T.noGlasses,
                               gender:
                                   detected.gender === "unclear" ||
                                   !detected.gender
                                       ? T.genderUnclear
-                                      : detected.gender,
+                                      : TEXT.characterBuilder.gender.options[
+                                            detected.gender
+                                        ],
                           })}
                 </p>
             )}

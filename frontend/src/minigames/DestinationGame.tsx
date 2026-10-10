@@ -72,7 +72,7 @@ export default function DestinationGame(args: MinigameProps) {
                         GAMES.find((game) => game.id === args.gameId)
                             ?.implemented
                     )
-                        callbacks.current.onComplete();
+                        callbacks.current.onComplete(result.score);
                     else callbacks.current.onExit();
                 },
                 onExit() {

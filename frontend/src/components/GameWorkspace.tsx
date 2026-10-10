@@ -36,7 +36,7 @@ interface GameWorkspaceArgs {
     selectedGame: Game | null;
     completionFeedback?: CompletionFeedback | null;
     onOpen(game: Game): void;
-    onComplete(): void;
+    onComplete(score?: number): void; // no score: retry saving
     onExit(): void;
     onGraduate(): void;
     onScoreboard(): void;
@@ -385,7 +385,7 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                         </div>
                         <div className={styles.gameMeta}>
                             <span className={styles.reward}>
-                                {fill(TEXT.common.ectsAmount, {
+                                {fill(T.availableEcts, {
                                     ects: game.ects,
                                 })}
                             </span>
@@ -512,8 +512,13 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                             ? args.error
                             : args.eligible
                               ? T.readyToGraduate
-                              : fill(T.ectsRemaining, {
-                                    ects: TOTAL_ECTS - args.ects,
+                              : fill(T.gamesRemaining, {
+                                    games: GAMES.filter(
+                                        (game) =>
+                                            !args.progress.completedGameIds.includes(
+                                                game.id,
+                                            ),
+                                    ).length,
                                 })}
                     </p>
                     <button

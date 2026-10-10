@@ -114,7 +114,7 @@ def test_graduating_fixes_total_and_ending(graduated_run: Callable[..., dict]):
     run = graduated_run(blackjack=90, shooter=81)  # mean 85.5 rounds half up to 86
 
     assert run["totalScore"] == 86
-    assert run["ending"] == {"id": "c_level", "title": "C-level executive"}
+    assert run["ending"] == {"id": "quant", "title": "Quant researcher in Zug"}
     assert run["graduatedAt"] is not None
 
 
@@ -129,7 +129,7 @@ def test_graduating_twice_returns_the_same_run_and_counts_once(
     assert again.json() == run
     stats = client.get("/api/leaderboard/endings").json()
     assert stats["total"] == 1
-    assert stats["counts"]["phd"] == 1
+    assert stats["counts"]["masters"] == 1
 
 
 def test_scores_are_locked_after_graduation(client: TestClient, graduated_run: Callable[..., dict]):

@@ -8,6 +8,7 @@ import {
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { GAMES, YEARS } from "../config";
 import { defaultPlayer } from "../store";
+import { TEXT } from "../misc/text";
 import { GraduationScreen } from "./Screens";
 
 beforeEach(() => {
@@ -193,4 +194,22 @@ it("labels a preview clearly and uses current progress without recording graduat
     fireEvent.click(screen.getByRole("button", { name: "View diploma" }));
     expect(args.onRetry).not.toHaveBeenCalled();
     expect(args.onReturn).not.toHaveBeenCalled();
+});
+
+it("names the career that the earned ECTS buy, with its photo and jokes", () => {
+    const args = graduationArgs(); // 120 of 180 ECTS = 66 %: the PhD tier
+    render(<GraduationScreen {...args} />);
+    const diploma = within(screen.getByRole("dialog"));
+    const phd = TEXT.endings.phd;
+    expect(diploma.getByText(phd.title)).toBeTruthy();
+    expect(diploma.getByText(phd.stamp)).toBeTruthy();
+    expect(diploma.getByText(phd.housing)).toBeTruthy();
+    expect(diploma.getByRole("img", { name: phd.alt })).toBeTruthy();
+    cleanup();
+    render(<GraduationScreen {...args} ects={30} />); // 16 %: the lowest tier
+    expect(
+        within(screen.getByRole("dialog")).getByText(
+            TEXT.endings.homeless.title,
+        ),
+    ).toBeTruthy();
 });

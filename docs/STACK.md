@@ -62,7 +62,7 @@ ARCHITECTURE.md → Deployment).
 | `pytest-socket>=0.8` | `backend/requirements-dev.txt` | must | Blocks the network in tests: credit safety |
 | `vitest@^5` | frontend devDependencies | should | Pure logic tests. Adding it to CI changes `ci.yml`, which needs an explicit OK |
 | `motion@^14` | frontend dependencies | could | Ending reveal and page transitions |
-| `canvas-confetti@^1.9` | frontend dependencies | could | Confetti for the C-level ending |
+| `canvas-confetti@^1.9` | frontend dependencies | could | Confetti for the quant ending |
 
 Follow "Add a dependency" in [CLAUDE.md](../CLAUDE.md): tell the team, commit the lockfile.
 
