@@ -9,7 +9,6 @@ export const DEFAULT_CHARACTER: Character = {
     name: "",
     pronouns: "they",
     department: "infk",
-    archetype: "nerd",
     avatar: "a1",
     hairColor: COLORS.hair[1].value,
     skinColor: COLORS.skin[1].value,

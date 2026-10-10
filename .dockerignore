@@ -2,6 +2,9 @@
 .git
 .DS_Store
 *.md
+.local
+.local-conflict-resolution
+**/.local
 
 **/node_modules
 frontend/dist

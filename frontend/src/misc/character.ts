@@ -1,13 +1,7 @@
 // Display data for characters, games and endings. The ids are the contract (CommonInt.ts); the
 // labels and perk texts are presentation and live here. Keep in sync with docs/GAME_DESIGN.md.
 
-import type {
-    ArchetypeId,
-    DepartmentId,
-    EndingId,
-    GameId,
-    Pronouns,
-} from "./CommonInt";
+import type { DepartmentId, EndingId, GameId, Pronouns } from "./CommonInt";
 
 export const DEPARTMENTS: Record<DepartmentId, string> = {
     arch: "Architecture (D-ARCH)",
@@ -27,20 +21,6 @@ export const DEPARTMENTS: Record<DepartmentId, string> = {
     phys: "Physics (D-PHYS)",
     usys: "Environmental Systems Science (D-USYS)",
 };
-
-export const ARCHETYPES: Record<ArchetypeId, { label: string; perk: string }> =
-    {
-        nerd: { label: "Nerd", perk: "Blackjack: a card-counting hint" },
-        risk_taker: {
-            label: "Risk-taker",
-            perk: "Blackjack: start with 1 200 CHF",
-        },
-        gamer: { label: "Gamer", perk: "Shooter: targets 15 % larger" },
-        athlete: {
-            label: "ASVZ athlete",
-            perk: "Shooter: trigger re-arms 30 % faster",
-        },
-    };
 
 export const PRONOUN_OPTIONS: Pronouns[] = ["she", "he", "they"];
 

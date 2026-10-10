@@ -44,7 +44,7 @@ export interface Character {
     name: string; // 1â€“20 chars: letters (accents allowed), digits, space, . ' _ -
     pronouns: Pronouns;
     department: DepartmentId;
-    archetype: ArchetypeId;
+    archetype?: ArchetypeId | null; // Compatibility with existing saved runs only.
     avatar: string; // preset id "a1"â€¦"a8" (misc/character.ts)
     hairColor: string;
     skinColor: string;

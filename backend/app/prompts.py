@@ -120,7 +120,7 @@ def _player_data(run: Run) -> str:
             "name": character.name,
             "pronouns": character.pronouns,
             "department": DEPARTMENT_NAMES[character.department],
-            "archetype": ARCHETYPE_NAMES[character.archetype],
+            **({"archetype": ARCHETYPE_NAMES[character.archetype]} if character.archetype else {}),
             "scores": run.scores,
             "totalScore": run.total_score,
             "career": run.ending.title if run.ending else None,

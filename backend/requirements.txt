@@ -4,3 +4,6 @@ pydantic>=2.13,<3
 pydantic-settings>=2.15,<3
 redis>=8.1
 openai>=3.27
+SQLAlchemy>=2.0.43,<3
+psycopg[binary]>=3.2.9,<4
+pwdlib[argon2]>=0.2.1,<1
