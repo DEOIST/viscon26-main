@@ -8,6 +8,7 @@ import GameWorkspace, {
     type CompletionFeedback,
 } from "./components/GameWorkspace";
 import AdmissionFlow from "./components/AdmissionFlow";
+import { prefetchDialogue } from "./minigames/dialogue";
 import {
     completeGame,
     calculateEcts,
@@ -90,6 +91,9 @@ export function App() {
                         remote.graduatedAt || local.graduatedAt || null,
                 }),
             );
+            // The profile is on the server now: fetch the dealer's lines before casino night.
+            if (snapshot.player.onboardingStage === "main")
+                prefetchDialogue(ids);
         } catch (err) {
             if (mounted.current && version === syncVersion.current)
                 setSyncError(errorMessage(err));

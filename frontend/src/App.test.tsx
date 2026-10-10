@@ -36,7 +36,12 @@ vi.mock("./config", async (importOriginal) => {
 });
 
 vi.mock("./api", () => ({
-    api: { synchronize: vi.fn(), scoreboard: vi.fn(), config: vi.fn() },
+    api: {
+        synchronize: vi.fn(),
+        scoreboard: vi.fn(),
+        config: vi.fn(),
+        dialogue: vi.fn(),
+    },
     errorMessage: (error: unknown) =>
         error instanceof Error ? error.message : "Request failed",
 }));
@@ -70,6 +75,9 @@ beforeEach(() => {
         .mockReset()
         .mockResolvedValue({ graduationPreview: false });
     vi.mocked(api.scoreboard).mockReset().mockResolvedValue([]);
+    vi.mocked(api.dialogue)
+        .mockReset()
+        .mockResolvedValue({ scene: "blackjack", lines: {}, source: "ai" });
     vi.spyOn(window, "scrollTo").mockImplementation(() => {});
     vi.stubGlobal("matchMedia", () => ({
         matches: true,
@@ -205,6 +213,7 @@ it("graduates offline, preserves the completed run, and retries submission witho
     renderApp();
     await screen.findByText("Leaderboard sync: Server offline");
     expect(api.synchronize).toHaveBeenCalledOnce();
+    expect(api.dialogue).not.toHaveBeenCalled(); // the server may not know this player yet
     fireEvent.click(screen.getByRole("button", { name: "Graduate" }));
     const diploma = within(await screen.findByRole("dialog"));
     expect(
@@ -287,4 +296,32 @@ it("restores an existing local graduation on refresh and reopens its diploma wit
     fireEvent.click(screen.getByRole("button", { name: "View diploma" }));
     expect(api.synchronize).toHaveBeenCalledOnce();
     expect(store.getState().progress).toEqual(graduated);
+});
+
+it("fetches the dealer's lines once the server has the player and casino night is unlocked", async () => {
+    store.dispatch(
+        replacePlayer({
+            ...defaultPlayer,
+            name: "Ada",
+            onboardingStage: "main",
+        }),
+    );
+    vi.mocked(api.synchronize).mockResolvedValue(emptyProgress);
+    const view = renderApp();
+    await waitFor(() => expect(api.synchronize).toHaveBeenCalledOnce());
+    await waitFor(() => expect(api.config).toHaveBeenCalledOnce());
+    expect(api.dialogue).not.toHaveBeenCalled(); // Year 2 is still locked
+    view.unmount();
+
+    vi.mocked(api.synchronize).mockResolvedValue({
+        ...emptyProgress,
+        completedGameIds: [GAMES[0].id],
+    });
+    store.dispatch(
+        replaceProgress({ ...emptyProgress, completedGameIds: [GAMES[0].id] }),
+    );
+    renderApp();
+    await waitFor(() =>
+        expect(api.dialogue).toHaveBeenCalledExactlyOnceWith("blackjack"),
+    );
 });

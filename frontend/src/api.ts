@@ -1,6 +1,11 @@
 import type { Player, Progress, Snapshot } from "./types";
 import { GAMES, profileMajor } from "./config";
-import type { PublicConfig, ShellPlayer } from "./misc/CommonInt";
+import type {
+    DialoguePack,
+    DialogueScene,
+    PublicConfig,
+    ShellPlayer,
+} from "./misc/CommonInt";
 /** Suggested colors read from a photo; all null when the AI is unavailable */
 export type AvatarSuggestion = {
     hairColor: string | null;
@@ -90,6 +95,9 @@ function profileBody(player: Player) {
 }
 const playerPath = () => `/players/${anonymousPlayerId()}`;
 let pending: Promise<unknown> = Promise.resolve();
+// One request per scene and page load, shared by the prefetch and the game. The server caches the
+// pack too, so only a player's very first request can reach OpenAI.
+const dialogues = new Map<DialogueScene, Promise<DialoguePack>>();
 export const api = {
     config: () => request<PublicConfig>("/config"),
     player: () => request<ShellPlayer>(playerPath()),
@@ -131,6 +139,18 @@ export const api = {
         return sync;
     },
     scoreboard: () => request<ScoreRow[]>("/scoreboard"),
+    dialogue(scene: DialogueScene): Promise<DialoguePack> {
+        let pack = dialogues.get(scene);
+        if (!pack) {
+            pack = request<DialoguePack>(`${playerPath()}/dialogue`, "POST", {
+                scene,
+            });
+            dialogues.set(scene, pack);
+            // Forget a failure (offline, profile not saved yet) so a later call tries again.
+            pack.catch(() => dialogues.delete(scene));
+        }
+        return pack;
+    },
     avatarSuggestion: (image: string) =>
         request<AvatarSuggestion>("/avatar/suggestion", "POST", {
             image,

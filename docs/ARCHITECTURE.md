@@ -217,6 +217,7 @@ interface Epilogue {
 | Hall of Fame | `GET /api/leaderboard?limit=10` (1–50) | `list_leaderboard` | `apiListLeaderboard` | 200 `LeaderboardEntry[]` |
 | Ending stats | `GET /api/leaderboard/endings` | `get_ending_stats` | `apiGetEndingStats` | 200 `EndingStats` |
 | Dialogue pack | `POST /api/runs/{run_id}/dialogue` (body `DialogueRequest`) | `generate_dialogue` | `apiGenerateDialogue` | 200 `DialoguePack` · 404 |
+| Dialogue pack for a shell player | `POST /api/players/{player_id}/dialogue` (body `DialogueRequest`) | `generate_player_dialogue` | `api.dialogue` | 200 `DialoguePack` from the player's saved profile, one pack per player and scene · 404 unknown player · 409 no character yet · 422 |
 | Epilogue | `POST /api/runs/{run_id}/epilogue` | `generate_epilogue` | `apiGenerateEpilogue` | 200 `Epilogue` · 404 · 409 not graduated |
 | Narration | `POST /api/runs/{run_id}/epilogue/speech` | `generate_epilogue_speech` | `apiGenerateEpilogueSpeech` | 200 `audio/mpeg` · 404 · 409 no epilogue yet · 503 narrator unavailable |
 | Health | `GET /api/health` | `get_health` (exists) | `apiGetHealth` | 200; touches no dependency |
@@ -280,6 +281,7 @@ those into 404 and 409.
 | `leaderboard` | sorted set | member `runId`, score `totalScore` |
 | `endings:count` | hash | `endingId` → count |
 | `story:dialogue:{runId}:{scene}:{stage}` | string | `DialoguePack` JSON; `stage` = number of finished minigames |
+| `story:dialogue:player:{playerId}:{scene}:0` | string | `DialoguePack` JSON for an anonymous shell player (the blackjack dealer); AI packs kept for good, fallbacks 5 min |
 | `story:epilogue:{runId}` | string | `Epilogue` JSON |
 | `story:speech:{runId}` | bytes | narration mp3, 24 h TTL |
 | `ai:calls:{yyyy-mm-dd}` | integer | daily AI call counter, 48 h TTL |
@@ -357,6 +359,7 @@ large batches.
 | Use | Model (setting) | When | Cost |
 |---|---|---|---|
 | Dialogue pack | `gpt-6-luna`, reasoning effort `none`, Structured Outputs (`OPENAI_TEXT_MODEL`) | Prefetched once per scene and stage, while the intro screen shows | ≈ $0.0003 each |
+| Dealer lines (shell) | same model and output as a dialogue pack | Once per player, prefetched after the first sync that unlocks casino night; the table waits at most 2.5 s, then deals with its built-in lines | ≈ $0.0003 per player |
 | Epilogue | `gpt-6-luna` | Once per graduated run | ≈ $0.0003 |
 | Narration | `gpt-4o-mini-tts`, voice `cedar`, `instructions` "pompous university rector…" (`OPENAI_TTS_MODEL`, `OPENAI_TTS_VOICE`) | Once per epilogue | ≈ 1–2 ¢ per minute of audio |
 | Name moderation | `omni-moderation-latest` | Once per enrollment, `live` only | free |

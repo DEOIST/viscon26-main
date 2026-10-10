@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GAMES } from "../config";
 import { defaultPlayer } from "../store";
 import type { MinigameOptions } from "../games/shared/minigame";
+import { api } from "../api";
 import DestinationGame from "./DestinationGame";
+import { prefetchDialogue } from "./dialogue";
 
 const { mount, destroy } = vi.hoisted(() => ({
     mount: vi.fn(),
@@ -125,5 +127,90 @@ describe("independent destination minigame adapter", () => {
         implemented.onFinish({ score: 100, stats: {} });
         implemented.onFinish({ score: 100, stats: {} });
         expect(onComplete).toHaveBeenCalledOnce();
+    });
+});
+
+describe("the dealer's lines", () => {
+    const lines = { intro: ["Welcome, Ada. The AI dealer is in."] };
+    const args = {
+        gameId: "year-2-slot",
+        playerName: "Ada",
+        character: defaultPlayer.character,
+        major: "Computer Science",
+        ectsPoints: 60,
+        completedGameIds: ["year-1-slot"],
+        onComplete: vi.fn(),
+        onExit: vi.fn(),
+    };
+    afterEach(() => {
+        vi.restoreAllMocks();
+        vi.useRealTimers();
+    });
+
+    it("waits for the player's pack, then deals with it", async () => {
+        const dialogue = vi.spyOn(api, "dialogue").mockResolvedValue({
+            scene: "blackjack",
+            lines,
+            source: "ai",
+        });
+        render(<DestinationGame {...args} />);
+        expect(screen.getByRole("status").textContent).toContain("Shuffling");
+        expect(mount).not.toHaveBeenCalled();
+        await act(async () => {});
+        expect(dialogue).toHaveBeenCalledWith("blackjack");
+        expect((mount.mock.calls[0][0] as MinigameOptions).dialogue).toEqual(
+            lines,
+        );
+        expect(screen.queryByRole("status")).toBeNull();
+    });
+
+    it("starts with the built-in lines when the server fails", async () => {
+        vi.spyOn(api, "dialogue").mockRejectedValue(new Error("offline"));
+        render(<DestinationGame {...args} />);
+        await act(async () => {});
+        expect(mount).toHaveBeenCalledOnce();
+        expect((mount.mock.calls[0][0] as MinigameOptions).dialogue).toBeNull();
+    });
+
+    it("never waits more than a moment for a slow AI", async () => {
+        vi.useFakeTimers();
+        vi.spyOn(api, "dialogue").mockReturnValue(new Promise(() => {}));
+        render(<DestinationGame {...args} />);
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(2500);
+        });
+        expect(mount).toHaveBeenCalledOnce();
+        expect((mount.mock.calls[0][0] as MinigameOptions).dialogue).toBeNull();
+    });
+
+    it("doesn't start a game that was closed while waiting", async () => {
+        let resolve!: (value: Awaited<ReturnType<typeof api.dialogue>>) => void;
+        vi.spyOn(api, "dialogue").mockReturnValue(
+            new Promise((done) => (resolve = done)),
+        );
+        const view = render(<DestinationGame {...args} />);
+        view.unmount();
+        await act(async () =>
+            resolve({ scene: "blackjack", lines, source: "ai" }),
+        );
+        expect(mount).not.toHaveBeenCalled();
+    });
+
+    it("leaves games without lines to mount at once", () => {
+        const dialogue = vi.spyOn(api, "dialogue");
+        render(<DestinationGame {...args} gameId="year-1-slot" />);
+        expect(mount).toHaveBeenCalledOnce();
+        expect((mount.mock.calls[0][0] as MinigameOptions).dialogue).toBeNull();
+        expect(dialogue).not.toHaveBeenCalled();
+    });
+
+    it("prefetches only the unlocked talking games", () => {
+        const dialogue = vi
+            .spyOn(api, "dialogue")
+            .mockResolvedValue({ scene: "blackjack", lines, source: "ai" });
+        prefetchDialogue([]);
+        expect(dialogue).not.toHaveBeenCalled(); // casino night is still locked
+        prefetchDialogue(["year-1-slot"]);
+        expect(dialogue).toHaveBeenCalledExactlyOnceWith("blackjack");
     });
 });

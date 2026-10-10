@@ -13,9 +13,10 @@ import struct
 import time
 import wave
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from app import ai, db, prompts
-from app.schemas import DialoguePack, DialogueScene, Epilogue, Run
+from app.schemas import Character, DialoguePack, DialogueScene, Epilogue, Run
 from app.services import fallbacks
 from app.services.runs import RunStateError, get_run_by_id
 
@@ -43,6 +44,18 @@ def generate_dialogue(run_id: str, scene: DialogueScene) -> DialoguePack | None:
     if cached:
         return DialoguePack.model_validate_json(cached)
     pack = _dialogue_pack(run, scene)
+    db.get_redis().set(key, pack.model_dump_json(), ex=_cache_seconds(pack.source))
+    return pack
+
+
+def generate_player_dialogue(player_id: str, name: str, scene: DialogueScene) -> DialoguePack:
+    """Dialogue for the anonymous shell, which has players instead of runs. One pack per player
+    and scene: the prompt doesn't change with progress, so a second AI call would buy nothing."""
+    key = db.dialogue_key(f"player:{player_id}", scene, 0)
+    cached = db.get_redis().get(key)
+    if cached:
+        return DialoguePack.model_validate_json(cached)
+    pack = _dialogue_pack(_shell_run(player_id, name), scene)
     db.get_redis().set(key, pack.model_dump_json(), ex=_cache_seconds(pack.source))
     return pack
 
@@ -84,6 +97,19 @@ def generate_epilogue_speech(run_id: str) -> SpeechAudio | None:
         db.speech_key(run_id), base64.b64encode(audio).decode(), ex=SPEECH_CACHE_SECONDS
     )
     return SpeechAudio(audio, "audio/mpeg")
+
+
+def _shell_run(player_id: str, name: str) -> Run:
+    """The shell player as the run the prompt and the fallbacks expect: the same D-INFK,
+    they/them character the shell hands its games (frontend/src/minigames/DestinationGame.tsx).
+    Built without validation because shell names are free text, not CharacterName; the prompt
+    only ever sends a name as JSON data and the fallbacks as a format argument."""
+    character = Character.model_construct(
+        name=name, pronouns="they", department="infk", archetype=None, avatar="a1"
+    )
+    return Run.model_construct(
+        id=player_id, character=character, created_at=datetime.now(UTC), scores={}
+    )
 
 
 def _dialogue_pack(run: Run, scene: DialogueScene) -> DialoguePack:
