@@ -1,5 +1,11 @@
 # Game design: ETH Life (working title)
 
+> **Current level 1 change:** Bug Bash replaces the finger-gun gameplay. See
+> [BUG_BASH.md](BUG_BASH.md) for the current gestures, scoring, visuals, fullscreen,
+> `/api/cv/stream` field additions and local verification status. Original shooter
+> descriptions below are historical reference.
+
+
 What we are building, for everyone on the team: code, art and pitch. How it is
 built is in [ARCHITECTURE.md](ARCHITECTURE.md), the finger-gun computer vision
 in [SHOOTER_CV.md](SHOOTER_CV.md), the tools in [STACK.md](STACK.md).

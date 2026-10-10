@@ -5,15 +5,16 @@ import numpy as np
 import pytest
 
 from level1.gesture import (
-    AIM_GAIN,
     CALIBRATION_FRAMES,
     COCKED_BELOW_DEG,
+    DEFAULT_TRIGGER,
     FIRED_ABOVE_DEG,
-    GAME_ASPECT,
-    SHOT_AIM_LOOKBACK_S,
+    PINCH_SETTLING_FRAMES,
     TRACK_TIMEOUT_S,
+    TRIGGER_MIN_SAMPLES,
     GunTracker,
     GunTracks,
+    PinchTracker,
     PlayerGun,
     drop_duplicate_hands,
     hammer_angle,
@@ -22,7 +23,7 @@ from level1.gesture import (
     to_game_area,
     to_points,
 )
-from level1.tests.hands import make_hand
+from level1.tests.hands import make_hand, make_pinch_hand
 
 SIZE = 480  # square frames: the synthetic thumb angles are exact
 FRAME_MS = 33
@@ -45,6 +46,7 @@ def shots(tracker: GunTracker, hands) -> list[bool]:
 UP, DOWN = make_hand(thumb_up=True), make_hand(thumb_up=False)
 FOLDED = make_hand(thumb_folded=True)  # dropped forward: short, but barely tilted
 SWAPPED = make_hand(swapped=True)
+OPEN, CLOSED = make_pinch_hand(), make_pinch_hand(0.1)
 
 
 # --- the trigger (GunTracker) ---
@@ -188,7 +190,7 @@ def play(gun: PlayerGun, frames, start_ms: float = 0):
     ]
 
 
-def calibrated(hand=UP) -> tuple[PlayerGun, float]:
+def calibrated(hand=OPEN) -> tuple[PlayerGun, float]:
     """A PlayerGun whose neutral position is `hand`, and the time after calibrating."""
     gun = PlayerGun()
     frames = play(gun, [[hand]] * CALIBRATION_FRAMES)
@@ -196,65 +198,64 @@ def calibrated(hand=UP) -> tuple[PlayerGun, float]:
     return gun, CALIBRATION_FRAMES * FRAME_MS
 
 
-def test_the_aim_waits_in_the_centre_until_the_gun_is_held_still():
-    gun = PlayerGun()
-    moving = [[shifted(UP, 0.03 * (i % 4))] for i in range(CALIBRATION_FRAMES * 2)]
-    frames = play(gun, moving)
-    assert {f.tracking for f in frames} == {"calibrating"}
-    assert {f.aim for f in frames} == {(0.5, 0.5)}
-    still = play(gun, [[UP]] * CALIBRATION_FRAMES, start_ms=len(moving) * FRAME_MS)
-    assert [f.tracking for f in still][-2:] == ["calibrating", "ok"]
-    assert still[-1].aim == pytest.approx((0.5, 0.5))
+def expected_aim(hand, box=(0.2, 0.15, 0.8, 0.75)):
+    midpoint = tuple((hand[4][i] + hand[8][i]) / 2 for i in range(2))
+    return tuple(min(max(v, 0), 1) for v in to_game_area(midpoint, box))
 
 
-def test_no_shots_while_calibrating():
-    frames = play(PlayerGun(), [[UP], [DOWN], [DOWN], [DOWN]])
-    assert not any(f.fired_at for f in frames)
+def test_aim_is_available_immediately_without_neutral_calibration():
+    (frame,) = play(PlayerGun(), [[OPEN]])
+    assert frame.tracking == "ok"
+    assert frame.aim == pytest.approx(expected_aim(OPEN), abs=0.0001)
+    assert frame.fired_at is None
+
+
+def test_a_pinch_requires_opening_then_two_confirming_frames():
+    frames = play(PlayerGun(), [[CLOSED], [OPEN], [CLOSED], [CLOSED], [CLOSED]])
+    assert [f.fired_at is not None for f in frames] == [False, False, False, True, False]
+    assert [f.pinching for f in frames] == [False, False, False, True, True]
 
 
 def test_the_aim_follows_the_hand_mirrored_and_scaled():
     gun, start = calibrated()
-    # Right in the camera is left on screen; down is down. 60 frames: past the smoothing.
-    moved = play(gun, [[shifted(UP, 0.05, 0.03)]] * 60, start_ms=start)[-1]
-    assert moved.aim[0] == pytest.approx(0.5 - AIM_GAIN * 0.05, abs=0.01)
-    assert moved.aim[1] == pytest.approx(0.5 + AIM_GAIN * GAME_ASPECT * 0.03, abs=0.01)
+    moved_hand = shifted(OPEN, 0.05, 0.03)
+    moved = play(gun, [[moved_hand]] * 60, start_ms=start)[-1]
+    assert moved.aim == pytest.approx(expected_aim(moved_hand), abs=0.001)
+    assert moved.aim[0] < expected_aim(OPEN)[0]
+    assert moved.aim[1] > expected_aim(OPEN)[1]
 
 
-def test_the_aim_ignores_the_thumb_and_index_labels():
-    # A label swap moves the index tip onto the thumb; the aim uses neither.
+def test_the_aim_uses_both_fingertips():
     gun, start = calibrated()
-    frames = play(gun, [[SWAPPED], [UP], [SWAPPED]], start_ms=start)
-    assert all(f.aim == pytest.approx((0.5, 0.5), abs=0.01) for f in frames)
+    wider = make_pinch_hand(1.2)
+    frame = play(gun, [[wider]] * 60, start_ms=start)[-1]
+    assert frame.aim == pytest.approx(expected_aim(wider), abs=0.001)
+    assert frame.aim != pytest.approx(expected_aim(OPEN), abs=0.01)
 
 
-def test_recenter_calibrates_again_where_the_hand_is_now():
+def test_recenter_resets_smoothing_without_a_calibration_pause():
     gun, start = calibrated()
-    elsewhere = shifted(UP, 0.1, 0.05)
-    assert play(gun, [[elsewhere]] * 30, start_ms=start)[-1].aim != pytest.approx((0.5, 0.5))
+    elsewhere = shifted(OPEN, 0.1, 0.05)
     gun.recenter()
-    frames = play(gun, [[elsewhere]] * CALIBRATION_FRAMES, start_ms=start + 30 * FRAME_MS)
-    assert frames[0].tracking == "calibrating" and frames[-1].tracking == "ok"
-    assert frames[-1].aim == pytest.approx((0.5, 0.5))
+    (frame,) = play(gun, [[elsewhere]], start_ms=start)
+    assert frame.tracking == "ok"
+    assert frame.aim == pytest.approx(expected_aim(elsewhere), abs=0.0001)
 
 
-def test_a_shot_lands_where_the_gun_pointed_before_the_thumb_drop():
+def test_a_grab_lands_at_the_current_fingertip_midpoint():
     gun, start = calibrated()
-    sweep = [[shifted(UP, -0.01 * i)] for i in range(12)]
-    dropped = [[shifted(DOWN, -0.12)]] * 2
-    frames = play(gun, sweep + dropped, start_ms=start)
-    shot = frames[-1]
-    lookback = int(SHOT_AIM_LOOKBACK_S * 1000 // FRAME_MS)
-    assert shot.fired_at == frames[-1 - lookback].aim
-    assert shot.aim != shot.fired_at
+    moved = shifted(CLOSED, -0.04)
+    frames = play(gun, [[moved], [moved]], start_ms=start)
+    assert frames[-1].fired_at == pytest.approx(expected_aim(moved))
+    assert frames[-1].fired_at != frames[-1].aim  # grab bypasses display smoothing
 
 
-def test_the_player_reports_tracking_for_pose_and_absence():
+def test_the_player_reports_tracking_for_open_hand_and_absence():
     gun, start = calibrated()
-    open_hand = make_hand(middle=True, ring=True, pinky=True)
-    frames = play(gun, [[UP], [open_hand], []], start_ms=start)
-    assert [f.tracking for f in frames] == ["ok", "noPose", "lost"]
-    assert frames[0].hand == UP and frames[2].hand is None
-    assert frames[0].thumb_angle == pytest.approx(15, abs=0.1)
+    frames = play(gun, [[OPEN], [CLOSED], []], start_ms=start)
+    assert [f.tracking for f in frames] == ["ok", "ok", "lost"]
+    assert frames[0].hand == OPEN and frames[2].hand is None
+    assert frames[0].thumb_angle is not None
 
 
 def test_the_largest_hand_is_the_player():
@@ -319,7 +320,9 @@ def test_the_cooldown_blocks_an_instant_second_shot_and_can_be_shortened(
 ):
     gun, start = calibrated()
     gun.cooldown_ms = cooldown_ms
-    frames = play(gun, [[DOWN], [DOWN], [UP], [DOWN], [DOWN]], start_ms=start)  # 2 shots, 100 ms
+    frames = play(
+        gun, [[CLOSED], [CLOSED], [OPEN], [CLOSED], [CLOSED]], start_ms=start
+    )  # 2 shots, 100 ms
     assert sum(f.fired_at is not None for f in frames) == expected
 
 
@@ -386,7 +389,16 @@ def replay(name: str):
 @pytest.mark.parametrize("name", RECORDINGS)
 def test_recorded_play_fires_every_drop_and_nothing_else(name: str):
     shot_frames, unclear = RECORDINGS[name]
-    fired = [k for k, frame in enumerate(replay(name)) if frame.fired_at]
+    tracks = GunTracks()
+    fired = []
+    last_shot = -float("inf")
+    with open(FIXTURES / "captures" / name) as rows:
+        for k, row in enumerate(map(json.loads, rows)):
+            hands, _ = drop_duplicate_hands(row["hands"])
+            readings = tracks.update(hands, *row["size"], row["t_ms"] / 1000)
+            if readings and readings[0].shot and row["t_ms"] - last_shot >= 250:
+                fired.append(k)
+                last_shot = row["t_ms"]
 
     def near(frame: int, shot: int) -> bool:  # the shot registers while the thumb still drops
         return frame - 12 <= shot <= frame + 4
@@ -407,3 +419,97 @@ def test_recorded_aim_is_smooth_and_never_jumps(name: str):
     assert wobble < 0.003
     # The old aim used the index tip, which label swaps threw across the screen.
     assert (np.abs(np.diff(aims, axis=0)) > 0.1).sum() <= 2
+
+
+# --- trigger calibration (PlayerGun.calibrate_trigger) ---
+
+
+def calibrate_trigger(gun: PlayerGun, up, down, start_ms: float = 0.0):
+    """Runs the game's calibration: thumb up, down, up, down, each held for a moment."""
+    held = TRIGGER_MIN_SAMPLES + PINCH_SETTLING_FRAMES
+    t = start_ms
+    for step, hand in (("up", up), ("down", down), ("up", up), ("down", down)):
+        gun.calibrate_trigger(step)
+        play(gun, [[hand]] * held, start_ms=t)
+        t += held * FRAME_MS
+    return gun.calibrate_trigger("done"), t
+
+
+def fires(gun: PlayerGun, up, down, start_ms: float) -> bool:
+    frames = play(gun, [[up]] * 3 + [[down]] * 3, start_ms=start_ms)
+    return any(f.fired_at for f in frames)
+
+
+def test_a_small_pinch_gap_fires_only_after_calibrating():
+    up, down = make_pinch_hand(0.6), make_pinch_hand(0.35)
+    gun, t = calibrated(up)
+    assert not fires(gun, up, down, t)
+    (trigger, problem), t = calibrate_trigger(gun, up, down, t + 6 * FRAME_MS)
+    assert problem is None
+    assert 0.35 < trigger.pinch_closed_below < trigger.pinch_open_above < 0.6
+    assert fires(gun, up, down, t)
+
+
+def test_a_narrow_open_gap_arms_after_calibrating():
+    up, down = make_pinch_hand(0.5), make_pinch_hand(0.1)
+    gun, t = calibrated(up)
+    assert not fires(gun, up, down, t)
+    (trigger, problem), t = calibrate_trigger(gun, up, down, t + 6 * FRAME_MS)
+    assert problem is None and trigger.pinch_open_above < 0.5
+    assert fires(gun, up, down, t)
+
+
+def test_pinch_thresholds_are_independent_of_camera_distance():
+    for size in (0.08, 0.25):
+        tracker = PinchTracker()
+        frames = [make_pinch_hand(1, size=size), make_pinch_hand(0.1, size=size)]
+        readings = [tracker.update(hand, SIZE, SIZE) for hand in frames + frames[1:]]
+        assert [r.shot for r in readings] == [False, False, True]
+        assert readings[-1].pinch_distance == pytest.approx(0.1)
+
+
+def test_calibration_keeps_the_trigger_when_open_and_closed_look_the_same():
+    gun, t = calibrated()
+    (trigger, problem), _ = calibrate_trigger(gun, OPEN, OPEN, t)
+    assert trigger == DEFAULT_TRIGGER
+    assert problem is not None and "Separate" in problem
+
+
+def test_calibration_needs_both_fingertips_in_view():
+    gun, t = calibrated()
+    gun.calibrate_trigger("up")
+    play(gun, [[OPEN]] * (TRIGGER_MIN_SAMPLES + PINCH_SETTLING_FRAMES), start_ms=t)
+    gun.calibrate_trigger("down")
+    play(gun, [[]] * TRIGGER_MIN_SAMPLES, start_ms=t + 1000)
+    trigger, problem = gun.calibrate_trigger("done")
+    assert trigger == DEFAULT_TRIGGER
+    assert problem is not None and "visible" in problem
+
+
+def test_reset_restores_the_default_trigger():
+    gun, t = calibrated()
+    (trigger, problem), _ = calibrate_trigger(gun, OPEN, CLOSED, t)
+    assert problem is None and trigger != DEFAULT_TRIGGER
+    assert gun.calibrate_trigger("reset") == (DEFAULT_TRIGGER, None)
+
+
+def test_stationary_and_very_slow_hands_do_not_slap_or_slide():
+    for step in (0.0, 0.005):
+        frames = play(PlayerGun(), [[shifted(OPEN, step * i)] for i in range(30)])
+        assert not any(f.slap or f.slide for f in frames)
+
+
+def test_open_hand_slide_carries_the_whole_hand_sweep():
+    frames = play(PlayerGun(), [[shifted(OPEN, 0.02 * i)] for i in range(16)])
+    slides = [f.slide for f in frames if f.slide]
+    assert len(slides) == 1
+    assert slides[0].direction == "left"
+    assert len(slides[0].outlines) == len(slides[0].path)
+    assert all(len(outline) == 21 for outline in slides[0].outlines)
+    assert not any(f.slap for f in frames)
+
+
+def test_pinching_does_not_generate_a_slow_slide():
+    frames = play(PlayerGun(), [[OPEN], [CLOSED], [CLOSED]])
+    frames += play(PlayerGun(), [[shifted(CLOSED, 0.02 * i)] for i in range(16)])
+    assert not any(f.slide for f in frames)

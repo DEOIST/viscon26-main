@@ -15,6 +15,38 @@ export const PRACTICE_POINTS = [
 ];
 export const PRACTICE_RADIUS = 105; // game pixels: generous, it's practice
 export const PRACTICE_MAX_SECONDS = 25;
+// Trigger calibration before the warm-up (camera only; docs/SHOOTER_CV.md → Trigger
+// calibration): fingers apart, pinched, apart, pinched, each held this long; then a few test shots. Enter
+// skips it, T runs it again during the warm-up.
+export const TRIGGER_STEPS: {
+    step: "up" | "down";
+    ms: number;
+    text: string;
+}[] = [
+    {
+        step: "up",
+        ms: 2000,
+        text: "Palm facing the camera: hold your index finger and thumb APART",
+    },
+    {
+        step: "down",
+        ms: 1500,
+        text: "PINCH: touch your index finger and thumb tips together, and hold",
+    },
+    {
+        step: "up",
+        ms: 1500,
+        text: "OPEN your index finger and thumb again, and hold",
+    },
+    {
+        step: "down",
+        ms: 1500,
+        text: "PINCH again: fingertips together, and hold",
+    },
+];
+export const TRIGGER_TEST_SHOTS = 3;
+export const TRIGGER_MAX_ATTEMPTS = 2; // then the default trigger, so nobody gets stuck
+export const TRIGGER_RETRY_MS = 2500; // how long a failure's reason shows before retrying
 export const PAR_POINTS = 420; // a good first-time player scores about 70
 export const MISS_PENALTY = 2;
 export const STREAK_FOR_BONUS = 3;
@@ -27,19 +59,20 @@ export const TARGET_POINTS: Record<TargetKind, number> = {
     coffee: 0,
 };
 export const APPROACH_SECONDS: Record<TargetKind, number> = {
-    question: 6,
-    deadline: 3.5,
+    question: 7,
+    deadline: 7,
     coffee: 5,
 };
 
 export const SPAWN_SHARES: Record<TargetKind, number> = {
-    question: 0.7,
-    deadline: 0.2,
-    coffee: 0.1,
+    question: 0.72,
+    deadline: 0.28,
+    coffee: 0,
 }; // sums to 1
-export const SPAWN_EVERY_MS_START = 1400;
-export const SPAWN_EVERY_MS_END = 550; // the spawn rate rises over the round
+export const SPAWN_EVERY_MS_START = 1800;
+export const SPAWN_EVERY_MS_END = 950; // the spawn rate rises over the round
 export const TARGET_RADIUS = 80; // hit radius in game pixels at scale 1
+export const GRAB_RADIUS_MULTIPLIER = 1.45; // extra reach around objects and practice papers
 export const GAMER_TARGET_SCALE = 1.15; // Gamer perk: targets 15 % larger
 export const ATHLETE_COOLDOWN_MS = 175; // ASVZ-athlete perk: 250 ms re-arm, 30 % faster
 
@@ -52,3 +85,18 @@ export const JPEG_QUALITY = 0.8;
 // constant instead of stepping. Larger = smoother but laggier. Shots use the engine's own point.
 export const CROSSHAIR_GLIDE_MS = 40;
 export const FALLBACK_FRAME_MS = 33; // camera polling where requestVideoFrameCallback is missing
+
+// Grab-and-throw interaction. A slow release drops the object back into its lane.
+export const THROW_MIN_DISTANCE = 100; // game pixels moved since grabbing
+export const THROW_MIN_SPEED = 650; // game pixels per second
+export const THROW_MOTION_WINDOW_MS = 160;
+export const GRAB_TRACKING_GRACE_MS = 350;
+export const THROW_FLIGHT_MS = 450;
+
+// Code-bash threats. Legacy target kinds stay internal: question = bug, deadline = code bomb.
+export const CODE_LOST_PENALTY = 15;
+export const BUG_MISSED_PENALTY = 5;
+export const INTERRUPTER_MIN_DELAY_MS = 6500;
+export const INTERRUPTER_MAX_DELAY_MS = 11000;
+export const INTERRUPTER_STAY_MS = 4500;
+export const INTERRUPTER_POINTS = 15;
