@@ -24,7 +24,7 @@ from typing import Literal
 
 import numpy as np
 
-from level1.recoil import RECOIL_MAX_DURATION_S, RecoilPhase, RecoilTrigger
+from level1.recoil import RECOIL_AIM_HOLD_S, RECOIL_MAX_DURATION_S, RecoilPhase, RecoilTrigger
 
 Point = Sequence[float]  # (x, y, z): x, y normalized to the camera image (not mirrored)
 Hand = Sequence[Point]  # MediaPipe's 21 image landmarks of one hand
@@ -200,6 +200,10 @@ class OneEuroFilter:
         self._t = t
         return self._x
 
+    def hold(self, x: float, t: float) -> None:
+        """Keep a recoil's aim without learning its motion as a fast aiming velocity."""
+        self._x, self._dx, self._t = x, 0.0, t
+
 
 @dataclass(frozen=True)
 class GunReading:
@@ -215,8 +219,9 @@ class GunReading:
     palm: tuple[float, float]  # the aim's reference point, frame widths, camera view
     reach: tuple[float, float, float]  # index, ring, pinky: above 1 means extended
     recoil_phase: RecoilPhase
-    recoil_lift: float  # in palm widths, above the pre-flick index position
+    recoil_lift: float  # in rotation-resistant hand scales, above the pre-flick index position
     shot_time: float | None  # seconds: pre-flick aim timestamp, for recoil shots
+    recoil_aim_time: float | None  # hold the pre-flick aim while distinguishing recoil
 
 
 class GunTracker:
@@ -270,6 +275,7 @@ class GunTracker:
             recoil_phase=self.recoil.phase,
             recoil_lift=round(self.recoil.lift, 3),
             shot_time=self.recoil.shot_time,
+            recoil_aim_time=self.recoil.aim_time,
         )
 
     def _relative_length(self, length: float | None, angle: float) -> float | None:
@@ -423,6 +429,8 @@ class PlayerGun:
         self._last_shot_ms: float | None = None
         self._last_seen_ms: float | None = None  # when the player's hand was last seen
         self._last_aim: tuple[float, float] | None = None
+        self._recoil_hold_until = 0.0
+        self._recoil_hold_at: float | None = None
 
     def update(
         self, detections: Sequence[Hand], width: int, height: int, timestamp_ms: float
@@ -442,6 +450,7 @@ class PlayerGun:
                 player_changed = True
                 self._recent_aims.clear()
                 self._tracks.reset_recoil()
+                self._recoil_hold_at = None
             self._player_id = player_id
         if self._player_id not in ids:
             if not recently:
@@ -469,7 +478,17 @@ class PlayerGun:
         if was_calibrating:
             self._tracks.reset_recoil()
 
-        aim = self._aim(reading.palm, timestamp_ms / 1000)
+        t = timestamp_ms / 1000
+        hold_at = None
+        if not (was_calibrating or player_changed):
+            if reading.shot_time is not None:
+                # Keep a confirmed recoil steady even if the pose is briefly lost on return.
+                self._recoil_hold_at = reading.shot_time
+                self._recoil_hold_until = t + RECOIL_AIM_HOLD_S
+            hold_at = (
+                self._recoil_hold_at if t <= self._recoil_hold_until else reading.recoil_aim_time
+            )
+        aim = self._aim(reading.palm, t, hold_at=hold_at)
         fired_at = None
         if (
             reading.shot
@@ -480,7 +499,7 @@ class PlayerGun:
         ):
             self._last_shot_ms = timestamp_ms
             # Use the last aim before recoil began, not the raised crosshair. Legacy recordings
-            # keep their original fixed look-back. The live aim follows the hand throughout.
+            # keep their original fixed look-back. Recoil also holds the visible crosshair.
             if reading.shot_time is not None:
                 fired_at = next(
                     (aim for t, aim in reversed(self._recent_aims) if t <= reading.shot_time),
@@ -508,6 +527,7 @@ class PlayerGun:
         self._filter_y = OneEuroFilter(AIM_MIN_CUTOFF_HZ, AIM_BETA)
         self._recent_aims.clear()
         self._tracks.reset_recoil()
+        self._recoil_hold_at = None
 
     def _calibrate(self, reading: GunReading) -> bool:
         """Collects the palm while the finger gun is held still; True once calibrated."""
@@ -523,13 +543,23 @@ class PlayerGun:
         self._neutral = held.mean(axis=0)
         return True
 
-    def _aim(self, palm: tuple[float, float], t: float) -> tuple[float, float]:
+    def _aim(
+        self, palm: tuple[float, float], t: float, *, hold_at: float | None = None
+    ) -> tuple[float, float]:
         """Mirrored offset from the neutral position, scaled and smoothed; remembers it for the
         shot look-back."""
-        dx, dy = np.array(palm) - self._neutral
-        raw_x = min(max(0.5 - AIM_GAIN * dx, 0.0), 1.0)
-        raw_y = min(max(0.5 + AIM_GAIN * GAME_ASPECT * dy, 0.0), 1.0)
-        aim = (round(self._filter_x(raw_x, t), 4), round(self._filter_y(raw_y, t), 4))
+        if hold_at is not None and self._recent_aims:
+            aim = next(
+                (aim for at, aim in reversed(self._recent_aims) if at <= hold_at),
+                self._recent_aims[0][1],
+            )
+            self._filter_x.hold(aim[0], t)
+            self._filter_y.hold(aim[1], t)
+        else:
+            dx, dy = np.array(palm) - self._neutral
+            raw_x = min(max(0.5 - AIM_GAIN * dx, 0.0), 1.0)
+            raw_y = min(max(0.5 + AIM_GAIN * GAME_ASPECT * dy, 0.0), 1.0)
+            aim = (round(self._filter_x(raw_x, t), 4), round(self._filter_y(raw_y, t), 4))
         self._last_aim = aim
         self._recent_aims.append((t, aim))
         while len(self._recent_aims) > 1 and self._recent_aims[1][0] < t - SHOT_AIM_HISTORY_S:

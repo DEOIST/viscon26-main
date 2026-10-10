@@ -1,18 +1,67 @@
 """Recoil intent versus aiming, independent of a camera, hand size, and camera frame rate."""
 
+import json
 import math
 
 import pytest
 
 from level1.gesture import CALIBRATION_FRAMES, GunTracker, GunTracks, PlayerGun, labels_swapped
-from level1.recoil import RECOIL_MAX_DURATION_S, RECOIL_MAX_FRAME_GAP_S
+from level1.recoil import RECOIL_AIM_HOLD_S, RECOIL_MAX_DURATION_S, RECOIL_MAX_FRAME_GAP_S
 from level1.tests.hands import make_hand, recoil_hand
-from level1.tests.test_gesture import RECORDINGS, points, replay, shifted
+from level1.tests.test_gesture import FIXTURES, RECORDINGS, points, replay, shifted
 
 SIZE = 480
 FRAME_S = 1 / 30
 BASE = make_hand()
 PULSE = [0.15, 0.36, 0.55, 0.32, 0.10, 0.0]
+
+# Labeled from the JPEGs of 20261010-142709-729104, not from detector output. Includes a
+# sideways/upward wrist pitch, an edge-on fist, and an index misread followed by tracking loss.
+RECORDED_RECOILS = [(20, 26), (57, 61), (175, 181), (221, 226), (268, 273), (319, 324)]
+
+
+@pytest.fixture(scope="module")
+def recoil_capture():
+    rows = [
+        json.loads(line)
+        for line in (FIXTURES / "captures" / "recoil_1.jsonl").read_text().splitlines()
+    ]
+    return rows, replay("recoil_1.jsonl", trigger="recoil")
+
+
+def test_recorded_recoils_all_fire_once_with_no_shots_during_ordinary_aiming(recoil_capture):
+    _, frames = recoil_capture
+    fired = [i for i, frame in enumerate(frames) if frame.fired_at is not None]
+    assert len(fired) == len(RECORDED_RECOILS), fired
+    for first, last in RECORDED_RECOILS:
+        assert sum(first <= i <= last for i in fired) == 1, fired
+
+
+@pytest.mark.parametrize(("first", "last"), RECORDED_RECOILS)
+def test_recorded_recoil_keeps_the_cursor_and_shot_at_the_same_aim(recoil_capture, first, last):
+    rows, frames = recoil_capture
+    shot = next(i for i in range(first, last + 1) if frames[i].fired_at is not None)
+    pending = next(
+        i
+        for i in range(first, shot + 1)
+        if any(h.id == frames[i].player_id and h.reading.recoil_aim_time for h in frames[i].hands)
+    )
+    target = frames[pending].aim
+    assert frames[shot].fired_at == target
+    held_until = rows[shot]["t_ms"] + RECOIL_AIM_HOLD_S * 1000
+    for i in range(pending, len(frames)):
+        if rows[i]["t_ms"] > held_until:
+            break
+        assert frames[i].aim == target, i
+
+
+def test_recorded_normal_aiming_still_moves_the_cursor(recoil_capture):
+    _, frames = recoil_capture
+    # The player deliberately changes angle and points upward between the second and third
+    # recoils. This must move the crosshair without shooting or keeping it frozen.
+    aims = [frame.aim for frame in frames[128:172] if frame.aim is not None]
+    assert max(aim[1] for aim in aims) - min(aim[1] for aim in aims) > 0.2
+    assert not any(frame.fired_at for frame in frames[128:172])
 
 
 def feed(tracker: GunTracker, hands, *, start: float = 0, dt: float = FRAME_S):
@@ -123,6 +172,14 @@ def test_returning_and_settling_rearms_for_another_deliberate_recoil():
     assert (
         sum(r.shot for r in feed(tracker, [recoil_hand(BASE, x) for x in lifts], start=start)) == 2
     )
+
+
+def test_returning_with_sideways_index_noise_rearms_without_waiting_for_timeout():
+    tracker, start = ready()
+    hands = [recoil_hand(BASE, lift) for lift in PULSE]
+    hands += [recoil_hand(BASE, 0, sideways=0.2)] * 6
+    hands += [recoil_hand(BASE, lift, sideways=0.2) for lift in PULSE]
+    assert sum(r.shot for r in feed(tracker, hands, start=start)) == 2
 
 
 def test_reaiming_after_a_shot_cannot_leave_the_trigger_permanently_disarmed():
@@ -266,7 +323,8 @@ def test_the_shot_uses_aim_at_flick_start_even_when_the_palm_recoils_a_little():
     shots = [f for f in frames if f.fired_at is not None]
     assert len(shots) == 1
     assert shots[0].fired_at == before.aim
-    assert shots[0].aim != shots[0].fired_at
+    assert all(frame.aim == before.aim for frame in frames)
+    assert shots[0].aim == shots[0].fired_at
 
 
 @pytest.mark.parametrize("name", RECORDINGS)

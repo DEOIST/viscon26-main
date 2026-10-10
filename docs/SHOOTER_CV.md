@@ -77,8 +77,8 @@ getUserMedia 640×480 ~30 fps, never shown (the scene draws its own backdrop)
                                                                  │ across frames; the largest is the player
                                                                  ├ pose: ring and pinky curled?
                                                                  ├ aim: calibrated palm offset → One-Euro
-                                                                 └ trigger: quick upward index recoil + return,
-                                                                   cooldown, aim from before the flick
+                                                                 └ trigger: quick index/wrist recoil,
+                                                                   cooldown, held aim from before the flick
 {type: "frame", tracking, aim, firedAt, landmarks, thumbAngle, processingMs} ◄── JSON
   ▼
 SwitchableInput (camera, or the mouse as fallback) → ShooterScene (Phaser): crosshair,
@@ -219,7 +219,9 @@ landmarks, with the frames where the thumb was visibly down labeled by eye) and
 checked on photos (`backend/level1/tests/fixtures/aim*.jpg`, `shoot1.jpg`). `test_gesture.py`
 replays the recordings with the explicit legacy thumb trigger: every labeled drop must fire,
 nothing else may. `test_recoil.py` checks the live recoil trigger with synthetic motion and
-replays those same recordings to ensure ordinary thumb drops do not produce recoil shots. Re-run
+replays those same recordings to ensure ordinary thumb drops do not produce recoil shots. It also
+replays `recoil_1.jsonl`, six real recoils labeled from the camera frames; each must shoot exactly
+once and hold the crosshair steady. See [the playtest analysis](RECOIL_PLAYTEST.md). Re-run
 the tests whenever a threshold changes, and record new play (see
 [Recording](#recording-debugging-gestures)) when players report misfires.
 
@@ -316,52 +318,69 @@ box does not change the aim.
 ## Trigger: upward index recoil
 
 Aim with the hand, pause briefly, then flick the index upward and let it return, as if a gun
-recoils. Thumb drops no longer fire in live camera sessions. The return is part of the gesture:
-a fast upward movement that stays at the new position is an aim change, so speed alone is not
-enough to shoot.
+recoils. Thumb drops no longer fire in live camera sessions. Ordinary aiming translates the
+palm; recoil also pitches the index relative to its own knuckle. A small upward movement held
+at a new position does not fire. A pronounced, fast index/wrist pitch is the shooting gesture
+and can confirm before the return, because the model can lose the hand during that return.
 
-`backend/level1/recoil.py` holds the detector and its tunable thresholds. Distances use the
-image-space middle-to-pinky knuckle span as a palm width; times use camera-frame timestamps.
-The same gesture therefore works at different hand sizes, distances and frame rates.
+`backend/level1/recoil.py` holds the detector and its tunable thresholds. Times use camera-frame
+timestamps. Distances use the larger of the middle-to-pinky knuckle span and **0.6 × the median
+wrist-to-curled-knuckle distance**, measured in image pixels. This avoids multiplying motion and
+noise when the fist rotates edge-on and its knuckle span collapses.
 
-1. **Settle:** the finger and palm stay within 0.10 and 0.18 palm widths for at least **120 ms**
-   (at least three observations). This arms the gesture at the player's current finger angle.
-2. **Rise:** the index tip rises relative to its own knuckle, at least **0.35 palm widths**, with
-   an upward speed of at least **2.5 palm widths/s**, within **180 ms**. At least two rising
-   observations are required, rejecting a single-frame landmark spike.
-3. **Confirm the return:** within **350 ms** of the pre-flick observation, the index returns
-   at least **35 %** of its peak lift (and at least 0.12 palm widths). This is when one shot fires;
-   it does not wait for a complete return. A slow lift or a raised finger held in place does not
-   fire. The partial return costs a few camera frames but distinguishes recoil from re-aiming.
-4. **Re-arm:** the index returns within 0.10 palm widths of its starting position, then settles
-   again. Staying raised or bouncing around the peak cannot produce repeated shots. If a player
-   re-aims before returning fully, recovery expires after **450 ms** and a fresh settle at the
-   new position can arm another gesture, avoiding a permanently disarmed gun.
+1. **Settle:** at least **120 ms**, with three observations. Palm jitter must stay within
+   **0.35 hand scales** of the window median. The foreshortened index tolerates **0.90 scales**
+   of vertical noise; horizontal fingertip noise does not prevent arming. Index and joint
+   baselines use medians. A recently armed hand retains its baseline for up to **350 ms** of
+   preparatory motion; continuing to move requires a fresh settle.
+2. **Rise:** the index rises relative to its knuckle at **2.5 scales/s** or faster. A rise starts
+   at **0.10 scales**; its peak must arrive within **180 ms**. Direction is checked at the peak,
+   with sideways travel at most **65 %** of the lift. Palm motion up to **3 scales** is allowed:
+   natural recoil rotates and moves the wrist instead of keeping the fist fixed.
+3. **Confirm once**, by either of two paths:
+   - A small flick has at least two rising observations before the first fall, reaches
+     **0.28 scales**, and returns **35 %** of its peak (at least **0.12 scales**) within **350 ms**.
+     At the peak the index joint must rise at least **20 %** as much as the tip. Isolated tip
+     spikes, diagonal flicks, and a rise held at its new position do not fire.
+   - A pronounced wrist recoil has two observations within **180 ms** with relative tip lift
+     at least **0.85 scales**, the tip pointing upward by at least **0.65 scales**, and joint
+     lift at least **0.20 scales** and **20 %** of the tip lift. The palm must also rise at least
+     **0.35 scales**. A bad index reading between these observations can be tolerated. This
+     catches the real recoil that is followed immediately by lost tracking.
+4. **Re-arm:** the index falls back below **35 %** of its peak lift (with a **0.10 scale**
+   tolerance), then settles again. Horizontal fingertip noise does not block re-arming.
+   Staying raised cannot fire repeatedly. If the player re-aims before returning fully,
+   recovery expires after **450 ms** and a fresh settle can arm at the new position.
 
-During the pulse, sideways travel must stay below 65 % of the upward lift, and palm travel
-below 0.60 palm widths. Whole-hand translation cancels out of the relative index measurement:
-moving the hand up, sideways or diagonally changes the crosshair without firing. A recoil can
-include a small wrist/palm movement. Large simultaneous thumb/index jumps discard the gesture
-as a possible landmark swap; an index lifting upright with a continuous thumb remains valid.
+Whole-hand translation cancels out of the relative index measurement, so moving the hand up,
+sideways or diagonally changes the crosshair without firing. An index jumping up while the
+thumb simultaneously jumps down discards the gesture as a possible label swap. Wrist recoil
+commonly lifts both fingers; that thumb motion is allowed. A single spike cannot accumulate
+later unrelated jitter into a shot.
 
 - **Pose and tracking:** shots require the finger-gun pose. A missing hand frame, a gap longer
-  than 120 ms, invalid geometry, calibration/recentering or a change of player discards any
-  pending recoil. Tracking may retain the crosshair for 300 ms, but recovery never completes
+  than 120 ms, invalid geometry, calibration/recentering or a change of player discards a
+  pending recoil. Tracking may retain the crosshair for 300 ms; reacquisition cannot complete
   an old shot.
 - **Cooldown:** at least **250 ms** between accepted shots; the ASVZ-athlete perk sends
   `{"type": "settings", "cooldownMs": 175}`. A suppressed pulse is consumed, not queued.
-- **Shot aim:** the shot lands at the last filtered aim **before the flick starts**. The live
-  crosshair continues following the palm, so the recoil cannot drag the shot off the target.
+- **Aim:** hold the pre-flick filtered crosshair while distinguishing a recoil and for
+  **180 ms** after confirmation, including a brief pose loss on return. The shot uses that
+  same position. Held frames reset the aim filter's velocity so recoil is not learned as
+  aiming motion; normal aiming resumes when the bounded hold ends.
 - **Protocol:** unchanged. `firedAt` carries the shot point; `thumbAngle` remains a legacy debug
-  measurement. Recordings also include `recoil_phase`, `recoil_lift` (palm widths), `shot_time`
-  (pre-flick timestamp in seconds), and `cocked` (whether recoil is armed).
+  measurement. Recordings include `recoil_phase`, `recoil_lift` (hand scales), `shot_time`
+  (pre-flick timestamp in seconds), `recoil_aim_time` (the held aim timestamp), and `cocked`.
 
-**Playtesting:** these thresholds are starting values, validated with synthetic gestures at
-15, 24, 30 and 60 fps and with the old recordings as negative examples. The existing camera
-recordings contain thumb drops, not labeled intentional recoil gestures. Use **R** to record
-several players aiming normally and shooting, label their recoils, and check the acceptance
-criteria above before claiming a measured detection rate. A quick wrist tilt up and back with
-a mostly stationary palm is recognized; a pure upward translation of the entire hand is aiming.
+**Playtesting:** the original recoil implementation fired **0/6** on the recording
+`20261010-142709-729104`. The current replay fires **6/6**, once in each labeled interval and
+nowhere else, and keeps the crosshair at the shot point through recovery. The four older thumb
+recordings produce no recoil shots. Synthetic tests cover 15–60 fps, hand sizes, both hands,
+small one-way aim changes, slow lifts, jitter, swaps, tracking loss, calibration and cooldown.
+See [the measured failure analysis](RECOIL_PLAYTEST.md). These are results for one recoil
+playtest, not a measured success rate across players; record more players with **R** to check
+the acceptance criteria above. A large, fast upward wrist pitch held upright is ambiguous
+with a shooting gesture and uses the pronounced-recoil path.
 
 ### Legacy thumb trigger (recording regressions only)
 
@@ -405,7 +424,7 @@ Docker image):
   (`id`, `player`, `shot`, `gun`, `hammer_angle` (legacy thumb diagnostic),
   `thumb_angle` (as labeled), `thumb_length` (fraction of the learned upright
   length), `swapped`, `cocked`, `palm`, `reach` of index,
-  ring and pinky, `recoil_phase`, `recoil_lift`, `shot_time`, the 21 `landmarks`),
+  ring and pinky, `recoil_phase`, `recoil_lift`, `shot_time`, `recoil_aim_time`, the 21 `landmarks`),
   and the `duplicates` that were dropped. `swapped` is the legacy static heuristic;
   a real upright index recoil can also match it.
 
@@ -503,8 +522,8 @@ soon as an answer arrived; now the camera is the limit.
   styles, label swaps, cooldown and look-back in explicit legacy thumb mode, plus four replayed
   recordings of play that must fire exactly the labeled thumb shots with a smooth aim),
   `test_recoil.py` (recoil versus ordinary aim, slow/one-way movements, jitter and swaps,
-  hand sizes, 15–60 fps, return/re-arm, loss, recenter and pre-flick aim; old recordings must
-  not fire recoil shots),
+  hand sizes, 15–60 fps, return/re-arm, loss, recenter and held pre-flick aim; six real
+  recoils must fire once each with a steady crosshair; old thumb recordings must not fire),
   `test_cv.py` (the HTTP and WebSocket contract with a scripted detector:
   frames, errors, limits, busy, unavailable, idle, settings, recording and its
   refusal in production),
