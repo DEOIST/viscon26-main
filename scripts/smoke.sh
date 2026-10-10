@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Read-only smoke checks for Vite development or FastAPI serving the production build.
-# Never sends a story POST or creates account/game records.
+# Never sends a story POST or creates player/game records.
 set -euo pipefail
 
 URL="${1:-http://localhost:5173}"
@@ -35,6 +35,7 @@ for _ in $(seq 1 30); do
 done
 
 expect_status /api/health 200 '"status":"ok"'
+expect_status /api/config 200 '"graduationPreview":'
 expect_status /api/db-health 200 '"status":"ok"'
 expect_status / 200 '<div id="root">'
 expect_status /favicon.svg 200 '<svg'

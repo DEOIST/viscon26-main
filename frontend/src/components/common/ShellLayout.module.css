@@ -789,12 +789,6 @@
 .shell .playerSummary p {
     font-size: 12px;
 }
-.shell .accountTag {
-    padding-left: 12px;
-    margin-left: 10px;
-    border-left: 1px solid var(--border);
-    font-size: 10px;
-}
 .shell .headerActions {
     align-self: start;
     margin-top: 8px;
@@ -1160,29 +1154,6 @@
     border-radius: 8px;
     font-size: 11px !important;
     margin: 20px 0;
-}
-.shell .authTabs {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 4px;
-    background: var(--background);
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    margin: 22px 0;
-}
-.shell .authTabs button {
-    background: transparent;
-    color: var(--text-muted);
-    padding: 9px;
-    border: 1px solid transparent;
-    border-radius: 6px;
-    font-weight: 650;
-    font-size: 12px;
-}
-.shell .authTabs button.active {
-    color: var(--primary);
-    border-color: var(--border);
-    background: var(--surface-raised);
 }
 .shell .fullWidth {
     width: 100%;
@@ -1590,12 +1561,6 @@
     }
     .shell .playerSummary p {
         font-size: 10px;
-    }
-    .shell .accountTag {
-        display: block;
-        border: 0;
-        padding: 0;
-        margin: 3px 0 0;
     }
     .shell .smallPortrait {
         width: 58px;
