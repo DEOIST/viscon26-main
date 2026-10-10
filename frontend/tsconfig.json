@@ -21,6 +21,7 @@
         "src",
         "level2",
         "level1",
+        "level3",
         "types",
         "vite.config.ts",
         "../shared/game-config.json"

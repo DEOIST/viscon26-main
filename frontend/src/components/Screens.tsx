@@ -10,6 +10,10 @@ import type { Character, Gender, Glasses, HairLength, Player } from "../types";
 import { Avatar } from "./Avatar";
 import { Icon } from "./Icon";
 import { PhotoAvatar } from "./PhotoAvatar";
+import AdmissionLetter from "./AdmissionLetter";
+import Diploma from "./Diploma";
+import { ADMISSION_PHASES, type AdmissionPhase } from "../misc/admission";
+import diplomaStyles from "./Diploma.module.css";
 
 export function WelcomeScreen({ onStart }: { onStart: () => void }) {
     return (
@@ -37,7 +41,7 @@ export function WelcomeScreen({ onStart }: { onStart: () => void }) {
                         Start your degree <Icon name="arrow" />
                     </button>
                     <p className="fine-print">
-                        No account needed to start. Coffee not included.
+                        Create your character and play. Coffee not included.
                     </p>
                 </section>
                 <div className="letter-scene" aria-hidden="true">
@@ -187,12 +191,16 @@ export function CharacterBuilder({
     error,
     onBack,
     onContinue,
+    initializing = false,
+    onSkip,
 }: {
     player: Player;
     busy: boolean;
     error: string;
     onBack: (draft: Player) => void;
     onContinue: (draft: Player) => void;
+    initializing?: boolean;
+    onSkip?: () => void;
 }) {
     const [name, setName] = useState(player.name);
     const [character, setCharacter] = useState(player.character);
@@ -214,7 +222,10 @@ export function CharacterBuilder({
         onContinue({ ...draft, onboardingStage: "acceptance" });
     }
     return (
-        <section className="onboarding">
+        <section
+            className={`onboarding ${initializing ? "is-initializing" : ""}`}
+            aria-busy={initializing}
+        >
             <div className="section-heading">
                 <span className="eyebrow">01 / YOUR STUDENT RECORD</span>
                 <h1>Meet your future self.</h1>
@@ -264,7 +275,27 @@ export function CharacterBuilder({
                         </span>
                     </div>
                 </div>
-                <form className="builder-form panel" onSubmit={submit}>
+                {initializing && (
+                    <div className="profile-initializing" role="status">
+                        <span
+                            className="initialization-ring"
+                            aria-hidden="true"
+                        />
+                        <span>Initializing student profile…</span>
+                        <button
+                            type="button"
+                            className="skip-animation"
+                            onClick={onSkip}
+                        >
+                            Skip animation
+                        </button>
+                    </div>
+                )}
+                <form
+                    className="builder-form panel"
+                    inert={initializing}
+                    onSubmit={submit}
+                >
                     <div className="field">
                         <div className="label-row">
                             <label htmlFor="character-name">
@@ -429,55 +460,91 @@ export function AcceptanceScreen({
     error,
     onBegin,
     onBack,
+    phase = "idle",
+    characters = 0,
+    onSkip,
 }: {
     player: Player;
     busy: boolean;
     error: string;
     onBegin: () => void;
     onBack: () => void;
+    phase?: AdmissionPhase;
+    characters?: number;
+    onSkip?: () => void;
 }) {
+    const finished = phase === "idle" || phase === "complete";
+    const reached = (step: AdmissionPhase) =>
+        finished ||
+        ADMISSION_PHASES.indexOf(phase) >= ADMISSION_PHASES.indexOf(step);
     return (
-        <section className="story-wrap">
-            <span className="eyebrow">02 / A VERY IMPORTANT LETTER</span>
+        <section className="story-wrap" data-phase={phase}>
+            <div className="admission-status">
+                <span className="eyebrow">02 / A VERY IMPORTANT LETTER</span>
+                {!finished && (
+                    <button className="skip-animation" onClick={onSkip}>
+                        Skip animation
+                    </button>
+                )}
+            </div>
             <div className="story-card panel">
                 <div className="story-header">
-                    <Icon name="cap" size={32} />
-                    <span>
-                        THE UNOFFICIAL
-                        <br />
-                        ADMISSIONS OFFICE
-                    </span>
-                    <span className="badge success">
-                        <Icon name="check" size={15} /> Accepted
+                    <div
+                        className="admissions-emblem"
+                        data-visible={reached("emblem")}
+                    >
+                        <Icon name="cap" size={32} />
+                        <span>
+                            THE UNOFFICIAL
+                            <br />
+                            ADMISSIONS OFFICE
+                        </span>
+                    </div>
+                    <span
+                        className="admission-stamp"
+                        data-visible={reached("stamp")}
+                    >
+                        <Icon name="check" size={17} /> ACCEPTED
+                        <span className="stamp-sparks" aria-hidden="true">
+                            <i />
+                            <i />
+                            <i />
+                        </span>
                     </span>
                 </div>
                 <div className="story-body">
-                    <Avatar
-                        character={player.character}
-                        className="story-avatar"
-                    />
-                    <p className="eyebrow">DEAR {player.name.toUpperCase()},</p>
-                    <h1>
-                        Welcome to the
-                        <br />
-                        next three years.
-                    </h1>
-                    <p>
-                        Congratulations, <strong>{player.name}</strong>! You
-                        have been accepted into{" "}
-                        <strong>{departmentLabel(player.major)}</strong>.
-                    </p>
-                    <p>
-                        Your potential is impressive. Your free time has been
-                        successfully unenrolled.
-                    </p>
-                    <p className="story-signoff">
-                        Warm regards,
-                        <br />
-                        <strong>The unofficial admissions team</strong>
-                    </p>
+                    <div
+                        className="admission-avatar-slot"
+                        data-admission-avatar
+                    >
+                        <Avatar
+                            character={player.character}
+                            className={
+                                phase === "travel" ? "avatar-in-transfer" : ""
+                            }
+                        />
+                    </div>
+                    <div className="admission-letter">
+                        <div className="letter-reservation" aria-hidden="true">
+                            <AdmissionLetter player={player} />
+                        </div>
+                        <div className="letter-print" aria-hidden="true">
+                            <AdmissionLetter
+                                player={player}
+                                characters={
+                                    finished || reached("edit")
+                                        ? Infinity
+                                        : characters
+                                }
+                                cursor={phase === "text"}
+                            />
+                        </div>
+                        <div className="sr-only">
+                            <AdmissionLetter player={player} />
+                        </div>
+                    </div>
                 </div>
-                <div className="story-footer">
+                <div className="story-footer" data-visible={reached("edit")}>
                     <span>
                         {YEARS.length} years <span aria-hidden="true">/</span>{" "}
                         {TOTAL_ECTS} ECTS <span aria-hidden="true">/</span>{" "}
@@ -492,16 +559,20 @@ export function AcceptanceScreen({
             )}
             <div className="story-actions">
                 <button
-                    className="button ghost"
+                    className="button ghost admission-edit"
+                    data-visible={reached("edit")}
                     onClick={onBack}
-                    disabled={busy}
+                    disabled={busy || !reached("begin")}
+                    inert={!reached("begin")}
                 >
                     <Icon name="back" /> Edit character
                 </button>
                 <button
-                    className="button primary large"
+                    className="button primary large admission-begin"
+                    data-visible={reached("begin")}
                     onClick={onBegin}
-                    disabled={busy}
+                    disabled={busy || !finished}
+                    inert={!finished}
                 >
                     {busy ? "Saving…" : "Begin Year 1"} <Icon name="arrow" />
                 </button>
@@ -510,41 +581,117 @@ export function AcceptanceScreen({
     );
 }
 
-export function GraduationScreen({
-    player,
-    ects,
-    onReturn,
-}: {
+interface GraduationScreenArgs {
     player: Player;
     ects: number;
+    completedGameIds: string[];
+    graduatedAt: string | null;
+    preview?: boolean;
     onReturn: () => void;
-}) {
+    onLeaderboard: () => void;
+    submissionError?: string;
+    submitting?: boolean;
+    onRetry?: () => void;
+    celebrate?: boolean;
+}
+
+export function GraduationScreen(args: GraduationScreenArgs) {
+    const [diplomaOpen, setDiplomaOpen] = useState(true);
+
+    function handleLeaderboard() {
+        setDiplomaOpen(false);
+        args.onLeaderboard();
+    }
+
     return (
-        <section className="graduation panel">
-            <span className="eyebrow reward-text">DEGREE COMPLETE</span>
-            <div className="graduate-portrait">
-                <Avatar character={player.character} />
-                <span className="graduate-seal">
-                    <Icon name="cap" size={32} />
+        <>
+            <section className={`${diplomaStyles.screen} panel`}>
+                <span className="eyebrow reward-text">
+                    {args.preview ? "GRADUATION PREVIEW" : "DEGREE COMPLETE"}
                 </span>
-            </div>
-            <h1>You did it, {player.name}.</h1>
-            <p className="hero-lead">
-                Officially done. Unofficially legendary.
-            </p>
-            <p>
-                {departmentLabel(player.major)}{" "}
-                <span aria-hidden="true">·</span>{" "}
-                <strong className="reward-text">{ects} ECTS earned</strong>
-            </p>
-            <p className="graduation-copy">
-                Congratulations. You may now close those 47 browser tabs.
-                <br />
-                Your degree and progress are staying right here.
-            </p>
-            <button className="button primary" onClick={onReturn}>
-                <Icon name="back" /> Return to overview
-            </button>
-        </section>
+                <div className={diplomaStyles.portrait}>
+                    <Avatar
+                        character={args.player.character}
+                        label={`Graduate ${args.player.name}`}
+                    />
+                    <span className={diplomaStyles.seal}>
+                        <Icon name="cap" size={26} />
+                    </span>
+                </div>
+                <h1>
+                    {args.preview ? "Your graduation preview" : "You did it"},{" "}
+                    {args.player.name}.
+                </h1>
+                <p className={diplomaStyles.lead}>
+                    {args.preview
+                        ? "Take a peek at the finish line."
+                        : "Officially done. Unofficially legendary."}
+                </p>
+                <p>
+                    {departmentLabel(args.player.major)}{" "}
+                    <span aria-hidden="true">·</span>{" "}
+                    <strong className="reward-text">
+                        {args.ects} ECTS earned
+                    </strong>
+                </p>
+                <p className={diplomaStyles.copy}>
+                    {args.preview
+                        ? "Test preview · Your progress and leaderboard are unchanged."
+                        : "Your degree and progress are staying right here. Your next deadline? Entirely your problem."}
+                </p>
+                {!args.preview && args.submissionError && (
+                    <div className={diplomaStyles.submission} role="status">
+                        <p>
+                            Your completed run is saved in this browser. Your
+                            diploma is ready; the leaderboard update needs
+                            another try.
+                        </p>
+                        <p className="error-text">{args.submissionError}</p>
+                        {args.onRetry && (
+                            <button
+                                className="button secondary"
+                                disabled={args.submitting}
+                                onClick={args.onRetry}
+                            >
+                                {args.submitting
+                                    ? "Submitting…"
+                                    : "Retry leaderboard update"}
+                            </button>
+                        )}
+                    </div>
+                )}
+                <div className={diplomaStyles.actions}>
+                    <button
+                        className="button primary"
+                        onClick={() => setDiplomaOpen(true)}
+                    >
+                        <Icon name="cap" /> View diploma
+                    </button>
+                    <button
+                        className="button secondary"
+                        onClick={handleLeaderboard}
+                    >
+                        <Icon name="trophy" /> View leaderboard
+                    </button>
+                    <button className="button ghost" onClick={args.onReturn}>
+                        <Icon name="back" /> Return to overview
+                    </button>
+                </div>
+            </section>
+            {diplomaOpen && (
+                <Diploma
+                    player={args.player}
+                    ects={args.ects}
+                    completedGameIds={args.completedGameIds}
+                    graduatedAt={args.graduatedAt}
+                    preview={args.preview}
+                    submissionError={args.submissionError}
+                    submitting={args.submitting}
+                    onRetry={args.onRetry}
+                    onClose={() => setDiplomaOpen(false)}
+                    onLeaderboard={handleLeaderboard}
+                />
+            )}
+        </>
     );
 }
