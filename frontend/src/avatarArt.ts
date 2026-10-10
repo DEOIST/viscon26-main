@@ -34,3 +34,28 @@ export const AVATAR_EYES = [
         pupil: { x: 108, y: 90 },
     },
 ];
+
+// Expressions beyond the builder's calm face: Avatar.tsx's `expression` and the casino seat
+// (level2/avatar.ts) draw from these.
+export const AVATAR_FACES = {
+    browsSad: "M60 80 76 73M104 73l16 7", // inner ends up
+    browsHappy: "M60 73q8-8 16-3M104 70q8-5 16 3",
+    eyesClosed: "M62 91q8 5 16 0M102 91q8 5 16 0", // mid-blink
+    eyesHappy: "M62 94q8-11 16 0M102 94q8-11 16 0", // ^ ^
+    eyesSqueezed: "M63 84l13 6-13 6M117 84l-13 6 13 6", // > <
+    tears: "M63 99c-3 10-3 21 0 33M117 99c3 10 3 21 0 33",
+    mouthCry: "M77 129c0-16 26-16 26 0-6-5-20-5-26 0Z",
+    mouthGrin: "M73 112h34c0 14-8 22-17 22s-17-8-17-22Z",
+    grinTeeth: "M75 113.5h30v4c-10 3-20 3-30 0Z",
+    grinTongue: "M82 129c4-5 12-5 16 0-4 3-12 3-16 0Z",
+    blush: [
+        { x: 58, y: 107 },
+        { x: 122, y: 107 },
+    ],
+};
+export const AVATAR_FACE_COLORS = {
+    mouth: "#7a2638",
+    tongue: "#f07c8f",
+    tear: "#8fd3ff",
+    blush: "#ff7f9a",
+};

@@ -25,6 +25,14 @@ Everything else in the game frames that moment.
 | 5 | `/shooter` | Basisprüfung: shoot exam questions with your finger gun | `POST …/scores` |
 | 6 | `/graduation` | Click **Open your diploma**: career reveal, ending art, your epilogue typed out and read aloud by the rector, your rank, **Play again** | `POST …/graduate`, `…/epilogue`, `…/epilogue/speech` |
 
+- **First-day intro:** after **Begin Year 1** on the acceptance letter, the
+  avatar slides to the centre of a darkening screen under a soft spotlight,
+  blinking and beaming about getting into ETH. Two seconds later "Lectures",
+  "Practice Classes" and "Lernphase" strike it one after another, Minecraft
+  style (red flash, knockback, a row of pixel hearts emptying, a hurt face),
+  until a huge "Emotional Damage" lands the last blow and leaves it crying on
+  half a heart. Then it takes its seat in the sidebar portrait. Skippable, and
+  skipped entirely with reduced motion (`frontend/src/components/YearOneIntro.tsx`).
 - The player picks the order of the two minigames.
 - Replaying a minigame before graduation overwrites its score, so a crashed
   demo round can simply be played again.

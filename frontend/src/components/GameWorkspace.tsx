@@ -163,6 +163,7 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                 <button
                     type="button"
                     className={styles.portrait}
+                    data-student-portrait
                     title="Edit character"
                     aria-label="Edit character"
                     disabled={args.busy || !!args.selectedGame}
@@ -221,6 +222,7 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                 <button
                     ref={menuTrigger}
                     className="icon-button"
+                    data-student-rail
                     aria-label="Student menu"
                     aria-haspopup="dialog"
                     onClick={() => studentMenu.current?.showModal()}

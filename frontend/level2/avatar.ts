@@ -5,7 +5,13 @@
 // Every layer shares one canvas (VIEW, in the builder's avatar units), so the parts line up
 // wherever they are pivoted.
 
-import { AVATAR_EYES, AVATAR_INK, AVATAR_PATHS } from "../src/avatarArt";
+import {
+    AVATAR_EYES,
+    AVATAR_FACE_COLORS,
+    AVATAR_FACES,
+    AVATAR_INK,
+    AVATAR_PATHS,
+} from "../src/avatarArt";
 
 // The shell spreads the builder's whole character into the minigame options
 // (src/minigames/DestinationGame.tsx), so glasses and hair length arrive with the colours.
@@ -56,10 +62,6 @@ export const AVATAR_TEXTURE = "player-avatar"; // all parts packed, one frame ea
 
 const SHIRT = "#78adff";
 const UNDERSHIRT = "#141d2d";
-const MOUTH = "#7a2638";
-const TONGUE = "#f07c8f";
-const TEAR = "#8fd3ff";
-const BLUSH = "#ff7f9a";
 const DEFAULT_LOOK = {
     hairColor: "#70432E",
     skinColor: "#E4B48F",
@@ -114,7 +116,8 @@ export function avatarLayers(
     look: AvatarLook,
 ): Record<AvatarPart, string | null> {
     const l = cleanLook(look);
-    const [left, right] = AVATAR_EYES;
+    const f = AVATAR_FACES;
+    const colors = AVATAR_FACE_COLORS;
     const lens = l.glasses === "sunglasses" ? AVATAR_INK : "none";
 
     return {
@@ -144,8 +147,8 @@ export function avatarLayers(
                 path(AVATAR_PATHS.nose, line(2.5)),
         ),
         browsNeutral: svg(path(AVATAR_PATHS.brows, line())),
-        browsSad: svg(path("M60 80 76 73M104 73l16 7", line(3.5))), // inner ends up
-        browsHappy: svg(path("M60 73q8-8 16-3M104 70q8-5 16 3", line(3.5))),
+        browsSad: svg(path(f.browsSad, line(3.5))),
+        browsHappy: svg(path(f.browsHappy, line(3.5))),
         eyesOpen: svg(
             AVATAR_EYES.map(
                 (eye) =>
@@ -154,22 +157,10 @@ export function avatarLayers(
                     `<circle cx="${eye.pupil.x}" cy="${eye.pupil.y}" r="2" fill="${AVATAR_INK}"/>`,
             ).join(""),
         ),
-        eyesClosed: svg(
-            path(
-                `M${left.white.x - 8} 91q8 5 16 0M${right.white.x - 8} 91q8 5 16 0`,
-                line(),
-            ),
-        ),
-        eyesHappy: svg(
-            path(
-                `M${left.white.x - 8} 94q8-11 16 0M${right.white.x - 8} 94q8-11 16 0`,
-                line(3.5),
-            ),
-        ),
-        eyesCry: svg(path("M63 84l13 6-13 6M117 84l-13 6 13 6", line(3.5))), // > <
-        tears: svg(
-            path("M63 99c-3 10-3 21 0 33M117 99c3 10 3 21 0 33", line(5, TEAR)),
-        ),
+        eyesClosed: svg(path(f.eyesClosed, line())),
+        eyesHappy: svg(path(f.eyesHappy, line(3.5))),
+        eyesCry: svg(path(f.eyesSqueezed, line(3.5))),
+        tears: svg(path(f.tears, line(5, colors.tear))),
         glasses:
             l.glasses === "none"
                 ? null
@@ -183,23 +174,19 @@ export function avatarLayers(
                           `</g>`,
                   ),
         mouthSmile: svg(path(AVATAR_PATHS.smile, line(2.5))),
-        mouthCry: svg(
-            path("M77 129c0-16 26-16 26 0-6-5-20-5-26 0Z", outline(MOUTH, 2.5)),
-        ),
+        mouthCry: svg(path(f.mouthCry, outline(colors.mouth, 2.5))),
         mouthGrin: svg(
-            path(
-                "M73 112h34c0 14-8 22-17 22s-17-8-17-22Z",
-                outline(MOUTH, 2.5),
-            ) +
-                path("M75 113.5h30v4c-10 3-20 3-30 0Z", `fill="#FFFFFF"`) +
-                path(
-                    "M82 129c4-5 12-5 16 0-4 3-12 3-16 0Z",
-                    `fill="${TONGUE}"`,
-                ),
+            path(f.mouthGrin, outline(colors.mouth, 2.5)) +
+                path(f.grinTeeth, `fill="#FFFFFF"`) +
+                path(f.grinTongue, `fill="${colors.tongue}"`),
         ),
         blush: svg(
-            `<ellipse cx="58" cy="107" rx="8" ry="4.5" fill="${BLUSH}" fill-opacity=".6"/>` +
-                `<ellipse cx="122" cy="107" rx="8" ry="4.5" fill="${BLUSH}" fill-opacity=".6"/>`,
+            f.blush
+                .map(
+                    (cheek) =>
+                        `<ellipse cx="${cheek.x}" cy="${cheek.y}" rx="8" ry="4.5" fill="${colors.blush}" fill-opacity=".6"/>`,
+                )
+                .join(""),
         ),
     };
 }
