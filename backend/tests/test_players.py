@@ -154,7 +154,7 @@ def test_shipped_minigames_complete_all_three_years(client):
     assert all(GAMES[f"year-{year}-slot"]["implemented"] is True for year in (1, 2, 3))
     assert [year["games"][0]["title"] for year in YEARS] == [
         "Bug Bash",
-        "Casino night",
+        "Probability Class - Gauss Jack",
         "Thesis defense",
     ]
     path = player_path()

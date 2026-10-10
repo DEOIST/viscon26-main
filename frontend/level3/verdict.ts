@@ -1,42 +1,51 @@
-// The committee's verdict, the ETH grade and the personal best, all pure. The best run is
+// The committee's verdict by ETH grade, the grade itself and the personal best, all pure. The best run is
 // kept in the browser's localStorage: it is a bragging number, not progress, so it never
 // goes to the server.
 
 import { BEST_KEY } from "./config";
 import { TEXT } from "../src/misc/text";
 
-const VERDICT_TEXT = TEXT.thesisDefense.verdicts;
-
 export interface Verdict {
     title: string;
     line: string;
+    career: string; // "Career forecast" on the verdict card
     color: string;
 }
 
-const VERDICTS: { min: number; verdict: Verdict }[] = [
-    {
-        min: 93,
-        verdict: { ...VERDICT_TEXT.summaCumLaude, color: "#ffd84a" },
-    },
-    {
-        min: 80,
-        verdict: { ...VERDICT_TEXT.defended, color: "#9dff4a" },
-    },
-    {
-        min: 65,
-        verdict: { ...VERDICT_TEXT.conditionalPass, color: "#3ee0ff" },
-    },
-    {
-        min: 0,
-        verdict: { ...VERDICT_TEXT.majorRevisions, color: "#ffb43c" },
-    },
-];
+// One verdict per band of the ETH scale (1–6, 4 passes), best first. The words are in
+// shared/text.json (thesisDefense.verdicts); the ink colour follows how the band reads.
+const VERDICT_TEXT = TEXT.thesisDefense.verdicts;
+const INK = {
+    top: "#ffd84a",
+    good: "#9dff4a",
+    pass: "#3ee0ff",
+    short: "#ffb43c",
+    fail: "#ff4f6d",
+};
 
-const DESTROYED: Verdict = { ...VERDICT_TEXT.destroyed, color: "#ff4f6d" };
+function tiers(
+    entries: { min: number; title: string; line: string; career: string }[],
+    color: (min: number) => string,
+): { min: number; verdict: Verdict }[] {
+    return entries.map(({ min, ...words }) => ({
+        min,
+        verdict: { ...words, color: color(min) },
+    }));
+}
 
-export function verdictFor(failed: boolean, accuracy: number): Verdict {
-    if (failed) return DESTROYED;
-    return VERDICTS.find((tier) => accuracy >= tier.min)!.verdict;
+const PASSED = tiers(VERDICT_TEXT.passed, (min) =>
+    min >= 5.75 ? INK.top : min >= 5 ? INK.good : INK.pass,
+);
+const NOT_PASSED = tiers(VERDICT_TEXT.notPassed, (min) =>
+    min >= 3 ? INK.short : INK.fail,
+);
+const DESTROYED = tiers(VERDICT_TEXT.destroyed, () => INK.fail);
+
+// The verdict follows the ETH grade; a defense that ran out of confidence is always destroyed.
+export function verdictFor(failed: boolean, grade: number): Verdict {
+    const tiers = failed ? DESTROYED : grade >= 4 ? PASSED : NOT_PASSED;
+    return (tiers.find((tier) => grade >= tier.min) ?? tiers[tiers.length - 1])
+        .verdict;
 }
 
 // ETH grades run from 1 to 6 in quarter steps; 4 passes. A failed defense never passes.

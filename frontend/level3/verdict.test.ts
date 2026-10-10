@@ -1,22 +1,37 @@
 import { describe, expect, it } from "vitest";
 import { loadBest, saveBest, swissGrade, verdictFor } from "./verdict";
 import type { BestRun } from "./verdict";
-import { TEXT } from "../src/misc/text";
-
-const VERDICTS = TEXT.thesisDefense.verdicts;
 
 describe("verdictFor", () => {
-    it("ranks a finished defense by accuracy", () => {
-        expect(verdictFor(false, 97).title).toBe(VERDICTS.summaCumLaude.title);
-        expect(verdictFor(false, 85).title).toBe(VERDICTS.defended.title);
-        expect(verdictFor(false, 70).title).toBe(
-            VERDICTS.conditionalPass.title,
-        );
-        expect(verdictFor(false, 40).title).toBe(VERDICTS.majorRevisions.title);
+    it("gives every passing ETH grade its own verdict", () => {
+        expect(verdictFor(false, 6).title).toBe("SUMMA CUM LAUDE");
+        expect(verdictFor(false, 5.75).title).toBe("MAGNA CUM LAUDE");
+        expect(verdictFor(false, 5.25).title).toBe("THESIS DEFENDED");
+        expect(verdictFor(false, 4.5).title).toBe("CONDITIONAL PASS");
+        expect(verdictFor(false, 4).title).toBe("4.0 IS A PASS");
+        const passing = [6, 5.75, 5.5, 5.25, 5, 4.75, 4.5, 4.25, 4];
+        const titles = passing.map((grade) => verdictFor(false, grade).title);
+        expect(new Set(titles).size).toBe(passing.length);
     });
 
-    it("sends a failed defense back to the drawing board whatever the accuracy", () => {
-        expect(verdictFor(true, 99).title).toBe(VERDICTS.destroyed.title);
+    it("keeps failing grades apart from a destroyed defense", () => {
+        expect(verdictFor(false, 3.75).title).toBe("SO CLOSE");
+        expect(verdictFor(false, 3.25).title).toBe("MAJOR REVISIONS REQUIRED");
+        expect(verdictFor(false, 1).title).toBe("EXMATRIKULIERT");
+        expect(verdictFor(true, 3.5).title).toBe("BACK TO THE DRAWING BOARD");
+        expect(verdictFor(true, 1.25).title).toBe(
+            "SENT BACK TO THE BASISPRÜFUNG",
+        );
+    });
+
+    it("forecasts a career for every grade on the scale", () => {
+        for (let grade = 1; grade <= 6; grade += 0.25)
+            for (const failed of [false, true]) {
+                const verdict = verdictFor(failed, grade);
+                expect(verdict.line.length).toBeGreaterThan(10);
+                expect(verdict.career.length).toBeGreaterThan(5);
+                expect(verdict.color).toMatch(/^#[0-9a-f]{6}$/);
+            }
     });
 });
 

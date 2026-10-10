@@ -295,6 +295,16 @@ button.portrait:disabled {
 .launchPanel button {
     margin-top: 8px;
 }
+/* The launch button arrives after the last how-to-play step has been dealt. */
+.launchPanel .afterHowTo {
+    animation: afterHowTo 500ms ease-out 1.4s backwards;
+}
+@keyframes afterHowTo {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+}
 .degreeActions {
     position: relative;
     display: flex;
