@@ -146,7 +146,7 @@ the wire. Change both in the same PR.
 ```ts
 // --- runs ---
 type GameId = "blackjack" | "shooter";
-type EndingId = "c_level" | "big_tech" | "phd" | "mcdonalds" | "unemployed";
+type EndingId = "quant" | "phd" | "masters" | "mcdonalds" | "homeless";
 type Pronouns = "she" | "he" | "they";
 type DepartmentId =
     | "arch" | "baug" | "biol" | "bsse" | "chab" | "erdw" | "gess" | "hest"

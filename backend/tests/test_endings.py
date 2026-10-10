@@ -6,16 +6,16 @@ from app.services.endings import decide_ending, total_score
 @pytest.mark.parametrize(
     ("total", "ending_id"),
     [
-        (0, "unemployed"),
-        (24, "unemployed"),
+        (0, "homeless"),
+        (24, "homeless"),
         (25, "mcdonalds"),
         (44, "mcdonalds"),
-        (45, "phd"),
-        (64, "phd"),
-        (65, "big_tech"),
-        (84, "big_tech"),
-        (85, "c_level"),
-        (100, "c_level"),
+        (45, "masters"),
+        (64, "masters"),
+        (65, "phd"),
+        (84, "phd"),
+        (85, "quant"),
+        (100, "quant"),
     ],
 )
 def test_each_tier_starts_exactly_at_its_threshold(total: int, ending_id: str):

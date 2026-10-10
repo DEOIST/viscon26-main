@@ -194,3 +194,22 @@ it("labels a preview clearly and uses current progress without recording graduat
     expect(args.onRetry).not.toHaveBeenCalled();
     expect(args.onReturn).not.toHaveBeenCalled();
 });
+
+it("names the career that the earned ECTS buy, with its photo and jokes", () => {
+    const args = graduationArgs(); // 120 of 180 ECTS = 66 %: the PhD tier
+    render(<GraduationScreen {...args} />);
+    const diploma = within(screen.getByRole("dialog"));
+    expect(diploma.getByText("PhD student at ETH, year 7")).toBeTruthy();
+    expect(diploma.getByText("Magna cum laude")).toBeTruthy();
+    expect(diploma.getByText("Your office desk, after 22:00")).toBeTruthy();
+    expect(
+        diploma.getByRole("img", {
+            name: /doctoral hat built from pizza boxes/,
+        }),
+    ).toBeTruthy();
+    cleanup();
+    render(<GraduationScreen {...args} ects={30} />);
+    expect(
+        within(screen.getByRole("dialog")).getByText("Homeless in Zürich"),
+    ).toBeTruthy();
+});

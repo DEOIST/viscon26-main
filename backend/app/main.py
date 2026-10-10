@@ -24,6 +24,7 @@ log = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     database.Base.metadata.create_all(database.engine)
+    database.add_completion_scores()
     database.migrate_legacy_players()
     yield
 

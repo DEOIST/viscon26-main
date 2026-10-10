@@ -169,7 +169,7 @@ def test_the_epilogue_for_an_unknown_run_is_404(client: TestClient):
 def test_the_fallback_epilogue_is_about_this_player_and_career(
     client: TestClient, graduated_run: Callable[..., dict]
 ):
-    run = graduated_run(blackjack=45, shooter=45, name="Zoë")  # phd
+    run = graduated_run(blackjack=45, shooter=45, name="Zoë")  # masters
 
     res = client.post(f"/api/runs/{run['id']}/epilogue")
 
@@ -177,7 +177,7 @@ def test_the_fallback_epilogue_is_about_this_player_and_career(
     epilogue = res.json()
     assert epilogue["source"] == "fallback"
     assert "Zoë" in epilogue["text"]
-    assert "PhD" in epilogue["text"]
+    assert "Master's" in epilogue["text"]
 
 
 def test_the_ai_epilogue_is_written_once_from_scores_and_career(
@@ -194,7 +194,7 @@ def test_the_ai_epilogue_is_written_once_from_scores_and_career(
     assert second == first
     assert len(fake.responses.create.calls) == 1
     prompt = fake.responses.create.calls[0]["input"]
-    assert "Eternal PhD student" in prompt
+    assert "Master's student at ETH (again)" in prompt
     assert '"totalScore": 45' in prompt
 
 
