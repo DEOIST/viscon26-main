@@ -319,7 +319,7 @@
       },
       "hand": {
         "displayName": "Hand",
-        "purpose": "Margin notes, professor names, judgment words (Kalam 14 to 24px)."
+        "purpose": "Margin notes, professor names, judgment words (Caveat 14 to 24px)."
       },
       "hand-shout": {
         "displayName": "Hand Shout",
@@ -394,7 +394,7 @@
       "refersTo": "viewer-toolbar",
       "description": "PDF-viewer strip: menu, mono file name, page counter as progress, sound and fullscreen with their key letters.",
       "html": "<div class=\"ds-toolbar\"><span class=\"ds-toolbar-menu\" aria-hidden=\"true\"><i></i><i></i><i></i></span><span class=\"ds-toolbar-file\">thesis_FINAL_v7_really_final.pdf</span><span class=\"ds-toolbar-pages\"><b>39</b> / 58</span><button class=\"ds-toolbar-btn\"><span>M</span> sound on</button><button class=\"ds-toolbar-btn\"><span>F</span><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"#f1f3f4\" stroke-width=\"2\"><path d=\"M1 5V1h4M11 1h4v4M15 11v4h-4M5 15H1v-4\"/></svg></button></div>",
-      "css": ".ds-toolbar{display:flex;align-items:center;gap:20px;height:44px;padding:0 16px;background:#323639;color:#f1f3f4;font-family:\"CMU Serif\",\"Latin Modern Roman\",Georgia,serif;font-size:14px}.ds-toolbar-menu{display:grid;gap:5px;width:16px}.ds-toolbar-menu i{display:block;height:2px;background:#f1f3f4}.ds-toolbar-file{font-family:\"CMU Typewriter\",\"Courier New\",monospace;font-size:15px;flex:1}.ds-toolbar-pages{color:#bdc1c6;font-size:15px}.ds-toolbar-pages b{display:inline-block;background:#191b1c;color:#f1f3f4;font-weight:400;padding:1px 12px;margin-right:6px}.ds-toolbar-btn{display:flex;align-items:center;gap:8px;background:none;border:0;color:#f1f3f4;font:inherit;cursor:pointer}.ds-toolbar-btn span{color:#bdc1c6}.ds-toolbar-btn:hover{color:#ffffff}.ds-toolbar-btn:focus-visible{outline:2px solid #8ab4f8;outline-offset:2px}"
+      "css": ".ds-toolbar{display:flex;align-items:center;gap:20px;height:44px;padding:0 16px;background:#323639;color:#f1f3f4;font-family:\"Source Serif 4\",\"Latin Modern Roman\",Georgia,serif;font-size:14px}.ds-toolbar-menu{display:grid;gap:5px;width:16px}.ds-toolbar-menu i{display:block;height:2px;background:#f1f3f4}.ds-toolbar-file{font-family:\"Source Code Pro\",\"Courier New\",monospace;font-size:15px;flex:1}.ds-toolbar-pages{color:#bdc1c6;font-size:15px}.ds-toolbar-pages b{display:inline-block;background:#191b1c;color:#f1f3f4;font-weight:400;padding:1px 12px;margin-right:6px}.ds-toolbar-btn{display:flex;align-items:center;gap:8px;background:none;border:0;color:#f1f3f4;font:inherit;cursor:pointer}.ds-toolbar-btn span{color:#bdc1c6}.ds-toolbar-btn:hover{color:#ffffff}.ds-toolbar-btn:focus-visible{outline:2px solid #8ab4f8;outline-offset:2px}"
     },
     {
       "name": "Pane Key Cap",
@@ -402,7 +402,7 @@
       "refersTo": "pane-key-cap",
       "description": "Key hint in the properties pane: outlined cap plus its action.",
       "html": "<div class=\"ds-pane\"><span class=\"ds-keycap\">D F J K</span><span class=\"ds-keycap-what\">answer</span></div>",
-      "css": ".ds-pane{display:flex;align-items:center;gap:10px;background:#3c3f42;padding:12px 16px;font-family:\"CMU Serif\",\"Latin Modern Roman\",Georgia,serif;font-size:13px}.ds-keycap{color:#f1f3f4;font-weight:700;border:1px solid rgba(241,243,244,.6);border-radius:4px;height:22px;line-height:20px;padding:0 8px}.ds-keycap-what{color:#bdc1c6}"
+      "css": ".ds-pane{display:flex;align-items:center;gap:10px;background:#3c3f42;padding:12px 16px;font-family:\"Source Serif 4\",\"Latin Modern Roman\",Georgia,serif;font-size:13px}.ds-keycap{color:#f1f3f4;font-weight:700;border:1px solid rgba(241,243,244,.6);border-radius:4px;height:22px;line-height:20px;padding:0 8px}.ds-keycap-what{color:#bdc1c6}"
     },
     {
       "name": "Transcript Action (quiet)",
@@ -410,7 +410,7 @@
       "refersTo": "key-action",
       "description": "Revise and resubmit: the safe, quiet action on the transcript.",
       "html": "<button class=\"ds-key-action\"><span class=\"ds-key-action-cap\">R</span>Revise and resubmit</button>",
-      "css": ".ds-key-action{display:inline-flex;align-items:center;gap:12px;background:#ffffff;border:0;color:#555555;font-family:\"CMU Serif\",\"Latin Modern Roman\",Georgia,serif;font-size:17px;cursor:pointer;padding:4px}.ds-key-action-cap{font-weight:700;border:1.2px solid #555555;border-radius:5px;height:30px;line-height:28px;padding:0 10px;box-shadow:inset 0 -3px 0 rgba(27,27,27,.25)}.ds-key-action:hover{color:#1b1b1b}.ds-key-action:focus-visible{outline:2px solid #1b1b1b;outline-offset:3px}"
+      "css": ".ds-key-action{display:inline-flex;align-items:center;gap:12px;background:#ffffff;border:0;color:#555555;font-family:\"Source Serif 4\",\"Latin Modern Roman\",Georgia,serif;font-size:17px;cursor:pointer;padding:4px}.ds-key-action-cap{font-weight:700;border:1.2px solid #555555;border-radius:5px;height:30px;line-height:28px;padding:0 10px;box-shadow:inset 0 -3px 0 rgba(27,27,27,.25)}.ds-key-action:hover{color:#1b1b1b}.ds-key-action:focus-visible{outline:2px solid #1b1b1b;outline-offset:3px}"
     },
     {
       "name": "Transcript Action (submit)",
@@ -418,7 +418,7 @@
       "refersTo": "key-action-primary",
       "description": "Submit final version: the final, heavier action under its own rule.",
       "html": "<div class=\"ds-submit\"><button class=\"ds-key-action-primary\"><span class=\"ds-key-action-primary-cap\">Enter</span>Submit final version</button></div>",
-      "css": ".ds-submit{background:#ffffff;border-top:1.4px solid #1b1b1b;padding-top:12px;display:inline-block}.ds-key-action-primary{display:inline-flex;align-items:center;gap:12px;background:none;border:0;color:#1b1b1b;font-family:\"CMU Serif\",\"Latin Modern Roman\",Georgia,serif;font-size:23px;font-weight:700;cursor:pointer;padding:4px}.ds-key-action-primary-cap{font-size:17px;border:1.8px solid #1b1b1b;border-radius:5px;height:30px;line-height:27px;padding:0 10px;box-shadow:inset 0 -3px 0 rgba(27,27,27,.25)}.ds-key-action-primary:hover .ds-key-action-primary-cap{background:#f1f3f4}.ds-key-action-primary:focus-visible{outline:2px solid #d11a2a;outline-offset:3px}"
+      "css": ".ds-submit{background:#ffffff;border-top:1.4px solid #1b1b1b;padding-top:12px;display:inline-block}.ds-key-action-primary{display:inline-flex;align-items:center;gap:12px;background:none;border:0;color:#1b1b1b;font-family:\"Source Serif 4\",\"Latin Modern Roman\",Georgia,serif;font-size:23px;font-weight:700;cursor:pointer;padding:4px}.ds-key-action-primary-cap{font-size:17px;border:1.8px solid #1b1b1b;border-radius:5px;height:30px;line-height:27px;padding:0 10px;box-shadow:inset 0 -3px 0 rgba(27,27,27,.25)}.ds-key-action-primary:hover .ds-key-action-primary-cap{background:#f1f3f4}.ds-key-action-primary:focus-visible{outline:2px solid #d11a2a;outline-offset:3px}"
     },
     {
       "name": "Lane Figure (Figure 3.1)",
@@ -426,15 +426,15 @@
       "refersTo": "sheet",
       "description": "Four highlighter-washed lanes, booktabs top rule, doubled hit rule, key letters and caption.",
       "html": "<figure class=\"ds-figure\"><div class=\"ds-lanes\"><div style=\"--ink:#5ec8ff\"><mark>Def. 2.1</mark></div><div style=\"--ink:#ff7ad9\"><mark>eq. (3.7)</mark></div><div style=\"--ink:#8cf27a\"><mark>n = 12</mark></div><div style=\"--ink:#ffa94d\"><mark>[Rev. 2]</mark></div></div><div class=\"ds-keys\"><span>D<em>Theory</em></span><span>F<em>Proofs</em></span><span>J<em>Experiments</em></span><span>K<em>Critique</em></span></div><figcaption>Figure 3.1: Live defense. Highlight each reference as it reaches the rule.</figcaption></figure>",
-      "css": ".ds-figure{margin:0;background:#ffffff;color:#1b1b1b;font-family:\"CMU Serif\",\"Latin Modern Roman\",Georgia,serif;padding:16px;width:520px}.ds-lanes{display:grid;grid-template-columns:repeat(4,1fr);border-top:1.6px solid #1b1b1b;border-bottom:3px double #1b1b1b;height:160px}.ds-lanes>div{position:relative;background:color-mix(in srgb,var(--ink) 16%,#ffffff);border-left:1px solid rgba(27,27,27,.22);display:flex;align-items:center;justify-content:center}.ds-lanes>div:first-child{border-left:0}.ds-lanes mark{background:var(--ink);color:#1b1b1b;font-size:21px;padding:0 6px}.ds-keys{display:grid;grid-template-columns:repeat(4,1fr);text-align:center;font-size:34px;font-weight:700;padding-top:6px}.ds-keys em{display:block;font-size:13px;font-weight:400;color:#555555}.ds-figure figcaption{font-style:italic;font-size:14px;margin-top:10px}"
+      "css": ".ds-figure{margin:0;background:#ffffff;color:#1b1b1b;font-family:\"Source Serif 4\",\"Latin Modern Roman\",Georgia,serif;padding:16px;width:520px}.ds-lanes{display:grid;grid-template-columns:repeat(4,1fr);border-top:1.6px solid #1b1b1b;border-bottom:3px double #1b1b1b;height:160px}.ds-lanes>div{position:relative;background:color-mix(in srgb,var(--ink) 16%,#ffffff);border-left:1px solid rgba(27,27,27,.22);display:flex;align-items:center;justify-content:center}.ds-lanes>div:first-child{border-left:0}.ds-lanes mark{background:var(--ink);color:#1b1b1b;font-size:21px;padding:0 6px}.ds-keys{display:grid;grid-template-columns:repeat(4,1fr);text-align:center;font-size:34px;font-weight:700;padding-top:6px}.ds-keys em{display:block;font-size:13px;font-weight:400;color:#555555}.ds-figure figcaption{font-style:italic;font-size:14px;margin-top:10px}"
     },
     {
       "name": "Margin Note",
       "kind": "custom",
       "refersTo": "hand",
-      "description": "Red-pen committee note with bracket and signature, Kalam.",
+      "description": "Red-pen committee note with bracket and signature, Caveat.",
       "html": "<aside class=\"ds-note\"><p>WHO PUT TABS IN YOUR LATEX?!</p><span>— Gradient</span></aside>",
-      "css": ".ds-note{background:#ffffff;color:#d11a2a;font-family:\"Kalam\",\"Comic Sans MS\",cursive;font-size:22px;padding:8px 8px 8px 16px;border-left:2px solid #d11a2a;width:220px;transform:rotate(-2deg)}.ds-note p{margin:0;line-height:1.15}.ds-note span{display:block;text-align:right;font-size:16px}"
+      "css": ".ds-note{background:#ffffff;color:#d11a2a;font-family:\"Caveat\",\"Comic Sans MS\",cursive;font-size:22px;padding:8px 8px 8px 16px;border-left:2px solid #d11a2a;width:220px;transform:rotate(-2deg)}.ds-note p{margin:0;line-height:1.15}.ds-note span{display:block;text-align:right;font-size:16px}"
     },
     {
       "name": "Table 3.1 (score)",
@@ -442,7 +442,7 @@
       "refersTo": "numeral",
       "description": "Score, accuracy and combo set as a booktabs table in the margin.",
       "html": "<table class=\"ds-t31\"><caption>Table 3.1: The defense so far.</caption><tbody><tr><td>Score</td><td class=\"ds-t31-score\">12'884</td></tr><tr><td>Accuracy</td><td>86.1 %</td></tr><tr class=\"ds-t31-mid\"><td>Combo<br><i>×1</i></td><td class=\"ds-t31-combo\">7</td></tr></tbody></table>",
-      "css": ".ds-t31{background:#ffffff;color:#1b1b1b;font-family:\"CMU Serif\",\"Latin Modern Roman\",Georgia,serif;font-size:15px;border-collapse:collapse;width:220px;border-top:1.3px solid #1b1b1b;border-bottom:1.3px solid #1b1b1b}.ds-t31 caption{text-align:left;font-size:13px;padding-bottom:8px}.ds-t31 td{padding:3px 0}.ds-t31 td:last-child{text-align:right}.ds-t31-score{font-size:22px;font-weight:700}.ds-t31-mid td{border-top:.6px solid #1b1b1b}.ds-t31-mid i{font-size:28px}.ds-t31-combo{font-size:64px;font-weight:700;line-height:1}"
+      "css": ".ds-t31{background:#ffffff;color:#1b1b1b;font-family:\"Source Serif 4\",\"Latin Modern Roman\",Georgia,serif;font-size:15px;border-collapse:collapse;width:220px;border-top:1.3px solid #1b1b1b;border-bottom:1.3px solid #1b1b1b}.ds-t31 caption{text-align:left;font-size:13px;padding-bottom:8px}.ds-t31 td{padding:3px 0}.ds-t31 td:last-child{text-align:right}.ds-t31-score{font-size:22px;font-weight:700}.ds-t31-mid td{border-top:.6px solid #1b1b1b}.ds-t31-mid i{font-size:28px}.ds-t31-combo{font-size:64px;font-weight:700;line-height:1}"
     },
     {
       "name": "Verdict Stamp",
@@ -450,7 +450,7 @@
       "refersTo": "red-pen",
       "description": "Red rubber stamp with a rough double border, slammed onto the transcript.",
       "html": "<div class=\"ds-stamp\">THESIS<br>DEFENDED</div>",
-      "css": ".ds-stamp{display:inline-block;color:#d11a2a;font-family:\"CMU Serif\",\"Latin Modern Roman\",Georgia,serif;font-weight:700;font-size:40px;line-height:1.08;text-align:center;padding:14px 40px;border:6px solid #d11a2a;outline:2px solid #d11a2a;outline-offset:-16px;opacity:.88;transform:rotate(-8deg);background:#ffffff}"
+      "css": ".ds-stamp{display:inline-block;color:#d11a2a;font-family:\"Source Serif 4\",\"Latin Modern Roman\",Georgia,serif;font-weight:700;font-size:40px;line-height:1.08;text-align:center;padding:14px 40px;border:6px solid #d11a2a;outline:2px solid #d11a2a;outline-offset:-16px;opacity:.88;transform:rotate(-8deg);background:#ffffff}"
     },
     {
       "name": "Pause Dialog",
@@ -458,15 +458,15 @@
       "refersTo": "pause-dialog",
       "description": "Viewer-chrome dialog over a 35% scrim.",
       "html": "<div class=\"ds-pause-scrim\"><div class=\"ds-pause\"><strong>Paused</strong><em>The committee went for a Kafi.</em><span>Space  continue      R  revise and restart</span></div></div>",
-      "css": ".ds-pause-scrim{background:rgba(0,0,0,.35);padding:24px}.ds-pause{background:rgba(50,54,57,.97);color:#f1f3f4;border-radius:10px;width:500px;height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-family:\"CMU Serif\",\"Latin Modern Roman\",Georgia,serif;white-space:pre}.ds-pause strong{font-size:32px}.ds-pause em{color:#bdc1c6;font-size:17px}.ds-pause span{font-size:16px}"
+      "css": ".ds-pause-scrim{background:rgba(0,0,0,.35);padding:24px}.ds-pause{background:rgba(50,54,57,.97);color:#f1f3f4;border-radius:10px;width:500px;height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-family:\"Source Serif 4\",\"Latin Modern Roman\",Georgia,serif;white-space:pre}.ds-pause strong{font-size:32px}.ds-pause em{color:#bdc1c6;font-size:17px}.ds-pause span{font-size:16px}"
     }
   ],
   "narrative": {
     "northStar": "The Defended Manuscript",
-    "overview": "Scope. Everything here describes the Year 3 game surface only: the 1280 x 720 Phaser 4 canvas in frontend/level3/, mounted inside the shell's game workspace and allowed to go fullscreen. The surrounding React shell (dark navy, blue accents, sans UI) is a separate, incumbent system and is not governed by this file. Tokens live as TypeScript constants, not CSS: COLORS/CSS/SERIF/MONO/HAND in textures.ts, geometry in layout.ts, lane inks in config.ts. Sizes are logical canvas pixels at 1280 x 720.\n\nThe screen is a page of your own thesis open in a PDF viewer. Graphite viewer chrome frames one white sheet; on the sheet everything is either typeset (black Computer Modern) or written by hand (red and blue ballpoint, Kalam). The rhythm lanes are Figure 3.1, a flat, booktabs-ruled four-column table; notes are references (Thm. 4.2, eq. (3.7), [42]) that you highlight on the beat with chisel-tip marker. The committee grades in red pen, and red marks persist, so the page ends up recording how the defense went. The verdict is a transcript of records with an inked rubber stamp.\n\nThe world refuses the rhythm-game default: no neon perspective highway on black, no glowing rails, no gamer HUD. Every element has to be something that could plausibly be on a printed thesis page or in the viewer around it. Density is that of a real LaTeX page: generous white, small precise rules, and two bold numerals that carry the score from three metres.",
+    "overview": "Scope. Everything here describes the Year 3 game surface only: the 1280 x 720 Phaser 4 canvas in frontend/level3/, mounted inside the shell's game workspace and allowed to go fullscreen. The surrounding React shell (dark navy, blue accents, sans UI) is a separate, incumbent system and is not governed by this file. Tokens live as TypeScript constants, not CSS: COLORS/CSS/SERIF/MONO/HAND in textures.ts, geometry in layout.ts, lane inks in config.ts. Sizes are logical canvas pixels at 1280 x 720.\n\nThe screen is a page of your own thesis open in a PDF viewer. Graphite viewer chrome frames one white sheet; on the sheet everything is either typeset (black Source Serif 4) or written by hand (red and blue ballpoint, Caveat). The rhythm lanes are Figure 3.1, a flat, booktabs-ruled four-column table; notes are references (Thm. 4.2, eq. (3.7), [42]) that you highlight on the beat with chisel-tip marker. The committee grades in red pen, and red marks persist, so the page ends up recording how the defense went. The verdict is a transcript of records with an inked rubber stamp.\n\nThe world refuses the rhythm-game default: no neon perspective highway on black, no glowing rails, no gamer HUD. Every element has to be something that could plausibly be on a printed thesis page or in the viewer around it. Density is that of a real LaTeX page: generous white, small precise rules, and two bold numerals that carry the score from three metres.",
     "keyCharacteristics": [
       "Graphite PDF-viewer chrome around one white A4 sheet, drawn past the frame so fullscreen shows more viewer, never bands.",
-      "Two scripts only on paper: typeset CMU Serif and handwritten Kalam; CMU Typewriter only for the file name and the `\\begin{defense}` call.",
+      "Two scripts only on paper: typeset Source Serif 4 and handwritten Caveat; Source Code Pro only for the file name and the `\\begin{defense}` call.",
       "Four highlighter inks as lanes; yellow is reserved for golden notes and Eureka.",
       "Red ballpoint judges (misses, corrections, scars, stamp); blue ballpoint draws the professors and writes your hit words.",
       "Flat booktabs geometry: constant-speed notes, no perspective, no glow.",
@@ -490,7 +490,7 @@
       },
       {
         "name": "The Typeset-or-Handwritten Rule",
-        "body": "Every glyph on the sheet is CMU Serif or Kalam. No sans-serif on paper, ever; mono only where a file name or LaTeX source would appear.",
+        "body": "Every glyph on the sheet is Source Serif 4 or Caveat. No sans-serif on paper, ever; mono only where a file name or LaTeX source would appear.",
         "section": "typography"
       },
       {
@@ -510,7 +510,7 @@
       },
       {
         "name": "The Pen-Never-Straight Rule",
-        "body": "Anything the committee or the candidate writes is drawn with `penLine`/`penCircle` or Kalam; only typeset rules are straight.",
+        "body": "Anything the committee or the candidate writes is drawn with `penLine`/`penCircle` or Caveat; only typeset rules are straight.",
         "section": "shapes"
       }
     ],
@@ -520,7 +520,7 @@
       "**Do** reserve highlighter-yellow for golden notes, Eureka and Space.",
       "**Do** use red pen for judgment and blue pen for doodles and praise.",
       "**Do** set new on-page information as a numbered, captioned table or figure with booktabs rules.",
-      "**Do** draw every hand mark with `penLine`, `penCircle` or Kalam, seeded so it stays stable.",
+      "**Do** draw every hand mark with `penLine`, `penCircle` or Caveat, seeded so it stays stable.",
       "**Do** draw backgrounds past the frame by `BLEED` so fullscreen shows more viewer.",
       "**Do** keep the score, combo and grade as large bold serif numerals readable from three metres."
     ],

@@ -39,6 +39,9 @@ function fakeContext() {
             getChannelData: () => new Float32Array(length),
         })),
         resume: vi.fn(() => Promise.resolve()),
+        decodeAudioData: vi.fn(() => Promise.resolve({ duration: 60 })),
+        outputLatency: 0.02,
+        baseLatency: 0,
         close: vi.fn(() => Promise.resolve()),
     };
     return ctx;
@@ -77,13 +80,7 @@ describe("Synth", () => {
         );
         synth.unlock();
         synth.piano(72);
-        synth.groove(
-            { kind: "bass", offset: 0, gain: 1, midi: 43 },
-            synth.at(10),
-        );
-        synth.groove({ kind: "kick", offset: 0, gain: 1 }, synth.at(10));
-        synth.groove({ kind: "snare", offset: 0, gain: 1 }, synth.at(10));
-        synth.groove({ kind: "hat", offset: 0, gain: 1 }, synth.at(10));
+        synth.tick();
         synth.miss();
         synth.stray();
         synth.milestone();
@@ -132,5 +129,35 @@ describe("Synth", () => {
         const before = ctx.oscillators;
         synth.piano(60);
         expect(ctx.oscillators).toBe(before);
+    });
+
+    it("plays the decoded track from a song position, latency-compensated", async () => {
+        const ctx = fakeContext();
+        const sources: {
+            start: ReturnType<typeof vi.fn>;
+            stop: ReturnType<typeof vi.fn>;
+        }[] = [];
+        const createSource = ctx.createBufferSource;
+        ctx.createBufferSource = vi.fn(() => {
+            const source = createSource();
+            sources.push(source);
+            return source;
+        });
+        const synth = new Synth(
+            memoryStorage(),
+            () => ctx as unknown as AudioContext,
+        );
+        synth.unlock();
+        expect(await synth.loadTrack(new ArrayBuffer(8))).toBe(true);
+        expect(synth.hasTrack).toBe(true);
+        synth.playTrack(0, 2000); // the countdown: start 2 s from now, from the top
+        expect(sources.at(-1)!.start).toHaveBeenCalledWith(10 + 2 - 0.02, 0);
+        synth.playTrack(15_000, 0); // a resume mid-song: catches up by the latency
+        expect(sources[0].stop).toHaveBeenCalled();
+        const [when, offset] = sources.at(-1)!.start.mock.calls[0];
+        expect(when).toBe(10);
+        expect(offset).toBeCloseTo(15.02);
+        synth.playTrack(61_000, 0); // past the end: nothing to play
+        expect(sources).toHaveLength(2);
     });
 });

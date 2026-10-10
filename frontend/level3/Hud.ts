@@ -17,7 +17,7 @@ import {
     TOOLBAR_H,
     WIDTH,
 } from "./layout";
-import { COLORS, CSS, MONO, hand, penCircle, serif } from "./textures";
+import { COLORS, CSS, MONO, TEXT, hand, penCircle, serif } from "./textures";
 
 const PAGES = 58; // the thesis' length, for the page counter
 const SECTIONS = ["Opening", "Cross-exam.", "Meltdown", "Final"];
@@ -93,6 +93,7 @@ export default class Hud {
             .text(52, TOOLBAR_H / 2, "thesis_FINAL_v7_really_final.pdf", {
                 fontFamily: MONO,
                 fontSize: "15px",
+                resolution: TEXT.resolution,
                 color: CSS.chrome,
             })
             .setOrigin(0, 0.5)
@@ -129,7 +130,7 @@ export default class Hud {
             .text(
                 COLUMN.x,
                 80,
-                `${playerName || "Candidate"} · Master Thesis · ETH Zürich`.toUpperCase(),
+                `${playerName || "Candidate"} · Bachelor Thesis · ETH Zürich`.toUpperCase(),
                 { ...serif(12, CSS.inkSoft), letterSpacing: 1.5 },
             )
             .setOrigin(0, 0.5)

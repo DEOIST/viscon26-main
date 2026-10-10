@@ -83,7 +83,7 @@ export function committeeLines(name: string): Record<CommitteeEvent, string[]> {
             "There's always the Repetition in August.",
         ],
         passed: [
-            `Congratulations, Dr. ${name}.`,
+            `Congratulations, ${name}, BSc ETH.`,
             "The committee will now deliberate. Over beer.",
             "Apéro on the Polyterrasse. You earned it.",
         ],

@@ -17,7 +17,7 @@ Binding: the ETH meme copy (verdicts, career forecasts, committee lines, milesto
 
 THESIS: The screen is page 42 of your own thesis, open in the PDF viewer. Questions are citations and equation references you highlight on the beat; the committee grades you in red pen. Refuses the category default: a neon perspective highway on black with glowing rails.
 
-OWN-WORLD: PDF-viewer graphite around one white A4 sheet; black Computer Modern type; four highlighter inks (blue, pink, green, orange) as lanes, yellow highlighter reserved by law for golden notes and Eureka; red ballpoint corrections and margin notes in handwriting; blue ballpoint margin doodles of the three professors. Flat typeset table lanes, ruled like booktabs, no perspective, no glow.
+OWN-WORLD: PDF-viewer graphite around one white A4 sheet; black serif type (Source Serif 4); four highlighter inks (blue, pink, green, orange) as lanes, yellow highlighter reserved by law for golden notes and Eureka; red ballpoint corrections and margin notes in handwriting; blue ballpoint margin doodles of the three professors. Flat typeset table lanes, ruled like booktabs, no perspective, no glow.
 
 STORY: you see your thesis page, the figure is a live defense, notes are references to defend; misses get struck through in red and leave a permanent red mark in the margin, so the page records how the defense went. The verdict is your ETH transcript (Leistungsüberblick) with a red rubber stamp.
 

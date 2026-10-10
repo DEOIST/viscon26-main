@@ -166,7 +166,7 @@ index finger, drop your thumb to shoot. The technical design is in
   muzzle flash at your fingertip, camera shake, hit-stop, particles, sound,
   combo counter, and the neon hand skeleton over your hand.
 
-## Minigame 3: Thesis defense (Year 3, level 3)
+## Minigame 3: Thesis defense (Year 3, level 3, a bachelor thesis)
 
 Guitar Hero meets your thesis defense, set as page 42 of your own thesis open
 in a PDF viewer. References (theorems, equations, figures, citations) slide down
@@ -176,8 +176,9 @@ committee is doodled in blue ballpoint in the margin and grades you in red pen.
 Keyboard only, no server side: the code is in `frontend/level3/`.
 
 - **Look (the "typeset thesis" world, `.impeccable/surfaces/`):** PDF-viewer
-  graphite around one white sheet; Computer Modern type (CMU Serif, self-hosted,
-  OFL); highlighter inks blue/pink/green/orange per lane, yellow reserved for
+  graphite around one white sheet; Source Serif 4 type with Caveat for the red
+  pen and Source Code Pro for file names (all self-hosted, OFL), rendered at the
+  screen's native resolution so it stays sharp in fullscreen; highlighter inks blue/pink/green/orange per lane, yellow reserved for
   golden notes and Eureka; red ballpoint for corrections, misses struck through
   and logged on the margin's errata timeline; the toolbar's page counter is the
   progress, the thumbnail sidebar is the phase list. The title screen is the
@@ -191,24 +192,21 @@ Keyboard only, no server side: the code is in `frontend/level3/`.
   `K` Critique (?!). `Space` starts and spends Eureka, `Esc`/`P` pauses (also
   automatic when the tab loses focus), `R` restarts from the pause or the verdict,
   `Enter` submits the thesis, `M` mutes (remembered in `localStorage`).
-- **Chart:** one deterministic 31-bar chart at 128 BPM (about 58 s), written in
-  `chart.ts`, so practice pays off. Four phases, each opened by an empty bar
-  for its banner: *Opening questions* (quarters and eighths), *Cross-examination*
-  (chords), *Professor meltdown* (short sixteenth-note bursts) and *Final defense*
-  (chords on the beat, ending on a golden four-key "QED" chord). The ending was
-  eased after play-testing: no phase asks for 4 notes per second or more, and no
-  sixteenth-note run is longer than four notes (both are chart tests). Beat lines
-  on the highway and a hall that pulses on every beat keep it playable muted;
-  chord notes are linked by a bar.
-- **Music, Piano Tiles style:** each phase has a public-domain classic, and every
-  chart step owns the next note of its melody, so the player performs the tune by
-  hitting the notes and a miss leaves a hole: Petzold's *Minuet in G* (opening),
-  Mozart's *Eine kleine Nachtmusik* (cross-examination), Grieg's *In the Hall of
-  the Mountain King* (meltdown) and Beethoven's *Ode to Joy* (final). Chord notes
-  add octaves and fifths below the melody. A quiet groove (kick, hats, bass, a
-  backbeat from the meltdown on) keeps the beat. Everything is synthesised with
-  the Web Audio API (`Synth.ts`), so no audio files and no recordings ship; audio
-  starts only after a key press or click, as browsers require.
+- **Chart from the music:** the level plays its own track
+  (`assets/music/thesis-defense.ogg`, 128 BPM, about 62 s, provided by the team).
+  `backend/tools/thesis_chart.py` (dev-only, needs librosa) fits the track's beat
+  grid, measures onset strength and the dominant pitch at every sixteenth and
+  writes `trackChart.ts`: every note sits on an onset of the track, higher pitches
+  go to lanes further right, and the four phases start on the track's own break
+  bars (15.0, 31.9 and 45.0 s). Per-phase budgets keep it fair: the opening is
+  sparse, the meltdown is the peak and the final defense never outruns it (under
+  4 notes per second, sixteenth bursts of at most four notes, both chart tests);
+  it ends on a golden four-key "QED" chord. Song time is track time.
+- **Music:** the track starts with the countdown so song time 0 is its first
+  sample, stops on pause and resumes at the exact position, compensates the
+  device's output latency, and fades out on a failed defense. Hits only tick, so
+  the player hears the track rather than a second melody. Audio starts on the
+  first key press or click, as browsers require.
 - **Sound effects (Swiss/ETH jokes):** a clashing wrong note on a miss, a knock
   for a stray press, a cowbell plus arpeggio on milestones, the Zürich tram bell
   for Eureka, a gong per phase (an alarm for the meltdown), countdown beeps, a

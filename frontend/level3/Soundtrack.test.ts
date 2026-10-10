@@ -1,19 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
-import { BAR_MS, DEFENSE_CHART } from "./chart";
-import { buildCues } from "./music";
+import { DEFENSE_CHART } from "./chart";
 import Soundtrack from "./Soundtrack";
 import type Synth from "./Synth";
 
-function fakeSynth() {
+function fakeSynth(hasTrack = true) {
     return {
         isReady: true,
+        hasTrack,
         muted: false,
-        at: (ms: number) => ms / 1000,
         unlock: vi.fn(),
+        loadTrack: vi.fn(() => Promise.resolve(true)),
+        playTrack: vi.fn(),
+        stopTrack: vi.fn(),
         toggleMute: vi.fn(() => true),
         dispose: vi.fn(),
-        piano: vi.fn(),
-        groove: vi.fn(),
+        tick: vi.fn(),
         miss: vi.fn(),
         stray: vi.fn(),
         milestone: vi.fn(),
@@ -28,15 +29,36 @@ function fakeSynth() {
 }
 
 const storage = { getItem: () => null, setItem: () => undefined };
+const make = (synth: ReturnType<typeof fakeSynth>) =>
+    new Soundtrack(DEFENSE_CHART, storage, synth as unknown as Synth, () =>
+        Promise.resolve(new ArrayBuffer(8)),
+    );
 
 describe("Soundtrack", () => {
-    it("plays the note's own melody pitch on a hit, softer for weaker timing", () => {
+    it("starts the track so that song time 0 is its first sample", () => {
+        vi.spyOn(performance, "now").mockReturnValue(10_000);
         const synth = fakeSynth();
-        const track = new Soundtrack(
-            DEFENSE_CHART,
-            storage,
-            synth as unknown as Synth,
-        );
+        const track = make(synth);
+        track.play(-2400);
+        expect(synth.playTrack).toHaveBeenCalledWith(0, 2400);
+        track.play(15_000);
+        expect(synth.playTrack).toHaveBeenLastCalledWith(15_000, 0);
+    });
+
+    it("stops the music on pause and fades it on a failed defense", () => {
+        const synth = fakeSynth();
+        const track = make(synth);
+        track.play(0);
+        track.pause();
+        expect(synth.stopTrack).toHaveBeenCalledWith(0);
+        track.event({ type: "failed" });
+        expect(synth.stopTrack).toHaveBeenLastCalledWith(600);
+        expect(synth.sadTrombone).toHaveBeenCalledOnce();
+    });
+
+    it("ticks softly on a hit instead of playing over the music", () => {
+        const synth = fakeSynth();
+        const track = make(synth);
         const note = DEFENSE_CHART.notes[0];
         track.event({
             type: "hit",
@@ -45,50 +67,20 @@ describe("Soundtrack", () => {
             delta: 100,
             points: 40,
         });
-        expect(synth.piano).toHaveBeenCalledWith(
-            buildCues(DEFENSE_CHART).get(note.id),
-            0.65,
-        );
+        expect(synth.tick).toHaveBeenCalledWith(0.65);
         track.event({ type: "miss", note });
-        track.event({ type: "failed" });
         expect(synth.miss).toHaveBeenCalledOnce();
-        expect(synth.sadTrombone).toHaveBeenCalledOnce();
     });
 
-    it("schedules each beat of the groove exactly once", () => {
-        const synth = fakeSynth();
-        const track = new Soundtrack(
-            DEFENSE_CHART,
-            storage,
-            synth as unknown as Synth,
-        );
-        track.restart(-500);
-        const origin = DEFENSE_CHART.phases[0].time;
-        // Frames every 16 ms, stopping before the lookahead reaches bar 3.
-        const scheduled: number[] = [];
-        for (let song = -500; song < origin + 2 * BAR_MS - 150; song += 16) {
-            const before = synth.groove.mock.calls.length;
-            track.schedule(song);
-            for (const [hit, when] of synth.groove.mock.calls.slice(before))
-                if (hit.kind === "kick") scheduled.push(when * 1000 + song);
-        }
-        // Opening: kicks on beats 1 and 3 of two bars, each once, on the beat grid.
-        expect(scheduled).toHaveLength(4);
-        expect(new Set(scheduled.map(Math.round)).size).toBe(4);
-        scheduled.forEach((time, i) =>
-            expect(time).toBeCloseTo(origin + i * (BAR_MS / 2), 5),
-        );
-    });
-
-    it("stays silent before the browser allows audio", () => {
-        const synth = { ...fakeSynth(), isReady: false };
-        const track = new Soundtrack(
-            DEFENSE_CHART,
-            storage,
-            synth as unknown as Synth,
-        );
-        track.restart(0);
-        track.schedule(1000);
-        expect(synth.groove).not.toHaveBeenCalled();
+    it("starts a track that finishes decoding late at the right position", async () => {
+        const synth = fakeSynth(false);
+        const now = vi.spyOn(performance, "now").mockReturnValue(1000);
+        const track = make(synth);
+        track.play(-500); // song time 0 is 500 ms from now
+        expect(synth.playTrack).not.toHaveBeenCalled();
+        now.mockReturnValue(1800); // decoded 800 ms later: 300 ms into the song
+        synth.hasTrack = true;
+        await track.unlock();
+        expect(synth.playTrack).toHaveBeenCalledWith(300, 0);
     });
 });

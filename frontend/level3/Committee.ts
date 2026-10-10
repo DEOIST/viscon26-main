@@ -181,7 +181,7 @@ export default class Committee {
             .setDepth(8);
         this.scars = scene.add.graphics().setDepth(8);
         this.scrawl = scene.add
-            .text(MARGIN.x - 270, 300, "", hand(44, CSS.redPen, true))
+            .text(MARGIN.x - 270, 300, "", hand(30, CSS.redPen, true))
             .setOrigin(0.5)
             .setDepth(30)
             .setAlpha(0);

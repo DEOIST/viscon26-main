@@ -3,16 +3,18 @@
 // and loaded before the scene draws; textures are drawn on canvases, no image files ship.
 
 import type { GameObjects, Scene, Textures, Types } from "phaser";
-import cmuBold from "./assets/fonts/cmu-serif-bold.woff2";
-import cmuItalic from "./assets/fonts/cmu-serif-italic.woff2";
-import cmuRoman from "./assets/fonts/cmu-serif-roman.woff2";
-import cmuMono from "./assets/fonts/cmu-typewriter.woff2";
-import kalamBold from "./assets/fonts/kalam-bold.woff2";
-import kalamRegular from "./assets/fonts/kalam-regular.woff2";
+import caveatBold from "./assets/fonts/caveat-bold.woff2";
+import caveatMedium from "./assets/fonts/caveat-medium.woff2";
+import sourceCodePro from "./assets/fonts/source-code-pro.woff2";
+import serifBold from "./assets/fonts/source-serif-bold.woff2";
+import serifItalic from "./assets/fonts/source-serif-italic.woff2";
+import serifRegular from "./assets/fonts/source-serif-regular.woff2";
 
-export const SERIF = '"CMU Serif", "Latin Modern Roman", Georgia, serif';
-export const MONO = '"CMU Typewriter", "Courier New", monospace';
-export const HAND = '"Kalam", "Comic Sans MS", cursive';
+// Source Serif 4 reads like a typeset thesis and stays sturdy on a projector; Caveat is the
+// committee's pen; Source Code Pro sets file names and LaTeX source.
+export const SERIF = '"Source Serif 4", Georgia, serif';
+export const MONO = '"Source Code Pro", Menlo, monospace';
+export const HAND = '"Caveat", "Bradley Hand", cursive';
 
 export const COLORS = {
     toolbar: 0x323639,
@@ -35,12 +37,12 @@ export const CSS = {
 };
 
 const FACES: [string, string, string, string][] = [
-    ["CMU Serif", cmuRoman, "400", "normal"],
-    ["CMU Serif", cmuBold, "700", "normal"],
-    ["CMU Serif", cmuItalic, "400", "italic"],
-    ["CMU Typewriter", cmuMono, "400", "normal"],
-    ["Kalam", kalamRegular, "400", "normal"],
-    ["Kalam", kalamBold, "700", "normal"],
+    ["Source Serif 4", serifRegular, "400", "normal"],
+    ["Source Serif 4", serifBold, "700", "normal"],
+    ["Source Serif 4", serifItalic, "400", "italic"],
+    ["Source Code Pro", sourceCodePro, "400", "normal"],
+    ["Caveat", caveatMedium, "400", "normal"],
+    ["Caveat", caveatBold, "700", "normal"],
 ];
 
 // Loads every face once per page; resolves even if a face fails (the fallbacks still read).
@@ -170,6 +172,9 @@ export function penCircle(
     g.strokePath();
 }
 
+// Text is rasterised at this resolution; the scene raises it to its camera zoom.
+export const TEXT = { resolution: 2 };
+
 // Shared text styles.
 export function serif(
     size: number,
@@ -181,6 +186,7 @@ export function serif(
         fontSize: `${size}px`,
         fontStyle: style,
         color,
+        resolution: TEXT.resolution,
     };
 }
 
@@ -191,9 +197,11 @@ export function hand(
 ): Types.GameObjects.Text.TextStyle {
     return {
         fontFamily: HAND,
-        fontSize: `${size}px`,
+        // Caveat runs small for its size; this keeps the pen as legible as the layout expects.
+        fontSize: `${Math.round(size * 1.22)}px`,
         fontStyle: bold ? "bold" : "normal",
         color,
+        resolution: TEXT.resolution,
     };
 }
 
@@ -229,12 +237,12 @@ export function drawStamp(
     scene: Scene,
     title: string,
     seed: number,
-): { w: number; h: number } {
+): { w: number; h: number; lines: number } {
     const texture =
         (scene.textures.exists("td-stamp") && scene.textures.get("td-stamp")) ||
         scene.textures.createCanvas("td-stamp", STAMP_W, STAMP_H);
     if (!texture || !("getContext" in texture))
-        return { w: STAMP_W, h: STAMP_H };
+        return { w: STAMP_W, h: STAMP_H, lines: 1 };
     const ctx = (texture as Textures.CanvasTexture).getContext();
     const random = seeded(seed);
     ctx.clearRect(0, 0, STAMP_W, STAMP_H);
@@ -315,5 +323,5 @@ export function drawStamp(
     }
     ctx.globalCompositeOperation = "source-over";
     (texture as Textures.CanvasTexture).refresh();
-    return { w: STAMP_W, h: STAMP_H };
+    return { w: STAMP_W, h: STAMP_H, lines: lines.length };
 }

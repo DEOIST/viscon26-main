@@ -22,52 +22,52 @@ colors:
   highlighter-yellow: "#fff23a"
 typography:
   display:
-    fontFamily: "CMU Serif, Latin Modern Roman, Georgia, serif"
+    fontFamily: "Source Serif 4, Georgia, serif"
     fontSize: "64px"
     fontWeight: 700
   countdown:
-    fontFamily: "CMU Serif, Latin Modern Roman, Georgia, serif"
+    fontFamily: "Source Serif 4, Georgia, serif"
     fontSize: "150px"
     fontWeight: 700
   numeral:
-    fontFamily: "CMU Serif, Latin Modern Roman, Georgia, serif"
+    fontFamily: "Source Serif 4, Georgia, serif"
     fontSize: "64px"
     fontWeight: 700
   headline:
-    fontFamily: "CMU Serif, Latin Modern Roman, Georgia, serif"
+    fontFamily: "Source Serif 4, Georgia, serif"
     fontSize: "28px"
     fontWeight: 700
   title:
-    fontFamily: "CMU Serif, Latin Modern Roman, Georgia, serif"
+    fontFamily: "Source Serif 4, Georgia, serif"
     fontSize: "20px"
     fontWeight: 400
   reference:
-    fontFamily: "CMU Serif, Latin Modern Roman, Georgia, serif"
+    fontFamily: "Source Serif 4, Georgia, serif"
     fontSize: "21px"
     fontWeight: 400
   body:
-    fontFamily: "CMU Serif, Latin Modern Roman, Georgia, serif"
+    fontFamily: "Source Serif 4, Georgia, serif"
     fontSize: "15px"
     fontWeight: 400
   caption:
-    fontFamily: "CMU Serif, Latin Modern Roman, Georgia, serif"
+    fontFamily: "Source Serif 4, Georgia, serif"
     fontSize: "14px"
     fontWeight: 400
   label:
-    fontFamily: "CMU Serif, Latin Modern Roman, Georgia, serif"
+    fontFamily: "Source Serif 4, Georgia, serif"
     fontSize: "12px"
     fontWeight: 400
     letterSpacing: "1.5px"
   mono:
-    fontFamily: "CMU Typewriter, Courier New, monospace"
+    fontFamily: "Source Code Pro, Menlo, monospace"
     fontSize: "15px"
     fontWeight: 400
   hand:
-    fontFamily: "Kalam, Comic Sans MS, cursive"
+    fontFamily: "Caveat, Bradley Hand, cursive"
     fontSize: "22px"
     fontWeight: 400
   hand-shout:
-    fontFamily: "Kalam, Comic Sans MS, cursive"
+    fontFamily: "Caveat, Bradley Hand, cursive"
     fontSize: "44px"
     fontWeight: 700
 rounded:
@@ -128,13 +128,13 @@ components:
 
 **Scope.** Everything here describes the Year 3 game surface only: the 1280 x 720 Phaser 4 canvas in `frontend/level3/`, mounted inside the shell's game workspace and allowed to go fullscreen. The surrounding React shell (dark navy, blue accents, sans UI) is a separate, incumbent system and is not governed by this file. Tokens live as TypeScript constants, not CSS: `COLORS`/`CSS`/`SERIF`/`MONO`/`HAND` in `textures.ts`, geometry in `layout.ts`, lane inks in `config.ts`. Sizes are logical canvas pixels at 1280 x 720.
 
-The screen is a page of your own thesis open in a PDF viewer. Graphite viewer chrome frames one white sheet; on the sheet everything is either typeset (black Computer Modern) or written by hand (red and blue ballpoint, Kalam). The rhythm lanes are Figure 3.1, a flat, booktabs-ruled four-column table; notes are references (Thm. 4.2, eq. (3.7), [42]) that you highlight on the beat with chisel-tip marker. The committee grades in red pen, and red marks persist, so the page ends up recording how the defense went. The verdict is a transcript of records with an inked rubber stamp.
+The screen is a page of your own thesis open in a PDF viewer. Graphite viewer chrome frames one white sheet; on the sheet everything is either typeset (black Source Serif 4) or written by hand (red and blue ballpoint, Kalam). The rhythm lanes are Figure 3.1, a flat, booktabs-ruled four-column table; notes are references (Thm. 4.2, eq. (3.7), [42]) that you highlight on the beat with chisel-tip marker. The committee grades in red pen, and red marks persist, so the page ends up recording how the defense went. The verdict is a transcript of records with an inked rubber stamp.
 
 The world refuses the rhythm-game default: no neon perspective highway on black, no glowing rails, no gamer HUD. Every element has to be something that could plausibly be on a printed thesis page or in the viewer around it. Density is that of a real LaTeX page: generous white, small precise rules, and two bold numerals that carry the score from three metres.
 
 **Key Characteristics:**
 - Graphite PDF-viewer chrome around one white A4 sheet, drawn past the frame so fullscreen shows more viewer, never bands.
-- Two scripts only on paper: typeset CMU Serif and handwritten Kalam; CMU Typewriter only for the file name and the `\begin{defense}` call.
+- Two scripts only on paper: typeset Source Serif 4 and handwritten Caveat; Source Code Pro only for the file name and the `\begin{defense}` call.
 - Four highlighter inks as lanes; yellow is reserved for golden notes and Eureka.
 - Red ballpoint judges (misses, corrections, scars, stamp); blue ballpoint draws the professors and writes your hit words.
 - Flat booktabs geometry: constant-speed notes, no perspective, no glow.
@@ -171,12 +171,12 @@ Office greys around paper white, black type, and the only saturated colour on th
 
 ## Typography
 
-**Display Font:** CMU Serif bold (with Latin Modern Roman, Georgia)
-**Body Font:** CMU Serif roman and italic (same stack)
-**Label/Mono Font:** CMU Typewriter (with Courier New)
-**Hand Font:** Kalam regular and bold (with Comic Sans MS)
+**Display Font:** Source Serif 4 bold (opsz 32, with Georgia)
+**Body Font:** Source Serif 4 regular and italic (opsz 20, same stack)
+**Label/Mono Font:** Source Code Pro medium (with Menlo)
+**Hand Font:** Caveat medium and bold (with Bradley Hand), set 1.22x its nominal size
 
-**Character:** Computer Modern is the face every ETH student's thesis is set in, so the page reads as LaTeX before a word is read; Kalam is the committee's ballpoint against it. All faces are self-hosted OFL woff2 in `assets/fonts/` and loaded by `loadFonts()` before the scene draws.
+**Character:** Source Serif 4 is a sturdy book face that reads as a typeset thesis and holds up on a projector; Caveat is the committee's ballpoint against it. All faces are self-hosted OFL woff2 in `assets/fonts/`, loaded by `loadFonts()` before the scene draws, and rasterised at the camera's zoom so text stays sharp on any screen.
 
 ### Hierarchy
 - **Countdown** (700, 150px): the 3, 2, 1 before an attempt, centred on the figure.
@@ -189,10 +189,10 @@ Office greys around paper white, black type, and the only saturated colour on th
 - **Caption** (400 italic, 13 to 14px): "Figure 3.1: ..." and "Table 3.1: ..." captions, lane names under the key letters.
 - **Label** (400, 12px, 1.4 to 1.6px tracking, uppercase): the running head and the properties pane's field names (Soundtrack, Timing, Keys), the CONFIDENCE and EUREKA meter labels.
 - **Mono** (400, 15px; 46px for the go call): the toolbar file name and `\begin{defense}`.
-- **Hand** (Kalam, 14 to 24px; 44px bold for scrawls): margin notes, professor names, judgment words, "good luck :)", milestone shouts.
+- **Hand** (Caveat, 14 to 24px nominal; 30px bold for scrawls): margin notes, professor names, judgment words, "good luck :)", milestone shouts.
 
 ### Named Rules
-**The Typeset-or-Handwritten Rule.** Every glyph on the sheet is CMU Serif or Kalam. No sans-serif on paper, ever; mono only where a file name or LaTeX source would appear.
+**The Typeset-or-Handwritten Rule.** Every glyph on the sheet is Source Serif 4 or Caveat. No sans-serif on paper, ever; mono only where a file name or LaTeX source would appear.
 
 **The Caption Rule.** Figures and tables are numbered and captioned like a thesis ("Figure 3.1:", "Table 1:", "Table 3.1:"). New panels on the page arrive as captioned tables or figures, not cards.
 
@@ -219,7 +219,7 @@ Flat. Depth is the viewer's own: graphite layers stepping from field to ground, 
 
 Paper geometry: square sheet, square thumbnails, hairline booktabs rules in three weights (top and bottom 1.3 to 1.6px, mid 0.6 to 0.8px, hit rule doubled 2px plus 1px). Rounding exists only on keyboard key caps (4 to 5px) and the viewer's pause dialog (10px). Hand-made forms are irregular by construction: `penLine` walks a seeded wobble every 14px, `penCircle` is a slightly open loop, highlighter strokes have streaky bodies and ragged ends, and the stamp has a jittered double border, uneven pressure and voids. Seeds make each mark stable frame to frame.
 
-**The Pen-Never-Straight Rule.** Anything the committee or the candidate writes is drawn with `penLine`/`penCircle` or Kalam; only typeset rules are straight.
+**The Pen-Never-Straight Rule.** Anything the committee or the candidate writes is drawn with `penLine`/`penCircle` or Caveat; only typeset rules are straight.
 
 ## Components
 
@@ -256,7 +256,7 @@ Viewer chrome, not paper: toolbar-grey rounded box over a 35% scrim, "Paused" bo
 - **Do** reserve highlighter-yellow for golden notes, Eureka and Space.
 - **Do** use red pen for judgment and blue pen for doodles and praise.
 - **Do** set new on-page information as a numbered, captioned table or figure with booktabs rules.
-- **Do** draw every hand mark with `penLine`, `penCircle` or Kalam, seeded so it stays stable.
+- **Do** draw every hand mark with `penLine`, `penCircle` or Caveat, seeded so it stays stable.
 - **Do** draw backgrounds past the frame by `BLEED` so fullscreen shows more viewer.
 - **Do** keep the score, combo and grade as large bold serif numerals readable from three metres.
 

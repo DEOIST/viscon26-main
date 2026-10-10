@@ -16,6 +16,7 @@ import {
     COLORS,
     CSS,
     MONO,
+    TEXT,
     drawStamp,
     hand,
     penCircle,
@@ -115,7 +116,7 @@ export default class Overlays {
             scene.add.text(
                 COLUMN.x,
                 168,
-                "Master of Science ETH in Computer Science",
+                "Bachelor of Science ETH in Computer Science",
                 serif(15, CSS.inkSoft, "italic"),
             ),
             scene.add.text(COLUMN.x, 214, "Course", serif(14, CSS.ink, "bold")),
@@ -130,7 +131,12 @@ export default class Overlays {
                     serif(14, CSS.ink, "bold"),
                 )
                 .setOrigin(1, 0),
-            scene.add.text(COLUMN.x, 250, "Master Thesis: Defense", serif(20)),
+            scene.add.text(
+                COLUMN.x,
+                250,
+                "Bachelor Thesis: Defense",
+                serif(20),
+            ),
             scene.add.text(
                 COLUMN.x,
                 410,
@@ -222,6 +228,7 @@ export default class Overlays {
                 isGo
                     ? {
                           fontFamily: MONO,
+                          resolution: TEXT.resolution,
                           fontSize: "46px",
                           fontStyle: "normal",
                           color: CSS.ink,
@@ -293,11 +300,13 @@ export default class Overlays {
                 4,
             );
         }
-        drawStamp(
+        const { lines } = drawStamp(
             this.scene,
             verdict.title,
             ++this.stamps * 7 + summary.grade * 4,
         );
+        // A one-line verdict is shorter, so it can land bigger in the same space.
+        const stampScale = lines === 1 ? 0.68 : 0.52;
         // Stamped low on the right, so the remarks and the career forecast stay readable.
         // Clear of Table 2 above and the submit rule below, measured on the rotated frame.
         this.stamp.setPosition(PAGE.x + PAGE.w - 180, 540);
@@ -307,7 +316,7 @@ export default class Overlays {
         this.stamp.setScale(1.6).setAlpha(0).setAngle(-15);
         this.scene.tweens.add({
             targets: this.stamp,
-            scale: 0.52,
+            scale: stampScale,
             alpha: 0.88,
             angle: -9,
             duration: 300,
@@ -366,7 +375,7 @@ export default class Overlays {
             CSS.ink,
             "italic",
         );
-        add(252, `Master Thesis by ${this.playerName}`, 19);
+        add(252, `Bachelor Thesis by ${this.playerName}`, 19);
         add(278, "Department of Computer Science, ETH Zürich", 15, CSS.inkSoft);
         add(
             300,

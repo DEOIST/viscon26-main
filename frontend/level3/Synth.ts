@@ -1,13 +1,14 @@
-// Every sound of the defense, synthesised with the Web Audio API: no audio files ship. A piano
-// voice for the melody (music.ts), a small drum kit for the groove and the effects, most of
-// them Swiss or ETH in-jokes: a cowbell for milestones, the Zürich tram bell for Eureka, a
-// sad trombone for a failed defense and a fanfare for a passed one.
+// Every sound of the defense through the Web Audio API: the level's music track, played in
+// sync with the chart, and the effects synthesised on the spot, most of them Swiss or ETH
+// in-jokes: a cowbell for milestones, the Zürich tram bell for Eureka, a sad trombone for a
+// failed defense and a fanfare for a passed one.
 //
 // Browsers only allow audio after a user gesture, so nothing is created until unlock() is
 // called from a key or click handler.
 
-import type { GrooveHit } from "./music";
-import { midiToHz } from "./music";
+export function midiToHz(midi: number): number {
+    return 440 * 2 ** ((midi - 69) / 12);
+}
 
 export interface SoundStorage {
     getItem(key: string): string | null;
@@ -16,6 +17,7 @@ export interface SoundStorage {
 
 const MUTE_KEY = "eth-life:thesis-defense:muted";
 const MASTER_GAIN = 0.7;
+const TRACK_GAIN = 0.85;
 
 type Wave = OscillatorType;
 
@@ -27,6 +29,9 @@ export default class Synth {
     private music: GainNode | null = null;
     private sfx: GainNode | null = null;
     private noise: AudioBuffer | null = null;
+    private track: AudioBuffer | null = null;
+    private trackSource: AudioBufferSourceNode | null = null;
+    private trackGain: GainNode | null = null;
     private disposed = false;
     muted: boolean;
 
@@ -75,6 +80,7 @@ export default class Synth {
     dispose() {
         if (this.disposed) return;
         this.disposed = true;
+        this.stopTrack();
         const ctx = this.ctx;
         this.ctx = null;
         if (ctx && ctx.state !== "closed")
@@ -93,21 +99,72 @@ export default class Synth {
         this.osc("sine", hz / 2, when, when + 0.8, out, 0.2);
     }
 
-    groove(hit: GrooveHit, when: number) {
-        if (hit.kind === "bass" && hit.midi !== undefined) {
-            const out = this.voice(
-                this.music,
-                when,
-                0.01,
-                0.45,
-                0.42 * hit.gain,
-            );
-            if (out)
-                this.osc("sine", midiToHz(hit.midi), when, when + 0.5, out);
-        } else if (hit.kind === "kick") this.kick(when, 0.55 * hit.gain);
-        else if (hit.kind === "snare")
-            this.noiseHit(when, 0.18, 1800, "bandpass", 0.35 * hit.gain);
-        else this.noiseHit(when, 0.04, 7000, "highpass", 0.12 * hit.gain);
+    // --- The track -----------------------------------------------------------
+
+    // Decodes the music once the context exists; resolves false if it cannot be played.
+    async loadTrack(data: ArrayBuffer): Promise<boolean> {
+        const ctx = this.ctx;
+        if (!ctx || this.track) return Boolean(this.track);
+        try {
+            this.track = await ctx.decodeAudioData(data.slice(0));
+            return true;
+        } catch {
+            return false; // an unsupported codec: the defense plays on in silence
+        }
+    }
+
+    get hasTrack(): boolean {
+        return this.track !== null;
+    }
+
+    // Plays the track so that track time `offsetMs` is heard `inMs` from now, compensating
+    // for the device's output latency so the music lines up with the notes on screen.
+    playTrack(offsetMs: number, inMs: number) {
+        const ctx = this.ctx;
+        if (!ctx || !this.track || !this.music) return;
+        this.stopTrack();
+        const latency = (ctx.outputLatency || 0) + (ctx.baseLatency || 0);
+        let when = ctx.currentTime + Math.max(0, inMs) / 1000 - latency;
+        let offset = Math.max(0, offsetMs) / 1000;
+        if (when < ctx.currentTime) {
+            offset += ctx.currentTime - when;
+            when = ctx.currentTime;
+        }
+        if (offset >= this.track.duration) return;
+        const source = ctx.createBufferSource();
+        source.buffer = this.track;
+        const gain = ctx.createGain();
+        gain.gain.value = TRACK_GAIN;
+        source.connect(gain).connect(this.music);
+        source.start(when, offset);
+        this.trackSource = source;
+        this.trackGain = gain;
+    }
+
+    // Stops the track, optionally fading it out first (a failed defense).
+    stopTrack(fadeMs = 0) {
+        const ctx = this.ctx;
+        const source = this.trackSource;
+        if (!source || !ctx) return;
+        this.trackSource = null;
+        const gain = this.trackGain;
+        this.trackGain = null;
+        try {
+            if (fadeMs > 0 && gain) {
+                gain.gain.setTargetAtTime(0, ctx.currentTime, fadeMs / 4000);
+                source.stop(ctx.currentTime + fadeMs / 1000);
+            } else source.stop();
+        } catch {
+            // Already stopped.
+        }
+    }
+
+    // A defended reference: a soft ballpoint tick that never fights the music.
+    tick(velocity = 1) {
+        const when = this.at(0);
+        this.noiseHit(when, 0.03, 4200, "bandpass", 0.32 * velocity, this.sfx);
+        const out = this.voice(this.sfx, when, 0.002, 0.06, 0.08 * velocity);
+        if (out) this.osc("sine", 2600, when, when + 0.08, out);
     }
 
     // --- Effects -------------------------------------------------------------
@@ -326,15 +383,16 @@ export default class Synth {
         hz: number,
         type: BiquadFilterType,
         peak: number,
+        bus: GainNode | null = this.music,
     ) {
         const ctx = this.ctx;
-        if (!ctx || !this.noise || !this.music) return;
+        if (!ctx || !this.noise || !bus) return;
         const filter = ctx.createBiquadFilter();
         filter.type = type;
         filter.frequency.value = hz;
         const out = this.voice(filter, when, 0.001, decay, peak);
         if (!out) return;
-        filter.connect(this.music);
+        filter.connect(bus);
         const source = ctx.createBufferSource();
         source.buffer = this.noise;
         source.connect(out);

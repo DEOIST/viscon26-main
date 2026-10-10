@@ -4,8 +4,8 @@
 // never shifts a judgment), runs the title page → countdown → defense → transcript loop and
 // makes the figure, the committee's margin and the viewer react to what happened.
 
-import { Scene } from "phaser";
-import { DEFENSE_CHART } from "./chart";
+import { GameObjects, Scene } from "phaser";
+import { BEAT_ORIGIN_MS, DEFENSE_CHART } from "./chart";
 import type { Phase } from "./chart";
 import Committee from "./Committee";
 import type { Mood } from "./Committee";
@@ -19,7 +19,7 @@ import { committeeLines } from "./lines";
 import type { CommitteeEvent } from "./lines";
 import Overlays from "./Overlays";
 import Soundtrack from "./Soundtrack";
-import { loadFonts, makeTextures } from "./textures";
+import { TEXT, loadFonts, makeTextures } from "./textures";
 import { loadBest, saveBest, swissGrade, verdictFor } from "./verdict";
 import type { BestRun, BestStorage } from "./verdict";
 import { pickLine } from "../src/games/shared/minigame";
@@ -84,6 +84,8 @@ export default class ThesisScene extends Scene {
     private hud!: Hud;
     private overlays!: Overlays;
     private disposed = false;
+    private textResolution = 1;
+    private resizeObserver: ResizeObserver | null = null;
 
     constructor(args: ThesisSceneArgs) {
         super("thesis-defense");
@@ -128,6 +130,12 @@ export default class ThesisScene extends Scene {
         document.addEventListener("visibilitychange", this.handleVisibility);
         document.addEventListener("fullscreenchange", this.handleFullscreen);
         window.addEventListener("resize", this.handleResize);
+        const parent = this.game.canvas?.parentElement;
+        if (parent && typeof ResizeObserver !== "undefined") {
+            this.resizeObserver = new ResizeObserver(this.handleResize);
+            this.resizeObserver.observe(parent);
+        }
+        this.fitScreen();
     }
 
     // Removes the window listeners and closes audio; safe to call twice.
@@ -141,6 +149,7 @@ export default class ThesisScene extends Scene {
         document.removeEventListener("visibilitychange", this.handleVisibility);
         document.removeEventListener("fullscreenchange", this.handleFullscreen);
         window.removeEventListener("resize", this.handleResize);
+        this.resizeObserver?.disconnect();
     }
 
     update(time: number, delta: number) {
@@ -155,7 +164,7 @@ export default class ThesisScene extends Scene {
             this.beep(this.overlays.updateCountdown(this.resumeAt - now));
             if (now >= this.resumeAt) {
                 this.startAt += this.resumeAt - this.pausedAt;
-                this.soundtrack.restart(now - this.startAt);
+                this.soundtrack.play(now - this.startAt);
                 // A pause during the countdown resumes into what is left of it.
                 this.mode = now - this.startAt < 0 ? "countdown" : "playing";
             }
@@ -163,10 +172,8 @@ export default class ThesisScene extends Scene {
             this.beep(this.overlays.updateCountdown(-song));
             if (this.mode === "playing") this.handle(this.engine.update(song));
         }
-        if (this.mode === "countdown" || this.mode === "playing")
-            this.soundtrack.schedule(song);
         if (this.mode === "title" || this.mode === "results") return;
-        this.figure.draw(this.engine, song, DEFENSE_CHART.phases[0].time);
+        this.figure.draw(this.engine, song, BEAT_ORIGIN_MS);
         this.hud.update(
             this.engine.state,
             this.engine.accuracy(),
@@ -188,7 +195,7 @@ export default class ThesisScene extends Scene {
 
     private start() {
         if (this.mode !== "title" && this.mode !== "results") return;
-        this.soundtrack.unlock();
+        void this.soundtrack.unlock();
         // Starting from the title page is the gesture fullscreen needs; the booth wants it.
         if (this.mode === "title" && !this.args.isFullscreen())
             this.args.toggleFullscreen();
@@ -207,7 +214,7 @@ export default class ThesisScene extends Scene {
         this.lastQuip = -Infinity;
         this.attempts += 1;
         this.startAt = performance.now() + COUNTDOWN_MS;
-        this.soundtrack.restart(-COUNTDOWN_MS);
+        this.soundtrack.play(-COUNTDOWN_MS);
         this.hud.setNowPlaying(this.soundtrack.nowPlaying("opening"));
         this.mode = "countdown";
     }
@@ -233,6 +240,7 @@ export default class ThesisScene extends Scene {
         this.figure.releaseAll();
         this.overlays.hideCountdown();
         this.overlays.showPause(true);
+        this.soundtrack.pause();
     }
 
     private resume() {
@@ -452,7 +460,7 @@ export default class ThesisScene extends Scene {
     private readonly handleKeyDown = (event: KeyboardEvent) => {
         if (event.ctrlKey || event.metaKey || event.altKey) return;
         if (isTyping(event.target)) return; // a shell dialog's text field keeps its keys
-        this.soundtrack.unlock(); // any key counts as the gesture browsers want before audio
+        void this.soundtrack.unlock(); // any key counts as the gesture browsers want before audio
         const lane = LANE_CODES.indexOf(event.code);
         if (lane >= 0) {
             event.preventDefault();
@@ -532,26 +540,53 @@ export default class ThesisScene extends Scene {
         if (!this.args.isFullscreen()) this.pause();
     };
 
-    private readonly handleResize = () => {
-        if (this.args.isFullscreen()) this.fitScreen();
-    };
+    private readonly handleResize = () => this.fitScreen();
 
-    // Fullscreen fills the screen edge to edge: the game grows to the screen's shape (never
-    // below 1280 x 720) and every background is drawn with bleed, so the extra room shows more
-    // viewer and more paper instead of letterbox bands. In the shell it stays 1280 x 720.
+    // Renders at the screen's own resolution: the backing canvas gets the device pixels the
+    // game is shown at and the camera zooms the 1280 x 720 layout into it, so type and pen
+    // lines stay sharp instead of being stretched up from 1280 pixels. Fullscreen also grows
+    // the layout to the screen's shape (never below 1280 x 720); every background is drawn
+    // with bleed, so the extra room shows more viewer and paper instead of letterbox bands.
     private fitScreen() {
-        const parent = this.game.canvas?.parentElement;
+        const box = this.game.canvas?.parentElement?.getBoundingClientRect();
+        const hasBox = Boolean(box && box.width > 0 && box.height > 0);
         let width = WIDTH;
         let height = HEIGHT;
-        if (this.args.isFullscreen() && parent) {
-            const box = parent.getBoundingClientRect();
-            const aspect = box.width / Math.max(1, box.height);
+        if (this.args.isFullscreen() && box && hasBox) {
+            const aspect = box.width / box.height;
             if (aspect < WIDTH / HEIGHT) height = Math.round(WIDTH / aspect);
             else width = Math.round(HEIGHT * aspect);
         }
-        this.scale.setGameSize(width, height);
-        this.cameras.main.setSize(width, height);
+        const shownWidth =
+            box && hasBox
+                ? Math.min(box.width, box.height * (width / height))
+                : width;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+        const zoom = Math.min(3, Math.max(1, (shownWidth * dpr) / width));
+        const pixelsW = Math.round(width * zoom);
+        const pixelsH = Math.round(height * zoom);
+        this.scale.setGameSize(pixelsW, pixelsH);
+        this.cameras.main
+            .setSize(pixelsW, pixelsH)
+            .setOrigin(0, 0)
+            .setZoom(zoom)
+            .setScroll(0, 0);
         this.scale.refresh();
+        // Text is rasterised at the zoom too, or it would be the one blurry thing left.
+        const resolution = Math.min(3, Math.ceil(zoom * 2) / 2);
+        if (resolution !== this.textResolution) {
+            this.textResolution = resolution;
+            TEXT.resolution = resolution;
+            const sharpen = (items: GameObjects.GameObject[]) => {
+                for (const item of items) {
+                    if (item instanceof GameObjects.Text)
+                        item.setResolution(resolution);
+                    else if (item instanceof GameObjects.Container)
+                        sharpen(item.list);
+                }
+            };
+            sharpen(this.children.list);
+        }
     }
 }
 
