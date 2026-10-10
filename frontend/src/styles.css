@@ -1179,7 +1179,9 @@ progress::-moz-progress-bar {
 .dialog-inner {
     display: flex;
     flex-direction: column;
-    flex: 1;
+    /* Not `flex: 1` (a 0% basis): the dialog has only a max-height, and Safari resolves 0%
+       against that indefinite height to 0, collapsing the dialog to its padding. */
+    flex: 0 1 auto;
     min-height: 0;
     padding: 22px;
 }
