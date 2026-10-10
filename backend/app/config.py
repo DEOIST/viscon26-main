@@ -13,6 +13,7 @@ class Settings(BaseSettings):
 
     app_name: str = "Hackathon App"
     environment: str = "development"
+    redis_url: str = ""
     frontend_dist: Path = REPO_DIR / "frontend" / "dist"
 
 

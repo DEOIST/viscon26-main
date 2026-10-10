@@ -1,0 +1,85 @@
+{
+    "version": 1,
+    "major": "Computer Science",
+    "totalEcts": 180,
+    "colors": {
+        "hair": [
+            {
+                "label": "Midnight black",
+                "value": "#242330"
+            },
+            {
+                "label": "Chestnut brown",
+                "value": "#70432E"
+            },
+            {
+                "label": "Golden blond",
+                "value": "#DAB96B"
+            },
+            {
+                "label": "Copper red",
+                "value": "#B95836"
+            },
+            {
+                "label": "Silver gray",
+                "value": "#C4C9D2"
+            }
+        ],
+        "skin": [
+            {
+                "label": "Light porcelain",
+                "value": "#F4D7C0"
+            },
+            {
+                "label": "Warm beige",
+                "value": "#E4B48F"
+            },
+            {
+                "label": "Golden tan",
+                "value": "#C89062"
+            },
+            {
+                "label": "Rich brown",
+                "value": "#996442"
+            },
+            {
+                "label": "Deep brown",
+                "value": "#624130"
+            }
+        ],
+        "eyes": [
+            {
+                "label": "Dark brown",
+                "value": "#4B3024"
+            },
+            {
+                "label": "Ocean blue",
+                "value": "#28608B"
+            },
+            {
+                "label": "Forest green",
+                "value": "#385E43"
+            },
+            {
+                "label": "Slate gray",
+                "value": "#626F7A"
+            }
+        ]
+    },
+    "games": [
+        {
+            "id": "blackjack",
+            "title": "Casino night",
+            "description": "Bet your semester stipend at blackjack.",
+            "ects": 90,
+            "implemented": false
+        },
+        {
+            "id": "shooter",
+            "title": "Basispr\u00fcfung",
+            "description": "Shoot the exam questions with your finger gun.",
+            "ects": 90,
+            "implemented": false
+        }
+    ]
+}

@@ -6,9 +6,19 @@ Fields are snake_case in Python and camelCase in JSON (see `CamelModel`).
 """
 
 from datetime import datetime
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    ValidationInfo,
+    field_validator,
+)
 from pydantic.alias_generators import to_camel
+
+from app.game_config import CONFIG
 
 
 class CamelModel(BaseModel):
@@ -38,3 +48,84 @@ class ItemWHid(CamelModel):
 class Item(ItemWHid):
     id: str
     created_at: datetime
+
+
+# --- runs ---
+
+GameId = Literal["blackjack", "shooter"]
+EndingId = Literal["c_level", "big_tech", "phd", "mcdonalds", "unemployed"]
+Pronouns = Literal["she", "he", "they"]
+DepartmentId = Literal[
+    "arch", "baug", "biol", "bsse", "chab", "erdw", "gess", "hest",
+    "infk", "itet", "math", "matl", "mavt", "mtec", "phys", "usys",
+]  # fmt: skip
+ArchetypeId = Literal["nerd", "risk_taker", "gamer", "athlete"]
+
+# Letters (accents included), digits, space and . ' _ -. The narrator reads the name aloud.
+CharacterName = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=20, pattern=r"^[\w .'-]+$"),
+]
+
+
+class Character(CamelModel):
+    name: CharacterName
+    pronouns: Pronouns
+    department: DepartmentId
+    archetype: ArchetypeId
+    # Preset portrait id such as "a3"; the frontend owns the list of portraits.
+    avatar: str = Field(pattern=r"^a[1-8]$")
+    hair_color: str = "#70432E"
+    skin_color: str = "#E4B48F"
+    eye_color: str = "#4B3024"
+
+    @field_validator("hair_color", "skin_color", "eye_color")
+    @classmethod
+    def preset_color(cls, value: str, info: ValidationInfo) -> str:
+        group = {"hair_color": "hair", "skin_color": "skin", "eye_color": "eyes"}[info.field_name]
+        if value not in {color["value"] for color in CONFIG["colors"][group]}:
+            raise ValueError("Choose a preset color")
+        return value
+
+
+class RunWHid(CamelModel):
+    character: Character
+
+
+class Ending(CamelModel):
+    id: EndingId
+    title: str
+
+
+class Run(RunWHid):
+    id: str
+    created_at: datetime
+    scores: dict[GameId, int] = Field(default_factory=dict)  # 0â€“100 per finished minigame
+    total_score: int | None = None  # set at graduation
+    ending: Ending | None = None  # set at graduation
+    graduated_at: datetime | None = None
+    completed_game_ids: list[GameId] = Field(default_factory=list)
+    ects_points: int = 0
+
+
+class ScoreSubmission(CamelModel):
+    game: GameId
+    score: int = Field(ge=0, le=100, strict=True)
+
+
+# --- leaderboard ---
+
+
+class LeaderboardEntry(CamelModel):
+    run_id: str
+    name: str
+    avatar: str
+    department: DepartmentId
+    total_score: int
+    ending_id: EndingId
+    graduated_at: datetime
+
+
+class EndingStats(CamelModel):
+    total: int
+    counts: dict[EndingId, int]

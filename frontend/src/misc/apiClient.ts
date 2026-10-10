@@ -2,7 +2,17 @@
 // `api` + the PascalCase of the Python handler name: `get_item_by_id` → `apiGetItemById`.
 // Paths are relative and same-origin (FastAPI serves the frontend), so there is no base URL.
 
-import type { ApiResult, HealthStatus, Item, ItemWHid } from "./CommonInt";
+import type {
+    ApiResult,
+    HealthStatus,
+    Item,
+    ItemWHid,
+    Run,
+    RunWHid,
+    ScoreSubmission,
+    LeaderboardEntry,
+    EndingStats,
+} from "./CommonInt";
 
 async function request<T>(
     method: string,
@@ -68,4 +78,28 @@ export function apiCreateItem(payload: ItemWHid) {
 
 export function apiDeleteItem(itemId: string) {
     return request<null>("DELETE", `/items/${encodeURIComponent(itemId)}`);
+}
+
+// --- shell ---
+export function apiCreateRun(payload: RunWHid) {
+    return request<Run>("POST", "/runs", payload);
+}
+export function apiGetRunById(runId: string) {
+    return request<Run>("GET", `/runs/${encodeURIComponent(runId)}`);
+}
+export function apiSubmitScore(runId: string, payload: ScoreSubmission) {
+    return request<Run>(
+        "POST",
+        `/runs/${encodeURIComponent(runId)}/scores`,
+        payload,
+    );
+}
+export function apiGraduateRun(runId: string) {
+    return request<Run>("POST", `/runs/${encodeURIComponent(runId)}/graduate`);
+}
+export function apiListLeaderboard() {
+    return request<LeaderboardEntry[]>("GET", "/leaderboard");
+}
+export function apiGetEndingStats() {
+    return request<EndingStats>("GET", "/leaderboard/endings");
 }
