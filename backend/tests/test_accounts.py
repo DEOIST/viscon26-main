@@ -57,6 +57,13 @@ def connected_games(monkeypatch):
         monkeypatch.setitem(game, "implemented", True)
 
 
+@pytest.fixture
+def placeholder_games(monkeypatch):
+    """Every game as a placeholder, whichever games shared/game-config.json has switched on."""
+    for game in GAMES.values():
+        monkeypatch.setitem(game, "implemented", False)
+
+
 def register(client, identifier="ada_private_login"):
     token = client.get("/api/session").json()["csrfToken"]
     response = client.post(
@@ -114,7 +121,7 @@ def test_idempotency_ects_and_graduation(client, connected_games):
     assert len(client.get("/api/progress").json()["completedGameIds"]) == len(GAMES)
 
 
-def test_placeholder_and_unknown_games_cannot_earn_credits(client):
+def test_placeholder_and_unknown_games_cannot_earn_credits(client, placeholder_games):
     headers = register(client)
     profile(client, headers)
     assert client.post("/api/completions/year-1-slot", headers=headers).status_code == 409

@@ -8,7 +8,11 @@ vi.mock("./GameHost", () => ({
     GameHost: () => <button>Game control</button>,
 }));
 
-afterEach(cleanup);
+const originalFlag = GAMES[0].implemented;
+afterEach(() => {
+    cleanup();
+    GAMES[0].implemented = originalFlag;
+});
 
 function setup(selected = false) {
     const onOpen = vi.fn();
@@ -34,6 +38,7 @@ function setup(selected = false) {
 }
 
 it("browses locked years with keyboard and selectors without allowing launch", () => {
+    GAMES[0].implemented = false; // a preview, whatever shared/game-config.json has switched on
     const { onOpen } = setup();
     fireEvent.keyDown(screen.getByRole("region", { name: "Active game" }), {
         key: "ArrowRight",

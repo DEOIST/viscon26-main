@@ -12,6 +12,13 @@ def connected_games(monkeypatch):
         monkeypatch.setitem(game, "implemented", True)
 
 
+@pytest.fixture
+def preview_games(monkeypatch):
+    """Every game as a preview, whichever games shared/game-config.json has switched on."""
+    for game in GAMES.values():
+        monkeypatch.setitem(game, "implemented", False)
+
+
 def enroll(client, name="Ada"):
     character = {
         "name": name,
@@ -37,7 +44,7 @@ def test_character_and_progress_survive_page_reads(client):
     assert run["scores"] == {}
 
 
-def test_previews_cannot_award_credits_or_graduate(client):
+def test_previews_cannot_award_credits_or_graduate(client, preview_games):
     run = enroll(client)
     for game in GAMES:
         response = client.post(f"/api/runs/{run['id']}/scores", json={"game": game, "score": 100})
