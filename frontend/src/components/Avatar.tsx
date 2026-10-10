@@ -59,6 +59,22 @@ export function Avatar({
             <circle cx="109" cy="91" r="5" fill={character.eyeColor} />
             <circle cx="72" cy="90" r="2" fill="#152238" />
             <circle cx="108" cy="90" r="2" fill="#152238" />
+            {character.glasses !== "none" && (
+                <g
+                    fill={
+                        character.glasses === "sunglasses" ? "#152238" : "none"
+                    }
+                    fillOpacity={0.88}
+                    stroke="#152238"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    data-testid="avatar-glasses"
+                >
+                    <circle cx="70" cy="90" r="13" />
+                    <circle cx="110" cy="90" r="13" />
+                    <path d="M83 89h14M57 88l-12-3m78 3 12-3" fill="none" />
+                </g>
+            )}
             <path
                 d="m88 96-3 10h7m-13 12c7 6 15 6 22 0"
                 fill="none"

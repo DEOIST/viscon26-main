@@ -12,9 +12,17 @@ import {
     TOTAL_ECTS,
     YEARS,
 } from "./config";
-import type { Gender, Player, Progress, Snapshot, Year } from "./types";
+import type {
+    Gender,
+    Glasses,
+    Player,
+    Progress,
+    Snapshot,
+    Year,
+} from "./types";
 
 const GENDERS: Gender[] = ["unspecified", "female", "male", "nonbinary"];
+const GLASSES: Glasses[] = ["none", "glasses", "sunglasses"];
 
 export const defaultPlayer: Player = {
     name: "",
@@ -25,6 +33,7 @@ export const defaultPlayer: Player = {
         skinColor: COLORS.skin[1].value,
         eyeColor: COLORS.eyes[0].value,
         gender: "unspecified",
+        glasses: "none",
     },
 };
 export const emptyProgress: Progress = {
@@ -100,8 +109,17 @@ export function readGuest(): Snapshot {
         const saved = JSON.parse(localStorage.getItem(GUEST_KEY) || "null");
         if (!saved || saved.version !== 1) return fallback;
         const player = saved.player as Player;
-        if (player?.character && !GENDERS.includes(player.character.gender))
-            player.character = { ...player.character, gender: "unspecified" };
+        // Saves from before the gender and glasses fields: keep them, use the defaults
+        if (player?.character)
+            player.character = {
+                ...player.character,
+                gender: GENDERS.includes(player.character.gender)
+                    ? player.character.gender
+                    : "unspecified",
+                glasses: GLASSES.includes(player.character.glasses)
+                    ? player.character.glasses
+                    : "none",
+            };
         if (
             typeof player?.name !== "string" ||
             player.name.trim().length > 24 ||

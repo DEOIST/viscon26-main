@@ -53,6 +53,7 @@ class Profile(Base):
     gender: Mapped[str] = mapped_column(
         String(16), default="unspecified", server_default="unspecified"
     )
+    glasses: Mapped[str] = mapped_column(String(16), default="none", server_default="none")
     major: Mapped[str] = mapped_column(String(32))
     onboarding_stage: Mapped[str] = mapped_column(String(16))
 
@@ -85,7 +86,12 @@ def add_missing_columns() -> None:
     """create_all() never alters existing tables, so columns added after the first deploy are
     added here. Each one needs a default so existing rows stay valid. Works on Postgres and SQLite.
     """
-    added = {"profiles": {"gender": "VARCHAR(16) NOT NULL DEFAULT 'unspecified'"}}
+    added = {
+        "profiles": {
+            "gender": "VARCHAR(16) NOT NULL DEFAULT 'unspecified'",
+            "glasses": "VARCHAR(16) NOT NULL DEFAULT 'none'",
+        }
+    }
     with engine.begin() as connection:
         for table, columns in added.items():
             existing = {column["name"] for column in inspect(connection).get_columns(table)}

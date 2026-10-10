@@ -43,7 +43,7 @@ describe("simplified character builder", () => {
         );
     });
 
-    it("saves the chosen gender, defaulting to prefer not to say", () => {
+    it("saves gender and glasses, and draws the glasses", () => {
         const onContinue = vi.fn();
         render(
             <CharacterBuilder
@@ -57,16 +57,28 @@ describe("simplified character builder", () => {
         const gender = screen.getByLabelText("Gender") as HTMLSelectElement;
         expect(gender.value).toBe("unspecified");
         fireEvent.change(gender, { target: { value: "nonbinary" } });
+        const glasses = screen.getByLabelText("Glasses") as HTMLSelectElement;
+        expect(glasses.value).toBe("none");
+        expect(screen.queryByTestId("avatar-glasses")).toBeNull();
+        fireEvent.change(glasses, { target: { value: "sunglasses" } });
+        expect(screen.getByTestId("avatar-glasses")).toBeTruthy();
         fireEvent.click(screen.getByRole("button", { name: /Continue/ }));
         expect(onContinue).toHaveBeenCalledWith(
             expect.objectContaining({
-                character: expect.objectContaining({ gender: "nonbinary" }),
+                character: expect.objectContaining({
+                    gender: "nonbinary",
+                    glasses: "sunglasses",
+                }),
             }),
         );
     });
 
-    it("keeps guest saves from before the gender field", () => {
-        const { gender: _omitted, ...oldCharacter } = defaultPlayer.character;
+    it("keeps guest saves from before the gender and glasses fields", () => {
+        const {
+            gender: _gender,
+            glasses: _glasses,
+            ...oldCharacter
+        } = defaultPlayer.character;
         localStorage.setItem(
             "eth-simulator.guest.v1",
             JSON.stringify({
@@ -82,7 +94,7 @@ describe("simplified character builder", () => {
         );
         expect(readGuest().player).toMatchObject({
             name: "Ada",
-            character: { gender: "unspecified" },
+            character: { gender: "unspecified", glasses: "none" },
         });
     });
 

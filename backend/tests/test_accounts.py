@@ -254,10 +254,11 @@ def test_database_health_reports_a_real_connection_failure(client, monkeypatch):
     assert client.get("/api/health").status_code == 200
 
 
-def test_gender_is_saved_and_defaults_to_unspecified(client):
+def test_gender_and_glasses_are_saved_with_defaults(client):
     headers = register(client)
     profile(client, headers)
-    assert client.get("/api/profile").json()["character"]["gender"] == "unspecified"
+    character = client.get("/api/profile").json()["character"]
+    assert (character["gender"], character["glasses"]) == ("unspecified", "none")
 
     body = {
         "name": "Ada",
@@ -266,20 +267,21 @@ def test_gender_is_saved_and_defaults_to_unspecified(client):
         "eyeColor": CONFIG["colors"]["eyes"][0]["value"],
         "onboardingStage": "main",
     }
-    saved = client.put("/api/profile", headers=headers, json={**body, "gender": "female"})
+    chosen = {"gender": "female", "glasses": "sunglasses"}
+    saved = client.put("/api/profile", headers=headers, json={**body, **chosen})
     assert saved.status_code == 200
-    assert saved.json()["character"]["gender"] == "female"
-    assert client.get("/api/profile").json()["character"]["gender"] == "female"
-    rejected = client.put("/api/profile", headers=headers, json={**body, "gender": "robot"})
-    assert rejected.status_code == 422
+    assert saved.json()["character"] | chosen == saved.json()["character"]
+    assert client.get("/api/profile").json()["character"] | chosen == saved.json()["character"]
+    for bad in ({"gender": "robot"}, {"glasses": "monocle"}):
+        assert client.put("/api/profile", headers=headers, json={**body, **bad}).status_code == 422
 
 
-def test_startup_adds_the_gender_column_to_an_old_database(monkeypatch):
+def test_startup_adds_new_profile_columns_to_an_old_database(monkeypatch):
     engine = create_engine(
         "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
     with engine.begin() as connection:
-        # The profiles table as deployed before the gender column existed
+        # The profiles table as deployed before the gender and glasses columns existed
         connection.execute(
             text(
                 "CREATE TABLE profiles (user_id INTEGER PRIMARY KEY, name VARCHAR(24), "
@@ -299,5 +301,6 @@ def test_startup_adds_the_gender_column_to_an_old_database(monkeypatch):
     database.add_missing_columns()  # idempotent
 
     with engine.connect() as connection:
-        assert connection.execute(text("SELECT gender FROM profiles")).scalar_one() == "unspecified"
+        row = connection.execute(text("SELECT gender, glasses FROM profiles")).one()
+        assert tuple(row) == ("unspecified", "none")
     engine.dispose()

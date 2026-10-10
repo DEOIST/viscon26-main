@@ -6,7 +6,7 @@ import {
     TOTAL_ECTS,
     YEARS,
 } from "../config";
-import type { Character, Gender, Player } from "../types";
+import type { Character, Gender, Glasses, Player } from "../types";
 import { Avatar } from "./Avatar";
 import { Icon } from "./Icon";
 import { PhotoAvatar } from "./PhotoAvatar";
@@ -163,6 +163,12 @@ function Swatches({
     );
 }
 
+const GLASSES_OPTIONS: [Glasses, string][] = [
+    ["none", "None"],
+    ["glasses", "Glasses"],
+    ["sunglasses", "Sunglasses"],
+];
+
 const GENDER_OPTIONS: [Gender, string][] = [
     ["unspecified", "Prefer not to say"],
     ["female", "Female"],
@@ -317,6 +323,26 @@ export function CharacterBuilder({
                             onChange={(color) => choose("eyeColor", color)}
                         />
                     </fieldset>
+                    <div className="field">
+                        <label htmlFor="glasses">Glasses</label>
+                        <select
+                            id="glasses"
+                            value={character.glasses}
+                            disabled={busy}
+                            onChange={(event) =>
+                                setCharacter((current) => ({
+                                    ...current,
+                                    glasses: event.target.value as Glasses,
+                                }))
+                            }
+                        >
+                            {GLASSES_OPTIONS.map(([value, label]) => (
+                                <option key={value} value={value}>
+                                    {label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                     <div className="field">
                         <label htmlFor="gender">Gender</label>
                         <select

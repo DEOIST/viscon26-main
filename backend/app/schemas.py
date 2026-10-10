@@ -151,6 +151,7 @@ class Credentials(CamelModel):
 
 # Chosen by the player in the character builder; the photo only pre-fills female/male.
 CharacterGender = Literal["unspecified", "female", "male", "nonbinary"]
+Glasses = Literal["none", "glasses", "sunglasses"]
 
 
 class ProfileInput(CamelModel):
@@ -160,6 +161,7 @@ class ProfileInput(CamelModel):
     skin_color: str
     eye_color: str
     gender: CharacterGender = "unspecified"
+    glasses: Glasses = "none"
     major: Literal["Computer Science", "D-INFK", "infk"] = "Computer Science"
     onboarding_stage: Literal["acceptance", "main"]
 
@@ -177,6 +179,7 @@ class ShellCharacter(CamelModel):
     skin_color: str
     eye_color: str
     gender: CharacterGender = "unspecified"
+    glasses: Glasses = "none"
 
 
 class ShellProfile(CamelModel):
@@ -216,7 +219,6 @@ class ScoreboardEntry(CamelModel):
 AvatarPhotoUrl = Annotated[
     str, Field(max_length=2_800_000, pattern=r"^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$")
 ]
-Glasses = Literal["none", "glasses", "sunglasses"]
 # A guess from appearance, offered as a default the player can change; never used as pronouns.
 PresentedGender = Literal["male", "female", "unclear"]
 

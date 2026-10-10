@@ -1,9 +1,11 @@
 export type Gender = "unspecified" | "female" | "male" | "nonbinary";
+export type Glasses = "none" | "glasses" | "sunglasses";
 export type Character = {
     hairColor: string;
     skinColor: string;
     eyeColor: string;
     gender: Gender;
+    glasses: Glasses;
 };
 export type OnboardingStage = "welcome" | "builder" | "acceptance" | "main";
 export type Player = {
