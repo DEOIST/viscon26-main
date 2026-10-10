@@ -21,6 +21,7 @@ def suggest_from_photo(image_url: str) -> AvatarSuggestion:
         # Canned answer without a call, for building the UI
         return AvatarSuggestion(
             hair_color=CONFIG["colors"]["hair"][1]["value"],
+            hair_length="short",
             eye_color=CONFIG["colors"]["eyes"][0]["value"],
             glasses="none",
             gender="unclear",
@@ -38,6 +39,7 @@ def suggest_from_photo(image_url: str) -> AvatarSuggestion:
         return AvatarSuggestion(source="fallback")
     return AvatarSuggestion(
         hair_color=_HEX["hair"][traits.hair_color],
+        hair_length=traits.hair_length,
         eye_color=_HEX["eyes"][traits.eye_color],
         glasses=traits.glasses,
         gender=traits.gender,

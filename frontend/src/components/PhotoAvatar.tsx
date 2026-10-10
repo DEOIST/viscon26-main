@@ -95,6 +95,9 @@ export function PhotoAvatar({
                 }),
                 ...(suggestion.eyeColor && { eyeColor: suggestion.eyeColor }),
                 ...(suggestion.glasses && { glasses: suggestion.glasses }),
+                ...(suggestion.hairLength && {
+                    hairLength: suggestion.hairLength,
+                }),
                 ...((suggestion.gender === "female" ||
                     suggestion.gender === "male") && {
                     gender: suggestion.gender,

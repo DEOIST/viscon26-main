@@ -6,7 +6,7 @@ import {
     TOTAL_ECTS,
     YEARS,
 } from "../config";
-import type { Character, Gender, Glasses, Player } from "../types";
+import type { Character, Gender, Glasses, HairLength, Player } from "../types";
 import { Avatar } from "./Avatar";
 import { Icon } from "./Icon";
 import { PhotoAvatar } from "./PhotoAvatar";
@@ -162,6 +162,11 @@ function Swatches({
         </fieldset>
     );
 }
+
+const HAIR_LENGTH_OPTIONS: [HairLength, string][] = [
+    ["short", "Short"],
+    ["long", "Long"],
+];
 
 const GLASSES_OPTIONS: [Glasses, string][] = [
     ["none", "None"],
@@ -323,6 +328,27 @@ export function CharacterBuilder({
                             onChange={(color) => choose("eyeColor", color)}
                         />
                     </fieldset>
+                    <div className="field">
+                        <label htmlFor="hair-length">Hair length</label>
+                        <select
+                            id="hair-length"
+                            value={character.hairLength}
+                            disabled={busy}
+                            onChange={(event) =>
+                                setCharacter((current) => ({
+                                    ...current,
+                                    hairLength: event.target
+                                        .value as HairLength,
+                                }))
+                            }
+                        >
+                            {HAIR_LENGTH_OPTIONS.map(([value, label]) => (
+                                <option key={value} value={value}>
+                                    {label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                     <div className="field">
                         <label htmlFor="glasses">Glasses</label>
                         <select

@@ -62,6 +62,7 @@ def test_ai_off_returns_an_empty_fallback_without_calling_openai(client, monkeyp
     assert response.status_code == 200
     assert response.json() == {
         "hairColor": None,
+        "hairLength": None,
         "eyeColor": None,
         "glasses": None,
         "gender": None,
@@ -71,7 +72,11 @@ def test_ai_off_returns_an_empty_fallback_without_calling_openai(client, monkeyp
 
 def test_live_answer_is_mapped_to_preset_hex_values(client, monkeypatch):
     traits = prompts.AvatarTraits(
-        hair_color="Copper red", eye_color="Forest green", glasses="sunglasses", gender="female"
+        hair_color="Copper red",
+        hair_length="long",
+        eye_color="Forest green",
+        glasses="sunglasses",
+        gender="female",
     )
     openai_client = FakeOpenAI(parse=(parsed_response(traits),))
     use_live_clients(monkeypatch, openai_client)
@@ -81,6 +86,7 @@ def test_live_answer_is_mapped_to_preset_hex_values(client, monkeypatch):
     assert response.status_code == 200
     assert response.json() == {
         "hairColor": HAIR["Copper red"],
+        "hairLength": "long",
         "eyeColor": EYES["Forest green"],
         "glasses": "sunglasses",
         "gender": "female",

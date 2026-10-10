@@ -258,7 +258,11 @@ def test_gender_and_glasses_are_saved_with_defaults(client):
     headers = register(client)
     profile(client, headers)
     character = client.get("/api/profile").json()["character"]
-    assert (character["gender"], character["glasses"]) == ("unspecified", "none")
+    assert (character["gender"], character["glasses"], character["hairLength"]) == (
+        "unspecified",
+        "none",
+        "short",
+    )
 
     body = {
         "name": "Ada",
@@ -267,12 +271,12 @@ def test_gender_and_glasses_are_saved_with_defaults(client):
         "eyeColor": CONFIG["colors"]["eyes"][0]["value"],
         "onboardingStage": "main",
     }
-    chosen = {"gender": "female", "glasses": "sunglasses"}
+    chosen = {"gender": "female", "glasses": "sunglasses", "hairLength": "long"}
     saved = client.put("/api/profile", headers=headers, json={**body, **chosen})
     assert saved.status_code == 200
     assert saved.json()["character"] | chosen == saved.json()["character"]
     assert client.get("/api/profile").json()["character"] | chosen == saved.json()["character"]
-    for bad in ({"gender": "robot"}, {"glasses": "monocle"}):
+    for bad in ({"gender": "robot"}, {"glasses": "monocle"}, {"hairLength": "medium"}):
         assert client.put("/api/profile", headers=headers, json={**body, **bad}).status_code == 422
 
 
@@ -301,6 +305,6 @@ def test_startup_adds_new_profile_columns_to_an_old_database(monkeypatch):
     database.add_missing_columns()  # idempotent
 
     with engine.connect() as connection:
-        row = connection.execute(text("SELECT gender, glasses FROM profiles")).one()
-        assert tuple(row) == ("unspecified", "none")
+        row = connection.execute(text("SELECT gender, glasses, hair_length FROM profiles")).one()
+        assert tuple(row) == ("unspecified", "none", "short")
     engine.dispose()

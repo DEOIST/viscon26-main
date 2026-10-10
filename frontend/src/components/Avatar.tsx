@@ -33,6 +33,17 @@ export function Avatar({
                 stroke="#152238"
                 strokeWidth="3"
             />
+            {character.hairLength === "long" && (
+                // Two locks from the temples onto the shoulders: over the ears, behind the face
+                <path
+                    d="M46 66c-16 30-18 76-2 112 8 4 20 4 28-2-8-26-10-58-4-86ZM134 66c16 30 18 76 2 112-8 4-20 4-28-2 8-26 10-58 4-86Z"
+                    fill={character.hairColor}
+                    stroke="#152238"
+                    strokeWidth="3"
+                    strokeLinejoin="round"
+                    data-testid="avatar-long-hair"
+                />
+            )}
             <path
                 d="M43 62c0-30 94-30 94 0v33c0 30-24 47-47 47S43 125 43 95Z"
                 fill={character.skinColor}

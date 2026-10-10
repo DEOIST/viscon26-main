@@ -152,6 +152,7 @@ class Credentials(CamelModel):
 # Chosen by the player in the character builder; the photo only pre-fills female/male.
 CharacterGender = Literal["unspecified", "female", "male", "nonbinary"]
 Glasses = Literal["none", "glasses", "sunglasses"]
+HairLength = Literal["short", "long"]
 
 
 class ProfileInput(CamelModel):
@@ -162,6 +163,7 @@ class ProfileInput(CamelModel):
     eye_color: str
     gender: CharacterGender = "unspecified"
     glasses: Glasses = "none"
+    hair_length: HairLength = "short"
     major: Literal["Computer Science", "D-INFK", "infk"] = "Computer Science"
     onboarding_stage: Literal["acceptance", "main"]
 
@@ -180,6 +182,7 @@ class ShellCharacter(CamelModel):
     eye_color: str
     gender: CharacterGender = "unspecified"
     glasses: Glasses = "none"
+    hair_length: HairLength = "short"
 
 
 class ShellProfile(CamelModel):
@@ -233,6 +236,7 @@ class AvatarSuggestion(CamelModel):
     browser, not here. Every field is None when the AI is unavailable (source="fallback")."""
 
     hair_color: str | None = None
+    hair_length: HairLength | None = None
     eye_color: str | None = None
     glasses: Glasses | None = None
     gender: PresentedGender | None = None

@@ -15,6 +15,7 @@ import {
 import type {
     Gender,
     Glasses,
+    HairLength,
     Player,
     Progress,
     Snapshot,
@@ -23,6 +24,7 @@ import type {
 
 const GENDERS: Gender[] = ["unspecified", "female", "male", "nonbinary"];
 const GLASSES: Glasses[] = ["none", "glasses", "sunglasses"];
+const HAIR_LENGTHS: HairLength[] = ["short", "long"];
 
 export const defaultPlayer: Player = {
     name: "",
@@ -34,6 +36,7 @@ export const defaultPlayer: Player = {
         eyeColor: COLORS.eyes[0].value,
         gender: "unspecified",
         glasses: "none",
+        hairLength: "short",
     },
 };
 export const emptyProgress: Progress = {
@@ -109,7 +112,7 @@ export function readGuest(): Snapshot {
         const saved = JSON.parse(localStorage.getItem(GUEST_KEY) || "null");
         if (!saved || saved.version !== 1) return fallback;
         const player = saved.player as Player;
-        // Saves from before the gender and glasses fields: keep them, use the defaults
+        // Saves from before these fields existed: keep them, use the defaults
         if (player?.character)
             player.character = {
                 ...player.character,
@@ -119,6 +122,9 @@ export function readGuest(): Snapshot {
                 glasses: GLASSES.includes(player.character.glasses)
                     ? player.character.glasses
                     : "none",
+                hairLength: HAIR_LENGTHS.includes(player.character.hairLength)
+                    ? player.character.hairLength
+                    : "short",
             };
         if (
             typeof player?.name !== "string" ||

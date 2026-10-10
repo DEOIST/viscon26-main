@@ -54,6 +54,7 @@ class Profile(Base):
         String(16), default="unspecified", server_default="unspecified"
     )
     glasses: Mapped[str] = mapped_column(String(16), default="none", server_default="none")
+    hair_length: Mapped[str] = mapped_column(String(8), default="short", server_default="short")
     major: Mapped[str] = mapped_column(String(32))
     onboarding_stage: Mapped[str] = mapped_column(String(16))
 
@@ -90,6 +91,7 @@ def add_missing_columns() -> None:
         "profiles": {
             "gender": "VARCHAR(16) NOT NULL DEFAULT 'unspecified'",
             "glasses": "VARCHAR(16) NOT NULL DEFAULT 'none'",
+            "hair_length": "VARCHAR(8) NOT NULL DEFAULT 'short'",
         }
     }
     with engine.begin() as connection:

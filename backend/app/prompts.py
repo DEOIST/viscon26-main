@@ -16,6 +16,7 @@ from app.schemas import (
     DepartmentId,
     DialogueScene,
     Glasses,
+    HairLength,
     PresentedGender,
     Run,
 )
@@ -149,6 +150,7 @@ _EYES = tuple(color["label"] for color in CONFIG["colors"]["eyes"])
 
 class AvatarTraits(BaseModel):
     hair_color: Literal[_HAIR]  # type: ignore[valid-type]
+    hair_length: HairLength
     eye_color: Literal[_EYES]  # type: ignore[valid-type]
     glasses: Glasses
     gender: PresentedGender
@@ -164,6 +166,8 @@ AVATAR_PROMPT = "\n".join(
         "Pick the closest option for each field.",
         "- hair_color: the main hair color (if bald or covered, the closest to their eyebrows): "
         + " | ".join(_HAIR),
+        "- hair_length: short | long (long = would reach the shoulders or lower when worn down, "
+        "including hair tied back in a bun or ponytail; judge the hair itself, not the gender)",
         "- eye_color: iris color (if unclear, the most likely): " + " | ".join(_EYES),
         "- glasses: none | glasses | sunglasses (tinted or dark lenses count as sunglasses)",
         "- gender: the gender the person most likely presents as: male | female | unclear "

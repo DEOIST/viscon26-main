@@ -10,6 +10,7 @@ export type SessionData = {
 /** Suggested colors read from a photo; all null when the AI is unavailable */
 export type AvatarSuggestion = {
     hairColor: string | null;
+    hairLength: "short" | "long" | null;
     eyeColor: string | null;
     glasses: "none" | "glasses" | "sunglasses" | null;
     gender: "male" | "female" | "unclear" | null;

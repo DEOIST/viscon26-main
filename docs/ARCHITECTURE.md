@@ -220,7 +220,7 @@ interface Epilogue {
 | Epilogue | `POST /api/runs/{run_id}/epilogue` | `generate_epilogue` | `apiGenerateEpilogue` | 200 `Epilogue` · 404 · 409 not graduated |
 | Narration | `POST /api/runs/{run_id}/epilogue/speech` | `generate_epilogue_speech` | `apiGenerateEpilogueSpeech` | 200 `audio/mpeg` · 404 · 409 no epilogue yet · 503 narrator unavailable |
 | Health | `GET /api/health` | `get_health` (exists) | `apiGetHealth` | 200; touches no dependency |
-| Avatar suggestion | `POST /api/avatar/suggestion` (body `AvatarPhoto`: `{ image }`, a JPEG/PNG/WebP data URL), CSRF header required | `suggest_from_photo` | `api.avatarSuggestion` | 200 `AvatarSuggestion` (`hairColor`, `eyeColor` as preset hex values, `glasses`, `gender` guess; all `null` with `source: "fallback"` when the AI is unavailable) · 403 missing CSRF token · 422 not an image data URL |
+| Avatar suggestion | `POST /api/avatar/suggestion` (body `AvatarPhoto`: `{ image }`, a JPEG/PNG/WebP data URL), CSRF header required | `suggest_from_photo` | `api.avatarSuggestion` | 200 `AvatarSuggestion` (`hairColor`, `eyeColor` as preset hex values, `hairLength`, `glasses`, `gender` guess; all `null` with `source: "fallback"` when the AI is unavailable) · 403 missing CSRF token · 422 not an image data URL |
 
 Routers: `routers/runs.py` (prefix `/runs`), `routers/leaderboard.py` (prefix
 `/leaderboard`), `routers/story.py` (prefix `/runs`, tag `story`). Services have

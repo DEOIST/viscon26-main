@@ -43,7 +43,7 @@ describe("simplified character builder", () => {
         );
     });
 
-    it("saves gender and glasses, and draws the glasses", () => {
+    it("saves gender, glasses and hair length, and draws them", () => {
         const onContinue = vi.fn();
         render(
             <CharacterBuilder
@@ -62,12 +62,20 @@ describe("simplified character builder", () => {
         expect(screen.queryByTestId("avatar-glasses")).toBeNull();
         fireEvent.change(glasses, { target: { value: "sunglasses" } });
         expect(screen.getByTestId("avatar-glasses")).toBeTruthy();
+        const hairLength = screen.getByLabelText(
+            "Hair length",
+        ) as HTMLSelectElement;
+        expect(hairLength.value).toBe("short");
+        expect(screen.queryByTestId("avatar-long-hair")).toBeNull();
+        fireEvent.change(hairLength, { target: { value: "long" } });
+        expect(screen.getByTestId("avatar-long-hair")).toBeTruthy();
         fireEvent.click(screen.getByRole("button", { name: /Continue/ }));
         expect(onContinue).toHaveBeenCalledWith(
             expect.objectContaining({
                 character: expect.objectContaining({
                     gender: "nonbinary",
                     glasses: "sunglasses",
+                    hairLength: "long",
                 }),
             }),
         );
@@ -77,6 +85,7 @@ describe("simplified character builder", () => {
         const {
             gender: _gender,
             glasses: _glasses,
+            hairLength: _hairLength,
             ...oldCharacter
         } = defaultPlayer.character;
         localStorage.setItem(
@@ -94,7 +103,11 @@ describe("simplified character builder", () => {
         );
         expect(readGuest().player).toMatchObject({
             name: "Ada",
-            character: { gender: "unspecified", glasses: "none" },
+            character: {
+                gender: "unspecified",
+                glasses: "none",
+                hairLength: "short",
+            },
         });
     });
 
