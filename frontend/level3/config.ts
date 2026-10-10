@@ -10,8 +10,17 @@ export const LANE_NAMES = [
     "Critique",
 ] as const;
 export const LANE_GLYPHS = ["∀", "∫", "χ²", "?!"] as const;
-export const LANE_COLORS = [0x3ee0ff, 0xff4fd8, 0x9dff4a, 0xffb43c] as const;
-export const LANE_CSS = ["#3ee0ff", "#ff4fd8", "#9dff4a", "#ffb43c"] as const;
+// Highlighter inks, one per lane. Yellow is reserved for golden notes and Eureka.
+export const LANE_COLORS = [0x5ec8ff, 0xff7ad9, 0x8cf27a, 0xffa94d] as const;
+export const LANE_CSS = ["#5ec8ff", "#ff7ad9", "#8cf27a", "#ffa94d"] as const;
+export const GOLD_INK = 0xfff23a;
+// What each lane's questions look like on the page: references a thesis is made of.
+export const LANE_TOKENS = [
+    ["Thm. 4.2", "Lemma 3", "Def. 2.1", "Cor. 1", "Axiom 7", "Thm. 3.9"],
+    ["eq. (3.7)", "eq. (4.1)", "Prop. 5", "(A.12)", "eq. (2.4)", "Proof"],
+    ["Fig. 3.4", "Tab. 2", "χ² = 3.8", "n = 12", "Fig. 5.1", "p < .05"],
+    ["[42]", "[Rev. 2]", "[17]", "[ibid.]", "[sic]", "[3, 9]"],
+] as const;
 export const ACTIVATE_KEY = " "; // Space spends a full Eureka meter
 
 // The chart is written on a sixteenth-note grid at this tempo (chart.ts).

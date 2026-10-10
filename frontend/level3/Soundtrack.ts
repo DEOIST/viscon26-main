@@ -45,7 +45,7 @@ export default class Soundtrack {
 
     nowPlaying(phase: Phase): string {
         const piece = PIECES[phase];
-        return `♪ ${piece.title} · ${piece.composer} (${piece.year})`;
+        return `Now playing: ${piece.title}, ${piece.composer} (${piece.year})`;
     }
 
     // A new attempt (or a resume) starts scheduling the groove from `song`.

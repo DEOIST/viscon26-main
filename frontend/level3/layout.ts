@@ -1,41 +1,42 @@
-// Where things sit on the shared 1280 x 720 canvas, and the highway's fake perspective.
-// Notes travel along a straight line in depth: screen size goes with 1 / distance, so they
-// creep out from under the committee's desk and rush at the hit line, like a real road.
+// Where things sit on the shared 1280 x 720 canvas. The screen is a PDF viewer showing one
+// page of your thesis: toolbar on top, page thumbnails on the left, the white sheet in the
+// middle (the lanes are Figure 3.1 on it), the viewer's properties pane on the right.
+// The figure is flat, like anything typeset: notes slide straight down at constant speed.
 
 import { NOTE_LEAD_MS } from "./config";
 
 export const WIDTH = 1280;
 export const HEIGHT = 720;
-export const CENTER_X = WIDTH / 2;
+// Backgrounds are drawn this far past the frame: fullscreen expands the canvas to the
+// screen's shape (Scale.EXPAND), and the extra room shows more viewer, never empty bands.
+export const BLEED = 700;
 
-export const HORIZON_Y = 112; // vanishing point of the highway, hidden behind the desk
-export const HIT_Y = 612; // the hit line
-export const LANE_WIDTH = 132; // at the hit line
-export const FAR = 4; // spawn distance, in hit-line units: notes appear at 1/FAR size
-export const MAX_PROGRESS = 1.12; // how far past the hit line a note is still drawn
+// Viewer chrome.
+export const TOOLBAR_H = 44;
+export const SIDEBAR_W = 196;
+export const PANEL_X = 1072; // the viewer's properties pane starts here
 
-export const DESK_Y = 205; // top edge of the committee's desk
-export const PROFESSORS_X = [430, 640, 850];
-export const PROFESSOR_Y = 150;
+// The sheet of paper, cut off by the bottom of the screen like a scrolled PDF.
+export const PAGE = { x: 220, y: 60, w: 830 } as const;
+export const COLUMN = { x: PAGE.x + 52, w: 520 } as const; // text column holding the figure
+export const MARGIN = { x: COLUMN.x + COLUMN.w + 26, w: 220 } as const; // margin notes
 
-export const HUD_LEFT_X = 160;
-export const HUD_RIGHT_X = 1120;
+// Figure 3.1: the four lanes.
+export const FIGURE_TOP = 178; // \toprule: notes appear here
+export const HIT_Y = 590; // the rule to answer on
+export const LANE_WIDTH = COLUMN.w / 4;
+export const PAST_LINE_MS = 185; // how long a late note stays visible below the rule
 
-// 0 when a note spawns, 1 when it is on the hit line, above 1 once it is late.
+// 0 when a note appears at the top rule, 1 when it is on the hit rule, above 1 once late.
 export function progress(noteTime: number, now: number): number {
     return 1 - (noteTime - now) / NOTE_LEAD_MS;
 }
 
-// Screen scale for a progress value: 1/FAR at spawn, 1 at the hit line.
-export function depthScale(p: number): number {
-    const distance = FAR - (FAR - 1) * Math.min(p, MAX_PROGRESS);
-    return 1 / distance;
+// Constant speed: the figure is a table, not a road.
+export function noteY(p: number): number {
+    return FIGURE_TOP + (HIT_Y - FIGURE_TOP) * p;
 }
 
-export function screenY(scale: number): number {
-    return HORIZON_Y + (HIT_Y - HORIZON_Y) * scale;
-}
-
-export function laneX(lane: number, scale: number): number {
-    return CENTER_X + (lane - 1.5) * LANE_WIDTH * scale;
+export function laneX(lane: number): number {
+    return COLUMN.x + (lane + 0.5) * LANE_WIDTH;
 }

@@ -1,27 +1,25 @@
-// Level 3, "Thesis defense": a four-lane rhythm game against the examination committee.
-// engine.ts decides every judgment; this scene turns key events into presses (stamped with
-// the key event's own time, so frame rate never shifts a judgment), runs the title →
-// countdown → defense → verdict loop and makes the committee, the student and the highway
-// react to what happened.
+// Level 3, "Thesis defense": a four-lane rhythm game against the examination committee,
+// set as a page of your own thesis in a PDF viewer. engine.ts decides every judgment; this
+// scene turns key events into presses (stamped with the key event's own time, so frame rate
+// never shifts a judgment), runs the title page → countdown → defense → transcript loop and
+// makes the figure, the committee's margin and the viewer react to what happened.
 
 import { Scene } from "phaser";
-import type { GameObjects } from "phaser";
-import { BAR_MS, DEFENSE_CHART } from "./chart";
+import { DEFENSE_CHART } from "./chart";
 import type { Phase } from "./chart";
 import Committee from "./Committee";
 import type { Mood } from "./Committee";
 import { COUNTDOWN_MS, LANE_KEYS } from "./config";
 import { DefenseEngine } from "./engine";
 import type { DefenseEvent } from "./engine";
-import Highway from "./Highway";
+import Figure from "./Figure";
 import Hud from "./Hud";
-import { CENTER_X, HEIGHT, WIDTH } from "./layout";
+import { HEIGHT, WIDTH } from "./layout";
 import { committeeLines } from "./lines";
 import type { CommitteeEvent } from "./lines";
 import Overlays from "./Overlays";
 import Soundtrack from "./Soundtrack";
-import Student from "./Student";
-import { COLORS, makeTextures } from "./textures";
+import { loadFonts, makeTextures } from "./textures";
 import { loadBest, saveBest, swissGrade, verdictFor } from "./verdict";
 import type { BestRun, BestStorage } from "./verdict";
 import { pickLine } from "../src/games/shared/minigame";
@@ -29,14 +27,15 @@ import type { MinigameResult } from "../src/games/shared/minigame";
 
 export interface ThesisSceneArgs {
     playerName: string;
-    hairColor?: string;
-    skinColor?: string;
     storage: BestStorage;
     finish(result: MinigameResult): void;
     announce(text: string): void; // for screen readers: the canvas itself says nothing
+    toggleFullscreen(): void;
+    isFullscreen(): boolean;
 }
 
 type Mode =
+    | "loading"
     | "title"
     | "countdown"
     | "playing"
@@ -46,6 +45,15 @@ type Mode =
     | "results";
 
 const LANE_CODES = LANE_KEYS.map((key) => `Key${key}`);
+const RESUME_MS = 2400;
+const QUIP_GAP_MS = 2600; // the committee doesn't talk over itself
+const PHASE_CAST: Record<Phase, { lead: number | null; say: CommitteeEvent }> =
+    {
+        opening: { lead: 0, say: "intro" },
+        cross: { lead: 2, say: "streak" },
+        meltdown: { lead: 1, say: "meltdown" },
+        final: { lead: null, say: "final" },
+    };
 
 function isTyping(target: EventTarget | null): boolean {
     return (
@@ -54,25 +62,13 @@ function isTyping(target: EventTarget | null): boolean {
             ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))
     );
 }
-const BEAT_MS = BAR_MS / 4;
-const RESUME_MS = 2400;
-const QUIP_GAP_MS = 2600; // the committee doesn't talk over itself
-const PHASE_LOOK: Record<
-    Phase,
-    { color: number; css: string; lead: number | null; say: CommitteeEvent }
-> = {
-    opening: { color: 0x3e7bff, css: "#3ee0ff", lead: 0, say: "intro" },
-    cross: { color: 0x9b5cff, css: "#ff4fd8", lead: 2, say: "streak" },
-    meltdown: { color: 0xff2d55, css: "#ff4f6d", lead: 1, say: "meltdown" },
-    final: { color: 0xffb43c, css: "#ffd84a", lead: null, say: "final" },
-};
 
 export default class ThesisScene extends Scene {
     private readonly args: ThesisSceneArgs;
     private readonly lines: Record<CommitteeEvent, string[]>;
     private engine = new DefenseEngine(DEFENSE_CHART);
     private soundtrack!: Soundtrack;
-    private mode: Mode = "title";
+    private mode: Mode = "loading";
     private startAt = 0; // performance.now() at song time 0
     private pausedAt = 0;
     private resumeAt = 0;
@@ -84,12 +80,9 @@ export default class ThesisScene extends Scene {
     private attempts = 0;
     private submitted = false;
     private committee!: Committee;
-    private highway!: Highway;
+    private figure!: Figure;
     private hud!: Hud;
-    private student!: Student;
     private overlays!: Overlays;
-    private glow!: GameObjects.Image;
-    private vignette!: GameObjects.Rectangle;
     private disposed = false;
 
     constructor(args: ThesisSceneArgs) {
@@ -99,52 +92,45 @@ export default class ThesisScene extends Scene {
     }
 
     create() {
+        this.events.once("shutdown", () => this.dispose());
+        this.events.once("destroy", () => this.dispose());
+        // Text must not be drawn before the thesis' own faces have loaded.
+        void loadFonts().then(() => {
+            if (!this.disposed && this.sys.isActive()) this.build();
+        });
+    }
+
+    private build() {
         makeTextures(this);
-        this.add.image(WIDTH / 2, HEIGHT / 2, "td-hall").setDepth(-10);
-        this.glow = this.add
-            .image(CENTER_X, 420, "td-glow")
-            .setDisplaySize(1500, 900)
-            .setBlendMode("ADD")
-            .setTint(PHASE_LOOK.opening.color)
-            .setAlpha(0.22)
-            .setDepth(-9);
-        this.vignette = this.add
-            .rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.red, 0)
-            .setDepth(60);
+        this.soundtrack = new Soundtrack(DEFENSE_CHART, this.args.storage);
+        this.hud = new Hud(this, this.args.playerName, {
+            onFullscreen: () => this.args.toggleFullscreen(),
+            onMute: () => this.hud.setSound(this.soundtrack.toggleMute()),
+        });
+        this.figure = new Figure(this);
         this.committee = new Committee(this);
-        this.highway = new Highway(this);
-        this.hud = new Hud(this);
-        this.student = new Student(
-            this,
-            this.args.hairColor,
-            this.args.skinColor,
-            this.args.playerName,
-        );
         this.overlays = new Overlays(
             this,
+            this.args.playerName,
             () => this.start(),
             () => this.retry(),
             () => this.submit(),
         );
         this.best = loadBest(this.args.storage);
-        this.soundtrack = new Soundtrack(DEFENSE_CHART, this.args.storage);
         this.hud.setSound(this.soundtrack.muted);
-        this.hud.setVisible(false);
-        this.overlays.showTitle(this.best);
-        this.committee.setLead(null, PHASE_LOOK.opening.color);
+        this.showTitle();
         this.args.announce(
-            "Thesis defense. Press D, F, J and K as the questions reach the line. Press Space to begin.",
+            "Thesis defense. Press D, F, J and K as the references reach the rule. Press Space to begin, F for fullscreen.",
         );
-
         window.addEventListener("keydown", this.handleKeyDown);
         window.addEventListener("keyup", this.handleKeyUp);
         window.addEventListener("blur", this.handleBlur);
         document.addEventListener("visibilitychange", this.handleVisibility);
-        this.events.once("shutdown", () => this.dispose());
-        this.events.once("destroy", () => this.dispose());
+        document.addEventListener("fullscreenchange", this.handleFullscreen);
+        window.addEventListener("resize", this.handleResize);
     }
 
-    // Removes the window listeners; safe to call twice (shutdown, then destroy).
+    // Removes the window listeners and closes audio; safe to call twice.
     dispose() {
         if (this.disposed) return;
         this.disposed = true;
@@ -153,17 +139,15 @@ export default class ThesisScene extends Scene {
         window.removeEventListener("keyup", this.handleKeyUp);
         window.removeEventListener("blur", this.handleBlur);
         document.removeEventListener("visibilitychange", this.handleVisibility);
+        document.removeEventListener("fullscreenchange", this.handleFullscreen);
+        window.removeEventListener("resize", this.handleResize);
     }
 
     update(time: number, delta: number) {
+        if (this.mode === "loading") return;
         const now = performance.now();
         const song = this.songTime(now);
         this.committee.update(time, delta);
-        this.student.update(
-            time,
-            this.engine.state.confidence,
-            this.engine.state.status === "failed",
-        );
         if (this.mode === "countdown") {
             this.beep(this.overlays.updateCountdown(-song));
             if (song >= 0) this.mode = "playing";
@@ -182,32 +166,44 @@ export default class ThesisScene extends Scene {
         if (this.mode === "countdown" || this.mode === "playing")
             this.soundtrack.schedule(song);
         if (this.mode === "title" || this.mode === "results") return;
-        this.highway.draw(this.engine, song, DEFENSE_CHART.phases[0].time);
+        this.figure.draw(this.engine, song, DEFENSE_CHART.phases[0].time);
         this.hud.update(
             this.engine.state,
             this.engine.accuracy(),
-            Math.min(1, Math.max(0, song / DEFENSE_CHART.end)),
+            song / DEFENSE_CHART.end,
             time,
         );
-        this.pulse(song);
         this.updateMoods();
     }
 
     // --- Run lifecycle -----------------------------------------------------------
 
+    private showTitle() {
+        this.mode = "title";
+        this.figure.setVisible(false);
+        this.hud.setPlaying(false);
+        this.overlays.showTitle(this.best);
+        this.committee.setLead(null);
+    }
+
     private start() {
         if (this.mode !== "title" && this.mode !== "results") return;
         this.soundtrack.unlock();
+        // Starting from the title page is the gesture fullscreen needs; the booth wants it.
+        if (this.mode === "title" && !this.args.isFullscreen())
+            this.args.toggleFullscreen();
         this.overlays.hideTitle();
         this.overlays.hideResults();
         this.engine = new DefenseEngine(DEFENSE_CHART);
-        this.highway.clear();
-        this.highway.setEureka(false);
+        this.figure.setVisible(true);
+        this.figure.setEureka(false);
+        this.figure.setPhase("opening");
         this.hud.reset();
-        this.hud.setVisible(true);
-        this.committee.hideBubble();
-        this.setPhaseLook("opening");
-        this.committee.setLead(null, PHASE_LOOK.opening.color);
+        this.hud.setPlaying(true);
+        this.committee.hideNote();
+        this.committee.clearScars();
+        this.committee.setLead(null);
+        this.phase = "opening";
         this.lastQuip = -Infinity;
         this.attempts += 1;
         this.startAt = performance.now() + COUNTDOWN_MS;
@@ -234,7 +230,7 @@ export default class ThesisScene extends Scene {
         this.pausedAt =
             this.mode === "resuming" ? this.pausedAt : performance.now();
         this.mode = "paused";
-        this.highway.releaseAll();
+        this.figure.releaseAll();
         this.overlays.hideCountdown();
         this.overlays.showPause(true);
     }
@@ -248,18 +244,15 @@ export default class ThesisScene extends Scene {
 
     private end(failed: boolean) {
         this.mode = "ending";
-        this.highway.setEureka(false);
+        this.figure.setEureka(false);
         if (failed) {
             this.committee.react("furious", 2500);
             this.say(1, "failed", true);
-            this.cameras.main.shake(400, 0.012);
-            this.flashVignette(COLORS.red, 0.45);
+            this.cameras.main.shake(380, 0.01);
         } else {
             const accuracy = this.engine.accuracy();
             this.committee.react(accuracy >= 80 ? "amazed" : "impressed", 2500);
             this.say(1, "passed", true);
-            this.cameras.main.flash(300, 255, 216, 74);
-            this.student.cheer(2000);
         }
         this.time.delayedCall(failed ? 1400 : 1600, () =>
             this.showResults(failed),
@@ -285,8 +278,9 @@ export default class ThesisScene extends Scene {
         );
         const grade = swissGrade(failed, accuracy);
         const verdict = verdictFor(failed, grade);
-        this.hud.setVisible(false);
-        this.highway.clear();
+        this.hud.setPlaying(false);
+        this.figure.setVisible(false);
+        this.committee.hideNote();
         // The stamp lands 610 ms in (see Overlays.showResults).
         this.time.delayedCall(610, () => this.soundtrack.stamp());
         this.overlays.showResults({
@@ -300,7 +294,7 @@ export default class ThesisScene extends Scene {
             submitted: this.submitted,
         });
         this.args.announce(
-            `${verdict.title}. Grade ${grade.toFixed(2)}. Score ${state.score}. Press R to defend again or Enter to submit your thesis.`,
+            `${verdict.title}. Grade ${grade.toFixed(2)}. Score ${state.score}. Press R to revise and resubmit, or Enter to submit your thesis.`,
         );
     }
 
@@ -327,34 +321,27 @@ export default class ThesisScene extends Scene {
             this.soundtrack.event(event);
             switch (event.type) {
                 case "hit":
-                    this.highway.hit(
-                        event.note.lane,
-                        event.judgment,
-                        event.delta,
-                        event.note.gold,
-                    );
-                    if (event.note.gold)
-                        this.cameras.main.flash(90, 255, 216, 74, true);
+                    this.figure.hit(event.note, event.judgment);
+                    this.hud.addTick(event.delta);
                     break;
                 case "miss":
-                    this.highway.miss(event.note.lane);
-                    this.flashVignette(COLORS.red, 0.16);
+                    this.figure.miss(event.note);
+                    this.committee.scar(event.note.time / DEFENSE_CHART.end);
                     this.committee.react("disappointed", 700, this.leaders());
                     if (Math.random() < 0.4) this.say(this.speaker(), "miss");
                     break;
                 case "stray":
-                    this.highway.stray(event.lane);
+                    this.figure.stray(event.lane);
                     if (Math.random() < 0.2) this.say(this.speaker(), "stray");
                     break;
                 case "milestone":
-                    this.hud.showMilestone(event.title);
+                    this.committee.scribble(event.title);
                     this.committee.react("amazed", 1100);
-                    this.student.cheer();
                     this.say(this.speaker(), "streak");
-                    this.punchCamera();
                     break;
                 case "phase":
                     this.enterPhase(
+                        event.index,
                         event.section.phase,
                         event.section.title,
                         event.section.subtitle,
@@ -364,14 +351,13 @@ export default class ThesisScene extends Scene {
                     this.args.announce("Eureka is ready. Press Space.");
                     break;
                 case "eureka-start":
-                    this.highway.setEureka(true);
-                    this.cameras.main.flash(220, 255, 230, 140);
+                    this.figure.setEureka(true);
                     this.committee.react("amazed", 1500);
+                    this.committee.scribble("Eureka! ×2");
                     this.say(this.speaker(), "eureka", true);
-                    this.hud.showMilestone("EUREKA! ×2");
                     break;
                 case "eureka-end":
-                    this.highway.setEureka(false);
+                    this.figure.setEureka(false);
                     break;
                 case "failed":
                     this.end(true);
@@ -383,41 +369,38 @@ export default class ThesisScene extends Scene {
         }
     }
 
-    private enterPhase(phase: Phase, title: string, subtitle: string) {
-        this.setPhaseLook(phase);
-        const look = PHASE_LOOK[phase];
-        this.hud.showPhase(title, subtitle, look.css);
+    private enterPhase(
+        index: number,
+        phase: Phase,
+        title: string,
+        subtitle: string,
+    ) {
+        this.phase = phase;
+        const cast = PHASE_CAST[phase];
+        this.figure.setPhase(phase);
+        this.hud.setSection(index, toTitleCase(title), subtitle);
         this.hud.setNowPlaying(this.soundtrack.nowPlaying(phase));
-        this.committee.setLead(look.lead, look.color);
-        this.say(look.lead ?? 1, look.say, true);
+        this.committee.setLead(cast.lead);
+        this.say(cast.lead ?? 1, cast.say, true);
         this.args.announce(`${title}. ${subtitle}`);
         if (phase === "meltdown") {
             this.committee.react("furious", 1600, [1]);
-            this.cameras.main.shake(350, 0.01);
-            this.flashVignette(COLORS.red, 0.3);
+            this.cameras.main.shake(320, 0.008);
         } else if (phase === "final") {
             this.committee.react("furious", 900);
-            this.cameras.main.shake(250, 0.006);
+            this.cameras.main.shake(220, 0.005);
         }
-    }
-
-    private setPhaseLook(phase: Phase) {
-        this.phase = phase;
-        const look = PHASE_LOOK[phase];
-        this.highway.setTheme(look.color);
-        this.glow.setTint(look.color);
     }
 
     // --- Committee ---------------------------------------------------------------
 
     private leaders(): number[] {
-        const lead = PHASE_LOOK[this.phase].lead;
+        const lead = PHASE_CAST[this.phase].lead;
         return lead === null ? [0, 1, 2] : [lead];
     }
 
     private speaker(): number {
-        const lead = PHASE_LOOK[this.phase].lead;
-        return lead ?? Math.floor(Math.random() * 3);
+        return PHASE_CAST[this.phase].lead ?? Math.floor(Math.random() * 3);
     }
 
     private say(who: number, event: CommitteeEvent, force = false) {
@@ -446,42 +429,8 @@ export default class ThesisScene extends Scene {
             this.say(1, "meltdown");
     }
 
-    // --- Visual rhythm -----------------------------------------------------------
-
-    // The hall breathes on every beat, the cue a music track would normally give.
-    private pulse(song: number) {
-        const since =
-            (((song - DEFENSE_CHART.phases[0].time) % BEAT_MS) + BEAT_MS) %
-            BEAT_MS;
-        const beat = 1 - since / BEAT_MS;
-        const base = this.engine.state.eurekaActive ? 0.36 : 0.18;
-        this.glow.setAlpha(base + beat * beat * 0.16);
-    }
-
-    // A quick zoom pulse. A tween on the camera instead of zoomTo(), whose ease argument
-    // throws in Phaser 4.
-    private punchCamera() {
-        const camera = this.cameras.main;
-        this.tweens.killTweensOf(camera);
-        camera.setZoom(1);
-        this.tweens.add({
-            targets: camera,
-            zoom: 1.03,
-            duration: 90,
-            yoyo: true,
-            ease: "Quad.Out",
-            onComplete: () => camera.setZoom(1),
-        });
-    }
-
     private beep(value: string | null) {
         if (value) this.soundtrack.countdown(value);
-    }
-
-    private flashVignette(color: number, alpha: number) {
-        this.tweens.killTweensOf(this.vignette);
-        this.vignette.setFillStyle(color, 1).setAlpha(alpha);
-        this.tweens.add({ targets: this.vignette, alpha: 0, duration: 260 });
     }
 
     // --- Input -------------------------------------------------------------------
@@ -508,7 +457,7 @@ export default class ThesisScene extends Scene {
         if (lane >= 0) {
             event.preventDefault();
             if (event.repeat) return;
-            this.highway.setPressed(lane, true);
+            this.figure.setPressed(lane, true);
             if (this.mode === "playing")
                 this.handle(
                     this.engine.press(
@@ -534,6 +483,10 @@ export default class ThesisScene extends Scene {
             case "KeyM":
                 event.preventDefault();
                 this.hud.setSound(this.soundtrack.toggleMute());
+                return;
+            case "KeyF":
+                event.preventDefault();
+                this.args.toggleFullscreen();
                 return;
             case "Escape":
             case "KeyP":
@@ -561,15 +514,53 @@ export default class ThesisScene extends Scene {
 
     private readonly handleKeyUp = (event: KeyboardEvent) => {
         const lane = LANE_CODES.indexOf(event.code);
-        if (lane >= 0) this.highway.setPressed(lane, false);
+        if (lane >= 0) this.figure.setPressed(lane, false);
     };
 
     private readonly handleBlur = () => {
-        this.highway.releaseAll();
+        this.figure.releaseAll();
         this.pause();
     };
 
     private readonly handleVisibility = () => {
         if (document.hidden) this.handleBlur();
     };
+
+    // Entering or leaving fullscreen resizes the parent; Phaser refits the canvas to it.
+    private readonly handleFullscreen = () => {
+        this.fitScreen();
+        if (!this.args.isFullscreen()) this.pause();
+    };
+
+    private readonly handleResize = () => {
+        if (this.args.isFullscreen()) this.fitScreen();
+    };
+
+    // Fullscreen fills the screen edge to edge: the game grows to the screen's shape (never
+    // below 1280 x 720) and every background is drawn with bleed, so the extra room shows more
+    // viewer and more paper instead of letterbox bands. In the shell it stays 1280 x 720.
+    private fitScreen() {
+        const parent = this.game.canvas?.parentElement;
+        let width = WIDTH;
+        let height = HEIGHT;
+        if (this.args.isFullscreen() && parent) {
+            const box = parent.getBoundingClientRect();
+            const aspect = box.width / Math.max(1, box.height);
+            if (aspect < WIDTH / HEIGHT) height = Math.round(WIDTH / aspect);
+            else width = Math.round(HEIGHT * aspect);
+        }
+        this.scale.setGameSize(width, height);
+        this.cameras.main.setSize(width, height);
+        this.scale.refresh();
+    }
+}
+
+// "CROSS-EXAMINATION" → "Cross-Examination": section headings are set in title case.
+function toTitleCase(text: string): string {
+    return text
+        .toLowerCase()
+        .replace(
+            /(^|[\s-])(\p{L})/gu,
+            (_, sep: string, ch: string) => sep + ch.toUpperCase(),
+        );
 }

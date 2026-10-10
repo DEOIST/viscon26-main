@@ -142,8 +142,8 @@ The tree shows the target. *(planned)* marks parts that don't exist yet.
 │   │                             ui.ts, assets/ (sprite sheets)
 │   ├── level3/                   Level 3, Thesis defense (Phaser 4, keyboard rhythm game, no backend):
 │   │                             index.ts (mountThesisDefense), chart.ts, engine.ts, verdict.ts,
-│   │                             layout.ts (+ tests), config.ts, ThesisScene.ts, Highway.ts, Hud.ts,
-│   │                             Committee.ts, Student.ts, Overlays.ts, lines.ts, textures.ts,
+│   │                             layout.ts (+ tests), config.ts, ThesisScene.ts, Figure.ts, Hud.ts,
+│   │                             Committee.ts, Overlays.ts, lines.ts, textures.ts, assets/fonts/ (OFL),
 │   │                             music.ts + Synth.ts + Soundtrack.ts (synthesised music and effects)
 │   ├── template.html             HTML shell for every page ({{page}}, {{css}} placeholders)
 │   ├── package.json  tsconfig.json  .prettierrc  .nvmrc

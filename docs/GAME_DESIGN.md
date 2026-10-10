@@ -162,10 +162,24 @@ index finger, drop your thumb to shoot. The technical design is in
 
 ## Minigame 3: Thesis defense (Year 3, level 3)
 
-Guitar Hero meets your thesis defense. A three-professor examination committee
-fires questions down a four-lane neon highway; you answer each one by pressing
-its lane's key as it crosses the hit line. Keyboard only, no server side: the
-code is in `frontend/level3/`.
+Guitar Hero meets your thesis defense, set as page 42 of your own thesis open
+in a PDF viewer. References (theorems, equations, figures, citations) slide down
+Figure 3.1, four highlighter lanes set like a booktabs table; you highlight each
+one by pressing its lane's key as it lands on the rule. The three-professor
+committee is doodled in blue ballpoint in the margin and grades you in red pen.
+Keyboard only, no server side: the code is in `frontend/level3/`.
+
+- **Look (the "typeset thesis" world, `.impeccable/surfaces/`):** PDF-viewer
+  graphite around one white sheet; Computer Modern type (CMU Serif, self-hosted,
+  OFL); highlighter inks blue/pink/green/orange per lane, yellow reserved for
+  golden notes and Eureka; red ballpoint for corrections, misses struck through
+  and logged on the margin's errata timeline; the toolbar's page counter is the
+  progress, the thumbnail sidebar is the phase list. The title screen is the
+  thesis title page with the key table, the verdict is an ETH transcript
+  (Leistungsüberblick) with the committee's red rubber stamp.
+- **Fullscreen:** `F` or the toolbar button; starting from the title page also
+  requests fullscreen (it is the user gesture browsers require). Leaving
+  fullscreen pauses the defense.
 
 - **Controls:** `D` Theory (∀), `F` Proofs (∫), `J` Experiments (χ²),
   `K` Critique (?!). `Space` starts and spends Eureka, `Esc`/`P` pauses (also
