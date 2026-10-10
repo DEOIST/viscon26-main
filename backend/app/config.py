@@ -32,6 +32,15 @@ class Settings(BaseSettings):
     openai_timeout_seconds: float = 12.0
     ai_daily_call_limit: int = 3000
 
+    # Finger-detection engine (issue #13, docs/SHOOTER_CV.md). The frontend build downloads the
+    # hand model into dist/static/models/, which is where the backend reads it too.
+    cv_model_path: Path = (
+        REPO_DIR / "frontend" / "dist" / "static" / "models" / "hand_landmarker.task"
+    )
+    cv_max_sessions: int = 4  # players tracked at the same time; each costs ~1 CPU core
+    cv_max_frame_bytes: int = 200_000  # a 320×240 JPEG is ~10 KB
+    cv_idle_timeout_seconds: float = 20.0  # a hidden tab sends nothing: free its slot
+
     @field_validator("openai_api_keys", mode="before")
     @classmethod
     def _split_key_list(cls, value: object) -> object:

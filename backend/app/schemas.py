@@ -117,3 +117,28 @@ class DialoguePack(CamelModel):
 class Epilogue(CamelModel):
     text: str
     source: AiSource
+
+
+# --- cv (finger-detection engine) ---
+
+Tracking = Literal["ok", "noPose", "lost"]
+
+
+class CvStatus(CamelModel):
+    available: bool
+    reason: str | None  # why it isn't available
+    active_sessions: int
+    max_sessions: int
+
+
+class CvFrame(CamelModel):
+    """One processed camera frame, sent over /api/cv/stream. Points are [x, y] in the game
+    area (0..1, mirrored like the video); landmarks may lie outside 0..1."""
+
+    type: Literal["frame"] = "frame"
+    tracking: Tracking
+    aim: tuple[float, float] | None
+    fired_at: tuple[float, float] | None  # set on the frame a shot fires
+    landmarks: list[tuple[float, float]] | None  # 21 points, for drawing the hand
+    thumb_distance: float | None  # metres, for the debug overlay
+    processing_ms: float

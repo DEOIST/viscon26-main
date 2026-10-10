@@ -52,12 +52,14 @@ for page in enroll campus blackjack shooter graduation; do
     expect_status "/$page" 200 '<div id="root">'
     expect_status "/pages/$page.js" 200
 done
-# The shooter's hand tracking is self-hosted (no CDN at the venue).
-expect_status /static/mediapipe/vision_wasm_internal.wasm 200
 # Read-only API checks that go through Redis. Never a POST here: story POSTs may spend credits.
 expect_status /api/leaderboard 200 '['
 expect_status /api/leaderboard/endings 200 '"counts"'
 expect_status /api/runs/0123456789abcdef0123456789abcdef 404 'Run not found'
+# The finger-detection engine must load in this image: MediaPipe, its system libraries and the
+# hand model downloaded by the frontend build (issue #13).
+expect_status /api/cv/status 200 '"available":true'
+expect_status /static/models/hand_landmarker.task 200
 expect_status /this-page-does-not-exist 404
 expect_status /api/this-route-does-not-exist 404
 

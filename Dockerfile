@@ -21,13 +21,25 @@ RUN node build.js --prod
 # --- Stage 2: runtime --------------------------------------------------------------------
 FROM public.ecr.aws/docker/library/python:3.14-slim
 
+# MPLCONFIGDIR: matplotlib (pulled in by MediaPipe) needs a writable cache, and appuser has no
+# home directory.
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    ENVIRONMENT=production
+    ENVIRONMENT=production \
+    MPLCONFIGDIR=/tmp/matplotlib
 
 WORKDIR /app/backend
+
+# The finger-detection engine (MediaPipe, issue #13) needs these system libraries even though the
+# server never opens a window: OpenCV's import needs libxcb1, libgl1 and libglib2.0-0, and
+# MediaPipe's native library needs libegl1 and libgles2 when the hand detector starts. Found by
+# starting the detector as appuser in this exact base image; /api/cv/status checks the same.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libxcb1 libgl1 libglib2.0-0 libegl1 libgles2 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Runtime deps only (no pytest/ruff).
 COPY backend/requirements.txt ./

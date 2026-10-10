@@ -4,3 +4,7 @@ pydantic>=2.13,<3
 pydantic-settings>=2.15,<3
 redis>=8.1
 openai>=3.27
+# Finger-detection engine (issue #13): hand landmarks, JPEG decoding, pixel arrays.
+mediapipe>=1.1
+pillow>=12
+numpy>=2
