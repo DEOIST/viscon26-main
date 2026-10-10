@@ -7,6 +7,7 @@ from sqlalchemy import (
     URL,
     DateTime,
     ForeignKey,
+    Integer,
     MetaData,
     String,
     Table,
@@ -71,11 +72,28 @@ class Completion(Base):
     player_id: Mapped[int] = mapped_column(ForeignKey("players.id", ondelete="CASCADE"), index=True)
     game_id: Mapped[str] = mapped_column(String(80))
     completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # 0–100 from the minigame; NULL for completions saved before scores existed (full ECTS).
+    score: Mapped[int | None] = mapped_column(Integer)
 
 
 def get_db() -> Iterator[Session]:
     with SessionLocal() as db:
         yield db
+
+
+def add_completion_scores() -> None:
+    """create_all() never alters an existing table: add the score column to older databases."""
+    with engine.begin() as connection:
+        schema = connection.schema_for_object(Completion.__table__)
+        columns = inspect(connection).get_columns(Completion.__tablename__, schema=schema)
+        if all(column["name"] != "score" for column in columns):
+            quote = connection.dialect.identifier_preparer.quote
+            table_name = (
+                f"{quote(schema)}.{quote(Completion.__tablename__)}"
+                if schema
+                else quote(Completion.__tablename__)
+            )
+            connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN score INTEGER"))
 
 
 def migrate_legacy_players() -> None:
@@ -97,7 +115,9 @@ def migrate_legacy_players() -> None:
             if old_name not in tables:
                 continue
             source = Table(old_name, MetaData(), schema=schema, autoload_with=connection)
-            columns = [column for column in target.columns if column.name != "anonymous_id"]
+            columns = [
+                column for column in target.columns if column.name not in ("anonymous_id", "score")
+            ]
             values = [
                 source.c[renamed.get(column.name, column.name)]
                 if renamed.get(column.name, column.name) in source.c

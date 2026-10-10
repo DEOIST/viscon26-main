@@ -1,18 +1,15 @@
-"""Scores → career. Pure functions; the thresholds live here and nowhere else (GAME_DESIGN.md)."""
+"""Scores → career. Pure functions; the tiers live in shared/game-config.json (GAME_DESIGN.md)."""
 
 import math
 from collections.abc import Mapping
 
-from app.schemas import Ending, EndingId, GameId
+from app.game_config import CONFIG
+from app.schemas import Ending, GameId
 
-# Best first: (ending, lowest average score that earns it, career title).
-ENDING_TIERS: tuple[tuple[EndingId, int, str], ...] = (
-    ("quant", 85, "Quant researcher in Zug"),
-    ("phd", 65, "PhD student at ETH, year 7"),
-    ("masters", 45, "Master's student at ETH (again)"),
-    ("mcdonalds", 25, "McDonald's at Zürich HB"),
-    ("homeless", 0, "Homeless in Zürich"),
-)
+# Best first, so the first tier whose threshold the percentage reaches wins.
+ENDING_TIERS = sorted(CONFIG["endings"], key=lambda tier: -tier["minPercent"])
+if ENDING_TIERS[-1]["minPercent"] != 0:
+    raise RuntimeError("The worst ending must start at 0 %")
 
 
 def total_score(scores: Mapping[GameId, int]) -> int:
@@ -20,8 +17,7 @@ def total_score(scores: Mapping[GameId, int]) -> int:
     return math.floor(sum(scores.values()) / len(scores) + 0.5)
 
 
-def decide_ending(total: int) -> Ending:
-    for ending_id, threshold, title in ENDING_TIERS:
-        if total >= threshold:
-            return Ending(id=ending_id, title=title)
-    raise ValueError(f"Total score {total} is below every tier")
+def decide_ending(percent: int) -> Ending:
+    """`percent` is a 0–100 share: a run's average score, or a player's share of the ECTS."""
+    tier = next(tier for tier in ENDING_TIERS if percent >= tier["minPercent"])
+    return Ending(id=tier["id"], title=tier["title"])

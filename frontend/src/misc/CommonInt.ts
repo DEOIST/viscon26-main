@@ -108,6 +108,7 @@ export interface PublicConfig {
 
 export interface ShellProgress {
     completedGameIds: string[];
+    scores: Record<string, number>; // only completions that have a score
     graduated: boolean;
     graduatedAt: string | null;
     ects: number;
