@@ -130,11 +130,14 @@ def test_placeholder_and_unknown_games_cannot_earn_credits(client, placeholder_g
     assert client.get("/api/scoreboard").json()[0]["ects"] == 0
 
 
-def test_shipped_minigames_complete_first_two_years(client):
-    # The real configuration: shooter is Year 1, blackjack is Year 2, both award credits.
-    assert GAMES["year-1-slot"]["implemented"] is True
-    assert GAMES["year-2-slot"]["implemented"] is True
-    assert [year["games"][0]["title"] for year in YEARS[:2]] == ["Basisprüfung", "Casino night"]
+def test_shipped_minigames_complete_all_three_years(client):
+    # The real configuration: shooter is Year 1, blackjack Year 2, the thesis defense Year 3.
+    assert all(GAMES[f"year-{year}-slot"]["implemented"] is True for year in (1, 2, 3))
+    assert [year["games"][0]["title"] for year in YEARS] == [
+        "Basisprüfung",
+        "Casino night",
+        "Thesis defense",
+    ]
     headers = register(client)
     profile(client, headers)
     progress = client.post("/api/completions/year-1-slot", headers=headers).json()
@@ -144,7 +147,8 @@ def test_shipped_minigames_complete_first_two_years(client):
     assert response.json()["ects"] == 120
     assert response.json()["completedGameIds"] == ["year-1-slot", "year-2-slot"]
     third = client.post("/api/completions/year-3-slot", headers=headers)
-    assert third.status_code == 409 and "placeholder" in third.json()["detail"]
+    assert third.status_code == 200
+    assert third.json()["ects"] == 180
 
 
 def test_csrf_rotation_logout_and_private_scoreboard(client):
