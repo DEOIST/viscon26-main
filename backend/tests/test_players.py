@@ -153,7 +153,7 @@ def test_shipped_minigames_complete_all_three_years(client):
     # The real configuration: shooter is Year 1, blackjack Year 2, the thesis defense Year 3.
     assert all(GAMES[f"year-{year}-slot"]["implemented"] is True for year in (1, 2, 3))
     assert [year["games"][0]["title"] for year in YEARS] == [
-        "Bug Bash",
+        "Introduction to Programming - Bug Bash",
         "Probability Class - Gauss Jack",
         "Thesis defense",
     ]
