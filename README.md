@@ -1,10 +1,10 @@
 <div align="center">
 
-# 🎓 ETH Simulator: After Hours
+# ETH Simulator: After Hours
 
-### Three years at ETH Zürich in one sitting. No controller required: your hand is the controller.
+### A complete ETH degree in about ten minutes, controlled with nothing but your hand.
 
-Create a student, survive the **Basisprüfung** by shooting exam questions out of the air with a **webcam finger gun**, bet your stipend on **Galton Blackjack**, and earn your 180 ECTS.
+ETH Simulator turns the three defining moments of an ETH Zürich degree into three minigames: surviving the Basisprüfung, betting your stipend, and defending your thesis. Players walk up, raise a finger gun at the webcam and play. There is nothing to install, no controller to hand over and no account to create.
 
 ![VIScon Hackathon 2026](https://img.shields.io/badge/VIScon-Hackathon%202026-1F407A)
 ![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
@@ -13,30 +13,48 @@ Create a student, survive the **Basisprüfung** by shooting exam questions out o
 ![FastAPI](https://img.shields.io/badge/FastAPI-Python%203.12-009688?logo=fastapi&logoColor=white)
 ![Redis 8](https://img.shields.io/badge/Redis-8-DC382D?logo=redis&logoColor=white)
 ![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-395%20passing-2EA043)
+![Tests](https://img.shields.io/badge/tests-432%20passing-2EA043)
 
 <img src="docs/readme/shooter-gameplay.gif" width="820" alt="The finger-gun shooter: a tracked hand skeleton aims a crosshair at exam questions and deadlines flying out of a neon exam hall" />
 
-<sub>Real gameplay, recorded from the running app. The cyan skeleton is the hand our server tracks in every camera frame: aim with your index finger, drop your thumb to fire.</sub>
+<sub>Recorded from the running application. The cyan skeleton is the hand our server tracks in every camera frame: the index finger aims, a dropped thumb fires.</sub>
 
 </div>
 
 ---
 
-## The pitch
+## At a glance
 
-Every ETH student remembers the Basisprüfung, the first-year exam block that decides whether you stay. We turned it into a shooting gallery. Exam questions, deadlines and coffee cups fly at you out of an endless exam hall, and you shoot them with **your bare hand**. Point your index finger and you aim. Drop your thumb and you fire. Nothing to install and no controller to hand over.
+| 3 | 0 | ~10 ms | 100 % | 432 |
+|:---:|:---:|:---:|:---:|:---:|
+| years, three original minigames, one diploma | controllers, installs or sign-ups required | server-side hand tracking per camera frame | of 63 labeled trigger pulls detected, with no false shots | automated tests behind every merge |
 
-Around that moment we built a whole (very unofficial) degree:
+---
 
-| | |
-|---|---|
-| 🧑‍🎓 **Make it yours** | Build a student in the character creator. Take a photo and the game picks your colours: skin tone is measured on your device, hair and eyes by a vision model. |
-| 🔫 **Year 1: Basisprüfung** | The finger-gun shooter, with hand tracking on our own server (MediaPipe), a neon hand skeleton, combos and a warm-up that teaches the gesture in three shots. |
-| 🎰 **Year 2: Casino night** | **Galton Blackjack.** Every card becomes balls that fall through a Galton board. Overshoot the normal curve and you bust; land on it three times and it's blackjack. We tuned it with a simulation until the odds matched real blackjack. |
-| 🏆 **Graduate** | Earn ECTS, open your diploma and climb the scoreboard. No sign-up and no password: every browser gets an anonymous player ID. |
+## The idea
 
-> **The 10-second judge test:** hold up a finger gun. The skeleton snaps onto your hand, the crosshair follows your finger, and the first paper shatters. That's the moment we built everything else around.
+Games at a crowded booth compete for about thirty seconds of attention. Most of that time usually goes to explaining the controls, so we removed the controls entirely. You point at the screen with your hand and the game understands you. The moment the skeleton locks onto your hand and the first exam question shatters is the moment people stop walking past.
+
+A single gimmick holds attention for a minute, though. A story holds it for the full ten. So we built the gesture shooter into the arc every ETH student knows: enrol, survive three years, graduate. Each year is its own game with its own mechanic, and each one awards the ECTS that unlock the next.
+
+## The experience
+
+<table>
+<tr>
+<td width="33%" valign="top"><img src="docs/readme/shooter-hand-tracking.png" alt="Year 1, the Basisprüfung: a tracked hand aims at exam questions and deadlines" /><br/><b>Year 1: Basisprüfung</b><br/>A first-person shooting gallery played with a webcam finger gun. Exam questions, deadlines and coffee cups fly out of an endless exam hall. A three-shot warm-up teaches the gesture without any instructions.</td>
+<td width="33%" valign="top"><img src="docs/readme/blackjack-table.jpg" alt="Year 2, Casino night: Galton Blackjack table" /><br/><b>Year 2: Casino night</b><br/>Galton Blackjack, a blackjack variant we invented around the normal distribution. Every card turns into balls that fall through a Galton board. Overshoot the curve and you bust; land on it three times and it's blackjack. The odds were tuned over two million simulated hands to match the real game.</td>
+<td width="33%" valign="top"><img src="docs/readme/thesis-defense.png" alt="Year 3, Thesis defense: a four-lane rhythm game in front of a professor committee" /><br/><b>Year 3: Thesis defense</b><br/>A four-lane rhythm game against a three-professor committee. Theory, proofs, experiments and critique arrive on the beat. Survive the professor's meltdown, land the final QED chord, and receive an ETH grade from 1 to 6.</td>
+</tr>
+</table>
+
+Graduation closes the loop: a personalised diploma with your avatar, your department and every ECTS you earned, followed by your place on the public scoreboard.
+
+## What sets it apart
+
+- **Hand tracking as the controller.** No browser plugin, no depth camera and no separate calibration step. A standard laptop webcam streams to our own MediaPipe engine, and a gesture recognizer we wrote and validated on recorded play turns the hand into aim and trigger.
+- **Mechanics with a point of view.** Each game is built around something ETH students actually know: the Basisprüfung, the bell curve, the thesis committee. The blackjack variant is original and mathematically balanced, not a reskin.
+- **A complete product, not a demo.** Onboarding, character creation, an animated admission letter, three playable years, a real diploma and a leaderboard all work end to end and ship as a single Docker Compose stack.
+- **Built for a booth.** One-click start with anonymous players, an automatic mouse fallback if a camera fails, skippable animations, and an AI layer that degrades gracefully when it's unavailable.
 
 ---
 
@@ -44,43 +62,41 @@ Around that moment we built a whole (very unofficial) degree:
 
 <table>
 <tr>
-<td width="50%"><img src="docs/readme/landing.png" alt="Landing page: ETH Simulator, big ambitions, very little free time" /><br/><sub><b>Admissions open.</b> One click to start. No account, no password.</sub></td>
-<td width="50%"><img src="docs/readme/character-builder.png" alt="Character builder with a live student ID preview" /><br/><sub><b>Meet your future self.</b> Live student-ID preview, colour presets, and an optional photo assist.</sub></td>
+<td width="50%"><img src="docs/readme/landing.png" alt="Landing page: ETH Simulator, big ambitions, very little free time" /><br/><sub><b>Landing.</b> One click to start, with no account and no password.</sub></td>
+<td width="50%"><img src="docs/readme/character-builder.png" alt="Character builder with a live student ID preview" /><br/><sub><b>Character builder.</b> A live student-ID preview, curated colour presets, and an optional photo assist that suggests the player's colours.</sub></td>
 </tr>
 <tr>
-<td><img src="docs/readme/admission-flow.gif" alt="Animated admission: the student ID is issued, then the acceptance letter types itself out" /><br/><sub><b>You're in.</b> Your student ID is issued, then the acceptance letter types itself out. It's skippable and respects <code>prefers-reduced-motion</code>.</sub></td>
-<td><img src="docs/readme/campus-hub.png" alt="Degree hub with years, ECTS progress and the next minigame" /><br/><sub><b>The degree hub.</b> Three years, 180 ECTS. Each year unlocks once the last one is done.</sub></td>
+<td><img src="docs/readme/admission-flow.gif" alt="Animated admission: the student ID is issued, then the acceptance letter types itself out" /><br/><sub><b>Admission.</b> The student ID is issued, then a personalised acceptance letter types itself out. It's skippable and respects <code>prefers-reduced-motion</code>.</sub></td>
+<td><img src="docs/readme/campus-hub.png" alt="Degree hub with years, ECTS progress and the current minigame" /><br/><sub><b>Degree hub.</b> Three years and 180 ECTS. Each year unlocks once the one before it is complete.</sub></td>
 </tr>
 <tr>
-<td><img src="docs/readme/shooter-warmup.png" alt="Shooter warm-up: a practice paper and a tracked hand" /><br/><sub><b>Warm-up.</b> Three practice papers teach the gesture while the engine calibrates to your resting hand.</sub></td>
-<td><img src="docs/readme/shooter-hand-tracking.png" alt="Shooter round: hand skeleton over deadline and exam question targets" /><br/><sub><b>Basisprüfung.</b> 60 seconds. Exam questions (10), deadlines (25, fast), coffee (+3 s). Missed shots cost points.</sub></td>
+<td><img src="docs/readme/shooter-warmup.png" alt="Shooter warm-up: a practice paper and a tracked hand" /><br/><sub><b>Basisprüfung warm-up.</b> Three practice targets teach the gesture while the engine calibrates to the player's resting hand.</sub></td>
+<td><img src="docs/readme/blackjack-bust.jpg" alt="Galton Blackjack: a red ball above the curve means bust" /><br/><sub><b>Casino night.</b> A ball that stacks above the curve turns red and ends the hand.</sub></td>
 </tr>
 <tr>
-<td><img src="docs/readme/blackjack-table.jpg" alt="Galton Blackjack table with two Galton boards and the chip tray" /><br/><sub><b>Casino night.</b> 1 000 chips, 10 hands. Each seat owns a Galton board instead of a hand.</sub></td>
-<td><img src="docs/readme/blackjack-bust.jpg" alt="Galton Blackjack: a red ball above the curve means bust" /><br/><sub><b>Bust!</b> A ball stacks above the curve and turns red. The dealer has a line for that.</sub></td>
-</tr>
-<tr>
-<td><img src="docs/readme/diploma.png" alt="The game diploma: Diploma of determined survival with avatar, ECTS and completed years" /><br/><sub><b>Your diploma.</b> The "Diploma of determined survival", with your avatar, ECTS, years and minigames.</sub></td>
-<td><img src="docs/readme/scoreboard.png" alt="Student scoreboard dialog" /><br/><sub><b>Scoreboard.</b> The top 100 players, ranked by ECTS. Light and dark themes, a skip link and ARIA labels throughout.</sub></td>
+<td><img src="docs/readme/thesis-verdict.png" alt="Thesis defense verdict: Summa cum laude, ETH grade 6.00, 100 percent accuracy" /><br/><sub><b>Thesis verdict.</b> Accuracy, maximum combo and an ETH grade, from "major revisions required" up to summa cum laude.</sub></td>
+<td><img src="docs/readme/diploma.png" alt="The diploma: Diploma of determined survival with avatar, 180 ECTS and graduation date" /><br/><sub><b>Diploma.</b> Issued at 180 ECTS with the player's avatar, department, graduation date and all three minigames.</sub></td>
 </tr>
 </table>
 
-<div align="center">
-<img src="docs/readme/blackjack-gameplay.gif" width="720" alt="Galton Blackjack gameplay: cards dissolve into balls that fall through the pins onto the board" />
-<br/><sub>Galton Blackjack in motion: each pip of a card is its own sprite and turns into a ball that bounces through 8 rows of pins.</sub>
-</div>
+<table>
+<tr>
+<td width="50%"><img src="docs/readme/blackjack-gameplay.gif" alt="Galton Blackjack gameplay: cards dissolve into balls that fall through the pins" /><br/><sub>Galton Blackjack: each pip of a card is its own sprite and becomes a ball that bounces through eight rows of pins.</sub></td>
+<td width="50%"><img src="docs/readme/thesis-gameplay.gif" alt="Thesis defense gameplay: notes stream down four neon lanes and are hit on the beat" /><br/><sub>Thesis defense: the final phase at a 200-note combo with the 4x multiplier active.</sub></td>
+</tr>
+</table>
 
 ---
 
-## For the judges: where the work is
+## How it maps to the judging criteria
 
-| Criterion | What to look at |
+| Criterion | Where to look |
 |---|---|
-| **Originality** | Shooting with a bare-hand finger gun, no controller and no install. Blackjack rebuilt around the normal distribution, the one curve every ETH student meets in their first year. |
-| **Technical depth** | A real-time computer-vision pipeline over a WebSocket, with our own gesture recognizer that copes with MediaPipe's failure modes. A simulation-balanced game. An AI gateway that cannot spend credits by accident. Details in the [engineering deep dive](#engineering-deep-dive). |
-| **Completeness** | Onboarding → character → admission → Year 1 → Year 2 → diploma → scoreboard all work end to end, with server-side progress for anonymous players and a production Docker stack. Every screenshot in this README comes from the running app. |
-| **Quality** | 395 automated tests (244 backend, 151 frontend), four required CI checks, CD to GHCR, and hardening against malformed camera frames that would otherwise crash the server. |
-| **Design** | One visual language from landing page to casino table, light and dark themes, accessible controls, and a "juicy" shooter: muzzle flash, shattering papers, a backdrop that reacts to every shot. |
+| **Originality** | Controller-free play with a webcam finger gun. An original blackjack variant built on the normal distribution. A thesis defense told as a rhythm game. |
+| **Technical depth** | A real-time computer-vision pipeline over a WebSocket, with a custom gesture recognizer that handles MediaPipe's failure modes. A simulation-balanced card game. An AI gateway that cannot spend credits by accident. Details in the [engineering deep dive](#engineering-deep-dive). |
+| **Completeness** | Onboarding, character, admission, all three years, diploma and scoreboard work end to end, with server-side progress for anonymous players and a production Docker stack. Every image in this document was captured from the running application. |
+| **Quality** | 432 automated tests (244 backend, 188 frontend), four required CI checks, continuous delivery to GHCR, and hardening against malformed camera input. |
+| **Design** | One visual language from the landing page to the diploma, light and dark themes, accessible controls, and game feel: muzzle flash, shattering targets, a backdrop that reacts to every shot, and a committee that reacts to every answer. |
 
 ---
 
@@ -94,10 +110,12 @@ flowchart LR
         Host["DestinationGame<br/>MountMinigame contract"]
         L1["Level 1: Shooter<br/>Phaser 4 scene"]
         L2["Level 2: Galton Blackjack<br/>Phaser 4 scene"]
+        L3["Level 3: Thesis defense<br/>Phaser 4 rhythm scene"]
         Cam["getUserMedia 640×480<br/>FramePacer → JPEG"]
         Shell --> Host
         Host --> L1
         Host --> L2
+        Host --> L3
         Cam --> L1
     end
 
@@ -123,7 +141,7 @@ flowchart LR
 **Design rules that held across the event:**
 
 1. **React owns everything around a round; Phaser owns the round.** They meet at a single interface, `MountMinigame({ parent, character, dialogue, onFinish }) → { destroy() }` in [`frontend/src/games/shared/minigame.ts`](frontend/src/games/shared/minigame.ts). Game code never fetches, never navigates and never imports React.
-2. **Games are plug-in "levels".** Each minigame lives in `frontend/levelN/` and `backend/levelN/` with its own tests. It touches the shell only through hooks: the game registry, router registration, test paths, `tsconfig` and one `COPY` line in the Dockerfile. Two teams built two games in parallel without merge conflicts in the shell.
+2. **Games are plug-in "levels".** Each minigame lives in `frontend/levelN/` and `backend/levelN/` with its own tests. It touches the shell only through hooks: the game registry, router registration, test paths, `tsconfig` and one `COPY` line in the Dockerfile. Three games were built in parallel by different people without merge conflicts in the shell.
 3. **Secrets never reach the browser.** Only `backend/app/ai.py` imports `openai`. The keys are a server-side failover chain.
 4. **Camera frames are never stored.** They are decoded in memory and analysed, and only landmarks and the aim go back. Recording works only on a development server, and only when a developer presses **R**.
 
@@ -246,7 +264,7 @@ flowchart LR
 
 At a booth, a login form costs players. Each browser gets a random **player UUID** in `localStorage`, and the server keys profiles, completions and graduation by it ([#27](https://github.com/DEOIST/viscon26-main/pull/27)).
 
-- **The server enforces the rules.** A year unlocks only when every game in the earlier years is complete. Placeholders can't award ECTS. Graduation needs all three years. A display name never grants access to a run.
+- **The server enforces the rules.** A year unlocks only when every game in the earlier years is complete. Placeholders can't award ECTS. Each year pays ECTS in proportion to its score (`POST …/completions/{game_id}` with `{"score": 0–100}`), and your share of the 180 ECTS picks your career. Graduation needs all three years. A display name never grants access to a run.
 - **Safe under concurrency.** Completions and graduation take a per-player row lock (`SELECT … FOR UPDATE`) and are idempotent, so double clicks and retries can't double-award ECTS.
 - **Zero-downtime migration.** An additive migration copies the earlier account records into the new tables without touching the old ones.
 - **Credit-spending guard.** The vision endpoint rejects requests whose `Origin` isn't on the allow-list, so another site can't spend our OpenAI budget through a player's browser.
@@ -260,7 +278,7 @@ At a booth, a login form costs players. Each browser gets a random **player UUID
 | Layer | Choice | Why |
 |---|---|---|
 | Outer shell | **React 19 + TypeScript**, Vite, Redux Toolkit | Menus, onboarding and the hub are classic UI. The degree state lives in one store, mirrored to the server by an anonymous player ID |
-| Game engine | **Phaser 4** (WebGL, Canvas fallback) | One 2D engine for both games. The shooter fakes depth with projection, scale, draw order and haze, so it needs no 3D engine and no extra GPU load next to the camera |
+| Game engine | **Phaser 4** (WebGL, Canvas fallback) | One 2D engine for all three games. The shooter fakes depth with projection, scale, draw order and haze, so it needs no 3D engine and no extra GPU load next to the camera |
 | Computer vision | **MediaPipe HandLandmarker** (Python), Pillow, NumPy | 21 landmarks per hand at about 10 ms per frame on a CPU, with our own geometry on top |
 | Backend | **FastAPI** + Pydantic v2 | A typed contract, mirrored in TypeScript (`schemas.py` ↔ `CommonInt.ts`), with camelCase on the wire |
 | Player progress | **PostgreSQL 17**, SQLAlchemy 2 | Relational data (players, profiles, completions) with row-level locks |
@@ -289,7 +307,7 @@ flowchart LR
 | | |
 |---|---|
 | **Backend tests** | 244 passing (players, runs, endings, leaderboard, story, AI gateway, moderation, CV contract, gesture replays, real-model checks) |
-| **Frontend tests** | 151 passing across 23 files (blackjack rules, depth projection, hit tests, scoring, spawn, `FramePacer`, `SwitchableInput` lifecycle, character builder, admission flow, diploma, progression) |
+| **Frontend tests** | 188 passing across 27 files (blackjack rules, thesis chart, judging and verdicts, depth projection, hit tests, scoring, spawn, `FramePacer`, `SwitchableInput` lifecycle, character builder, admission flow, diploma, progression) |
 | **Protected `main`** | Every change goes through a PR with four required checks, squash-merged ([docs/BRANCH_RULES.md](docs/BRANCH_RULES.md)) |
 | **Testing the camera without a camera** | In a headless browser, Playwright swaps `getUserMedia` for a canvas stream of a hand photo, so the real pipeline (WebSocket, MediaPipe, gesture engine, scene) runs end to end. The GIF at the top was recorded this way |
 
@@ -326,6 +344,13 @@ make check                            # tsc, prettier, vitest, ruff, pytest. Run
 make smoke                            # read-only end-to-end probe of a running app
 ```
 
+**On the VIScon VM:** the managed address (`https://18.hackathon.ethz.ch`) doesn't support WebSockets, so the camera stream fails there and Bug Bash falls back to the mouse. Set the team page's ingress mode to **Custom** (server port 443, protocol HTTPS), open the ports with `sudo ufw allow 80,443/tcp`, and tell the Caddy service in `compose.yaml` the VM's domain so it gets a real certificate:
+
+```bash
+echo 'SITE_ADDRESS=18-direct.viscon-hackathon.ch' >> .env   # once, next to compose.yaml
+docker compose up -d --build                                  # → https://18-direct.viscon-hackathon.ch
+```
+
 `make dev` needs Postgres for player progress: `docker compose up -d db` starts one on `127.0.0.1:5433`, which the backend's defaults already point at (or set `DATABASE_URL`). Redis is optional in development: without `REDIS_URL` the backend uses an in-process fakeredis. `AI_MODE` defaults to `off`, so running the game never spends OpenAI credits. Set it in `backend/.env` (see [`backend/.env.example`](backend/.env.example)).
 
 **Demo tips:** light from the front, hand 40–80 cm from the camera, thumb pointing at the ceiling. Press **C** to recalibrate the aim, **M** to switch to the mouse, and **Enter** to skip the warm-up.
@@ -338,7 +363,8 @@ make smoke                            # read-only end-to-end probe of a running 
 frontend/
 ├── src/                 React shell: App.tsx, store.ts (Redux), components/, minigames/, games/registry.ts
 ├── level1/              Level 1, the shooter: ShooterScene, depth/hitTest/score/spawn (+ tests), input/ (camera, WebSocket, FramePacer)
-└── level2/              Level 2, Galton Blackjack: rules.ts (+ tests), board.ts, BlackjackScene, sprite sheets
+├── level2/              Level 2, Galton Blackjack: rules.ts (+ tests), board.ts, BlackjackScene, sprite sheets
+└── level3/              Level 3, Thesis defense: chart.ts, engine.ts, verdict.ts (+ tests), ThesisScene, committee and highway
 backend/
 ├── app/                 FastAPI: routers/, services/, schemas.py, ai.py (OpenAI gateway), database.py (Postgres), db.py (Redis)
 ├── level1/              CV engine: cv.py (MediaPipe), gesture.py, router.py (WebSocket), recorded play fixtures + tests
@@ -349,12 +375,14 @@ docs/                    Game design, architecture, CV deep dive, stack, decisio
 
 ---
 
-## What's next
+## Roadmap
 
-- **Year 3.** The third minigame slot is wired into the hub and waiting for its game. Today it holds a preview component that awards no ECTS.
-- **The story in the new shell.** The advisor dialogue, AI epilogue and rector narration are built and tested in the backend. The next step is adding the AI epilogue and narration to the new diploma screen.
-- **Archetype perks.** The Gamer and ASVZ-athlete perks already exist in the shooter's config and the engine's `settings` message. Next we expose archetypes in the character builder.
-- **Per-player box calibration** for the hand skeleton (the protocol message already exists), plus sound and hit-stop for the shooter.
+The core loop is complete. The next steps deepen it rather than widen it:
+
+- **A narrated graduation.** The advisor dialogue, AI-written epilogue and rector narration are already built and tested in the backend. Bringing them to the diploma screen gives every player a personal, spoken send-off.
+- **Archetypes that change play.** The Gamer and ASVZ-athlete perks already exist in the shooter's configuration and the engine protocol. Exposing archetypes in the character builder turns them into a real choice.
+- **Per-player calibration** of the hand-skeleton overlay (the protocol message already exists), plus sound design and hit-stop for the shooter.
+- **Multiplayer at the booth.** The CV engine already serves four concurrent players, so head-to-head shooter rounds are a natural next mode.
 
 ---
 
@@ -370,6 +398,6 @@ docs/                    Game design, architecture, CV deep dive, stack, decisio
 
 ## Team
 
-Built at VIScon Hackathon 2026 by [@ITheClixs](https://github.com/ITheClixs), [@Mer123haba456](https://github.com/Mer123haba456), [@toezcan](https://github.com/toezcan), [@ibrahim1metin](https://github.com/ibrahim1metin) and [@anomyq](https://github.com/anomyq).
+ETH Simulator: After Hours was designed and built during VIScon Hackathon 2026 by [@ITheClixs](https://github.com/ITheClixs), [@Mer123haba456](https://github.com/Mer123haba456), [@ibrahim1metin](https://github.com/ibrahim1metin), [@toezcan](https://github.com/toezcan) and [@anomyq](https://github.com/anomyq).
 
-<sub>An unofficial student parody, made with love. No affiliation with or endorsement by ETH Zürich, and no official logos. In-game AI features use the OpenAI API. Screenshots show the app running locally. The webcam in the shooter recordings was simulated with the hand photos in `backend/level1/tests/fixtures/`.</sub>
+<sub>ETH Simulator is an unofficial student parody. It is not affiliated with or endorsed by ETH Zürich and uses no official logos. AI features use the OpenAI API. All screenshots and recordings were captured from the application running locally. For the shooter recordings, the webcam was simulated with the hand photos in `backend/level1/tests/fixtures/`, and the thesis defense was played by a scripted input sequence.</sub>

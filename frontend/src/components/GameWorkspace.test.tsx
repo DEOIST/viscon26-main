@@ -21,7 +21,7 @@ function setup(selected = false, graduationPreview = false) {
     const view = render(
         <GameWorkspace
             player={{ ...defaultPlayer, name: "Ada" }}
-            progress={{ completedGameIds: [], graduated: false }}
+            progress={{ completedGameIds: [], scores: {}, graduated: false }}
             ects={0}
             eligible={false}
             graduationPreview={graduationPreview}

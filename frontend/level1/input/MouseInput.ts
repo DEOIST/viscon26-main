@@ -1,4 +1,4 @@
-// Pointer aim and click to shoot: always available, the fallback when the camera or the engine
+// Hold to grab, drag and release to throw: the fallback when the camera or the engine
 // isn't, and the operator's override (M). Listens on the game container, which the canvas fills.
 
 import type { Tracking } from "./cvStream";
@@ -9,13 +9,20 @@ export default class MouseInput implements InputSource {
     readonly landmarks = null;
     readonly tracking: Tracking = "ok";
     aim: AimPoint | null = null;
+    pinching = false;
+    private readonly previousCursor: string;
     private shots: AimPoint[] = [];
     private readonly element: HTMLElement;
 
     constructor(element: HTMLElement) {
         this.element = element;
+        this.previousCursor = element.style.cursor;
+        element.style.cursor = "none";
         element.addEventListener("pointermove", this.handleMove);
         element.addEventListener("pointerdown", this.handleDown);
+        window.addEventListener("pointerup", this.handleUp);
+        window.addEventListener("pointercancel", this.handleCancel);
+        window.addEventListener("blur", this.handleCancel);
     }
 
     takeShots(): AimPoint[] {
@@ -27,6 +34,10 @@ export default class MouseInput implements InputSource {
     destroy() {
         this.element.removeEventListener("pointermove", this.handleMove);
         this.element.removeEventListener("pointerdown", this.handleDown);
+        window.removeEventListener("pointerup", this.handleUp);
+        window.removeEventListener("pointercancel", this.handleCancel);
+        window.removeEventListener("blur", this.handleCancel);
+        this.element.style.cursor = this.previousCursor;
     }
 
     private readonly handleMove = (event: PointerEvent) => {
@@ -34,13 +45,27 @@ export default class MouseInput implements InputSource {
     };
 
     private readonly handleDown = (event: PointerEvent) => {
+        if (event.button !== 0) return;
         const point = this.toGameArea(event);
+        this.pinching = true;
         this.aim = point;
         this.shots.push(point);
     };
 
+    private readonly handleUp = (event: PointerEvent) => {
+        if (event.button !== 0) return;
+        this.aim = this.toGameArea(event);
+        this.pinching = false;
+    };
+
+    private readonly handleCancel = () => {
+        this.pinching = false;
+    };
+
     private toGameArea(event: PointerEvent): AimPoint {
-        const rect = this.element.getBoundingClientRect();
+        // Phaser letterboxes/resizes the canvas in fullscreen; use its actual visible bounds.
+        const canvas = this.element.querySelector("canvas");
+        const rect = (canvas ?? this.element).getBoundingClientRect();
         return {
             x: Math.min(
                 1,

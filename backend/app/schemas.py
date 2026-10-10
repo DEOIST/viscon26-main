@@ -44,7 +44,7 @@ class PublicConfig(CamelModel):
 # --- runs ---
 
 GameId = Literal["blackjack", "shooter"]
-EndingId = Literal["c_level", "big_tech", "phd", "mcdonalds", "unemployed"]
+EndingId = Literal["quant", "phd", "masters", "mcdonalds", "homeless"]
 Pronouns = Literal["she", "he", "they"]
 DepartmentId = Literal[
     "arch", "baug", "biol", "bsse", "chab", "erdw", "gess", "hest",
@@ -188,8 +188,14 @@ class ShellProfile(CamelModel):
     onboarding_stage: Literal["acceptance", "main"]
 
 
+class CompletionInput(CamelModel):
+    # None pays the full ECTS, like completions saved before scores existed.
+    score: int | None = Field(default=None, ge=0, le=100)
+
+
 class ShellProgress(CamelModel):
     completed_game_ids: list[str] = Field(default_factory=list)
+    scores: dict[str, int] = Field(default_factory=dict)  # only completions that have a score
     graduated: bool = False
     graduated_at: datetime | None = None
     ects: int = 0

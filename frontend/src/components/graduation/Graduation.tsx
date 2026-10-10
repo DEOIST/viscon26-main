@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import Avatar from "../common/Avatar";
 import Icon from "../common/Icon";
+import Diploma from "./Diploma";
 import {
     apiGenerateEpilogue,
     apiGenerateEpilogueSpeech,
     apiGetEndingStats,
     apiGraduateRun,
 } from "../../misc/apiClient";
-import { DEPARTMENTS } from "../../misc/character";
 import { GAMES, TOTAL_ECTS } from "../../misc/shellConfig";
 import { runHref } from "../../misc/run";
 import type { Epilogue, Run } from "../../misc/CommonInt";
@@ -65,6 +65,8 @@ export default function Graduation(args: GraduationArgs) {
         if (saved.data) {
             setRun(saved.data);
             setOpened(true);
+            // The stats were loaded before this graduation counted.
+            stats.reload();
         } else setError(saved.error || "Your diploma could not be saved.");
         saving.current = false;
         setBusy(false);
@@ -74,51 +76,26 @@ export default function Graduation(args: GraduationArgs) {
             <span className={shellClass("eyebrow reward-text")}>
                 {opened ? "DEGREE COMPLETE" : "YOUR NEXT CHAPTER"}
             </span>
-            <div className={shellClass("graduate-portrait")}>
-                <Avatar character={run.character} />
-                <span className={shellClass("graduate-seal")}>
-                    <Icon name="cap" size={32} />
-                </span>
-            </div>
-            <h1>
-                {opened
-                    ? `You did it, ${run.character.name}.`
-                    : "Your diploma is waiting."}
-            </h1>
-            {opened ? (
+            {opened && run.ending ? (
                 <>
-                    <p className={shellClass("hero-lead")}>
-                        {run.ending?.title}
-                    </p>
-                    <p>
-                        {DEPARTMENTS[run.character.department]} Â·{" "}
-                        <strong className={shellClass("reward-text")}>
-                            {run.ectsPoints} ECTS earned
-                        </strong>
-                    </p>
+                    <h1>You did it, {run.character.name}.</h1>
+                    <Diploma
+                        run={run}
+                        ending={run.ending}
+                        epilogue={epilogue.data?.text ?? null}
+                        audioUrl={audioUrl}
+                        sameFatePercent={
+                            stats.data && stats.data.total > 0
+                                ? Math.round(
+                                      (100 * stats.data.counts[run.ending.id]) /
+                                          stats.data.total,
+                                  )
+                                : null
+                        }
+                    />
                     <p className={shellClass("graduation-copy")}>
-                        Congratulations. You may now close those 47 browser
-                        tabs.
-                        <br />
-                        Your degree and progress are staying right here.
+                        You may now close those 47 browser tabs.
                     </p>
-                    <p>Minigame average: {run.totalScore} / 100</p>
-                    {epilogue.data && <p>{epilogue.data.text}</p>}
-                    {audioUrl && <audio src={audioUrl} autoPlay controls />}
-                    {run.ending && stats.data && stats.data.total > 0 && (
-                        <p>
-                            {Math.round(
-                                (100 * stats.data.counts[run.ending.id]) /
-                                    stats.data.total,
-                            )}
-                            % of students share your fate.
-                        </p>
-                    )}
-                    {GAMES.map((game) => (
-                        <p key={game.id}>
-                            {game.title}: {run.scores[game.id]} / 100
-                        </p>
-                    ))}
                     <a className={shellClass("button primary")} href="/enroll">
                         Play again
                         <Icon name="arrow" />
@@ -126,9 +103,16 @@ export default function Graduation(args: GraduationArgs) {
                 </>
             ) : (
                 <>
+                    <div className={shellClass("graduate-portrait")}>
+                        <Avatar character={run.character} />
+                        <span className={shellClass("graduate-seal")}>
+                            <Icon name="cap" size={32} />
+                        </span>
+                    </div>
+                    <h1>Your diploma is waiting.</h1>
                     <p>
                         {eligible
-                            ? "The rector approaches the podiumâ€¦"
+                            ? "The rector approaches the podium…"
                             : "Complete both challenges before claiming your diploma."}
                     </p>
                     <button
@@ -136,7 +120,7 @@ export default function Graduation(args: GraduationArgs) {
                         disabled={!eligible || busy}
                         onClick={() => void handleOpen()}
                     >
-                        {busy ? "Savingâ€¦" : "Open your diploma"}
+                        {busy ? "Saving…" : "Open your diploma"}
                     </button>
                 </>
             )}

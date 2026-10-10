@@ -33,7 +33,7 @@ interface GameWorkspaceArgs {
     selectedGame: Game | null;
     completionFeedback?: CompletionFeedback | null;
     onOpen(game: Game): void;
-    onComplete(): void;
+    onComplete(score?: number): void; // no score: retry saving
     onExit(): void;
     onGraduate(): void;
     onScoreboard(): void;

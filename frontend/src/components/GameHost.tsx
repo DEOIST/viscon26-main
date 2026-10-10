@@ -57,7 +57,7 @@ export function GameHost({
     completedGameIds: string[];
     busy: boolean;
     error: string;
-    onComplete: () => void;
+    onComplete: (score?: number) => void; // no score: retry saving
     onExit: () => void;
     registry?: Record<string, ComponentType<MinigameProps>>;
     compact?: boolean;
@@ -99,7 +99,7 @@ export function GameHost({
                         <button
                             className="button secondary compact"
                             disabled={busy}
-                            onClick={onComplete}
+                            onClick={() => onComplete()}
                         >
                             Retry saving
                         </button>

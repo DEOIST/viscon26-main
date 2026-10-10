@@ -8,7 +8,7 @@ Guidance for Claude Code **and for every teammate** working in this repository. 
 
 ## What this is
 
-**ETH Life** (working title), our VIScon 2026 game. You create an ETH student (name, pronouns, department, archetype, avatar), play a minigame per year, and your scores decide your career at graduation: C-level executive, big-tech engineer, eternal PhD, McDonald's or unemployed. The minigames are **Blackjack** ("Casino night") and a **webcam finger-gun shooter** ("Basisprüfung"): you aim with your index finger and drop your thumb to shoot, tracked live by our server (MediaPipe, level 1). The shooter is the feature we win with. OpenAI writes the story around your character: advisor and dealer lines, a personal epilogue, and a narrator voice.
+**ETH Life** (working title), our VIScon 2026 game. You create an ETH student (name, pronouns, department, archetype, avatar), play a minigame per year, and your scores decide your career at graduation: quant researcher, eternal PhD, Master's student (again), McDonald's or homeless in Zürich. The minigames are **Blackjack** ("Casino night") and a **webcam finger-gun shooter** ("Basisprüfung"): you aim with your index finger and drop your thumb to shoot, tracked live by our server (MediaPipe, level 1). The shooter is the feature we win with. OpenAI writes the story around your character: advisor and dealer lines, a personal epilogue, and a narrator voice.
 
 **The demo flow that must work on judging day:** enroll → Year 1: the shooter with the camera (level 1) → Year 2: casino night (blackjack) → Year 3: the thesis defense (keyboard rhythm game, level 3) → graduation reveal, read aloud. The years and their games are set in `shared/game-config.json`; `src/minigames/DestinationGame.tsx` maps each year's slot to its game.
 
@@ -22,6 +22,15 @@ Guidance for Claude Code **and for every teammate** working in this repository. 
 > **Status:** the foundation is built (#12): API contract, Redis, OpenAI plumbing, Phaser and MediaPipe in the build, and every page as a working skeleton. The **shooter** is built as level 1 (`frontend/level1/`, `backend/level1/`); **blackjack** is built as level 2 (Galton Blackjack: `frontend/level2/`, `backend/level2/`, see GAME_DESIGN.md); the Year 3 **thesis defense** is level 3 (`frontend/level3/`, frontend only). The shell has also moved on: the account shell under `frontend/src/` (`App.tsx`, `main.tsx`, `store.ts`) is built by **Vite** and keeps its state in **Redux**; the esbuild multi-page description below still holds for the legacy pages. Anything marked *(planned)* below does not exist until its PR lands ([build status](docs/ARCHITECTURE.md#build-status)).
 
 Stack: **React + TypeScript** outer shell bundled by **esbuild**; a WebGL inner shell for the minigames: **Phaser 4** for both (blackjack, and the shooter, which fakes depth with isometric 2D art); **MediaPipe** hand tracking on the server (level 1, fed over a WebSocket); a **FastAPI** backend with **Redis** (no Redux, no client-side store); and **OpenAI** called only from the backend. FastAPI serves both the JSON API and the built frontend from **one origin**, so there is no CORS, no proxy and no API base URL.
+
+## Current level 1 implementation
+
+Level 1 is now **Bug Bash**: pinch/throw pixel bugs in an IDE, slap burning code fuses,
+and swat side interruptions. Pinching uses thumb/index tips; slaps use whole-hand movement.
+Fast slaps are broad; gentle swipes affect only targets covered by the swept hand.
+The complete current behavior, thresholds, controls, wire additions, file inventory and
+verification status are in [docs/BUG_BASH.md](docs/BUG_BASH.md). Older finger-gun descriptions
+below and in SHOOTER_CV.md are historical reference. Automated verification is recorded there; human camera tuning remains necessary.
 
 ## Architecture: read this first
 

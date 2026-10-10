@@ -29,7 +29,7 @@ def test_hall_of_fame_ranks_by_total_and_respects_the_limit(
         "avatar": "a7",
         "department": "math",
         "totalScore": 90,
-        "endingId": "c_level",
+        "endingId": "quant",
         "graduatedAt": top["graduatedAt"],
     }
 
@@ -51,12 +51,12 @@ def test_the_limit_must_stay_between_1_and_50(client: TestClient, limit: int):
 def test_ending_stats_list_every_ending_with_zero_defaults(
     client: TestClient, graduated_run: Callable[..., dict]
 ):
-    graduated_run(blackjack=45, shooter=45)  # phd
+    graduated_run(blackjack=45, shooter=45)  # masters
 
     res = client.get("/api/leaderboard/endings")
 
     assert res.status_code == 200
     assert res.json() == {
         "total": 1,
-        "counts": {"c_level": 0, "big_tech": 0, "phd": 1, "mcdonalds": 0, "unemployed": 0},
+        "counts": {"quant": 0, "phd": 0, "masters": 1, "mcdonalds": 0, "homeless": 0},
     }
