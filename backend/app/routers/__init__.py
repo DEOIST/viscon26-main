@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from app.routers import accounts, avatar, health, leaderboard, runs, story
+from level1 import router as level1
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(health.router)
@@ -16,3 +17,5 @@ api_router.include_router(story.router)
 api_router.include_router(accounts.router)
 # --- avatar ---
 api_router.include_router(avatar.router)
+# --- level 1: the shooter's finger-detection engine (backend/level1/) ---
+api_router.include_router(level1.router)

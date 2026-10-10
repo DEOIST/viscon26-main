@@ -8,9 +8,9 @@ Guidance for Claude Code **and for every teammate** working in this repository. 
 
 ## What this is
 
-**ETH Life** (working title), our VIScon 2026 game. You create an ETH student (name, pronouns, department, archetype, avatar), play two minigames, and your scores decide your career at graduation: C-level executive, big-tech engineer, eternal PhD, McDonald's or unemployed. The minigames are **Blackjack** ("Casino night") and a **webcam finger-gun shooter** ("Basisprüfung"): you aim with your index finger and drop your thumb to shoot, tracked live in the browser. The shooter is the feature we win with. OpenAI writes the story around your character: advisor and dealer lines, a personal epilogue, and a narrator voice.
+**ETH Life** (working title), our VIScon 2026 game. You create an ETH student (name, pronouns, department, archetype, avatar), play two minigames, and your scores decide your career at graduation: C-level executive, big-tech engineer, eternal PhD, McDonald's or unemployed. The minigames are **Blackjack** ("Casino night") and a **webcam finger-gun shooter** ("Basisprüfung"): you aim with your index finger and drop your thumb to shoot, tracked live by our server (MediaPipe, level 1). The shooter is the feature we win with. OpenAI writes the story around your character: advisor and dealer lines, a personal epilogue, and a narrator voice.
 
-**The demo flow that must work on judging day:** enroll → campus → blackjack → shooter with the camera → graduation reveal, read aloud.
+**The demo flow that must work on judging day:** enroll → Year 1: the shooter with the camera (level 1) → Year 2: casino night (blackjack) → graduation reveal, read aloud. The years and their games are set in `shared/game-config.json`; `src/minigames/DestinationGame.tsx` maps each year's slot to its game.
 
 | Read | For |
 |---|---|
@@ -19,9 +19,9 @@ Guidance for Claude Code **and for every teammate** working in this repository. 
 | [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md) | The finger-gun computer vision |
 | [docs/STACK.md](docs/STACK.md) | Versions, what to add, what we rejected and why |
 
-> **Status:** the foundation is built (#12): API contract, Redis, OpenAI plumbing, Phaser and MediaPipe in the build, and every page as a working skeleton. Both minigames are still **placeholders** for their tracks. Anything marked *(planned)* below does not exist until its PR lands ([build status](docs/ARCHITECTURE.md#build-status)).
+> **Status:** the foundation is built (#12): API contract, Redis, OpenAI plumbing, Phaser and MediaPipe in the build, and every page as a working skeleton. The **shooter** is built as level 1 (`frontend/level1/`, `backend/level1/`, see "Levels" below); **blackjack** is still a placeholder. Anything marked *(planned)* below does not exist until its PR lands ([build status](docs/ARCHITECTURE.md#build-status)).
 
-Stack: **React + TypeScript** outer shell bundled by **esbuild**; a WebGL inner shell for the minigames: **Phaser 4** for both (blackjack, and the shooter, which fakes depth with isometric 2D art); **MediaPipe** hand tracking in the browser; a **FastAPI** backend with **Redis** (no Redux, no client-side store); and **OpenAI** called only from the backend. FastAPI serves both the JSON API and the built frontend from **one origin**, so there is no CORS, no proxy and no API base URL.
+Stack: **React + TypeScript** outer shell bundled by **esbuild**; a WebGL inner shell for the minigames: **Phaser 4** for both (blackjack, and the shooter, which fakes depth with isometric 2D art); **MediaPipe** hand tracking on the server (level 1, fed over a WebSocket); a **FastAPI** backend with **Redis** (no Redux, no client-side store); and **OpenAI** called only from the backend. FastAPI serves both the JSON API and the built frontend from **one origin**, so there is no CORS, no proxy and no API base URL.
 
 ## Architecture: read this first
 
@@ -34,7 +34,8 @@ Browser GET /blackjack?run=abc
   → src/pages/blackjack.tsx           mountPage(App)
   → src/components/blackjack/App.tsx  React outer shell: intro, MinigameHost, result screen, navigation
   → src/games/blackjack/index.ts      mountBlackjack(): Phaser 4 inner shell (2D, WebGL canvas)
-  (/shooter works the same way: games/shooter/index.ts mountShooter() = Phaser isometric scene + MediaPipe)
+  (the shooter is level 1: frontend/level1/index.ts mountShooter() = Phaser scene + camera client,
+   registered in src/games/registry.ts; its engine: WebSocket /api/cv/stream → backend/level1/)
 
 Browser fetch POST /api/runs/abc/scores
   → app/routers/runs.py               HTTP layer (validation, status codes)
@@ -48,9 +49,10 @@ Story endpoints: app/routers/story.py → app/services/story.py → app/ai.py �
 - **Navigation** is plain `<a href="/other-page">` or `window.location.href` (a full page load). Pass state between pages through the query string: the run id is `?run=<id>`, built and read only through `misc/run.ts`. **Do not add `react-router`.**
 - **Two shells, one seam.** React owns everything around a round (menus, character creator, hub, overlays, saving, navigation). Phaser 4 owns the round itself, in both minigames. They meet only through the `MountMinigame` contract in `games/shared/minigame.ts`. Pages never import Phaser; `games/` never fetches, never navigates and never imports React.
 - **No client-side store (no Redux).** Every navigation is a full page load, which wipes in-memory state. The character and the run live on the server; each page loads them through the API.
-- **Computer vision runs in the browser.** MediaPipe tracks the hand on the device; video frames never reach the backend. Details in [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md).
+- **Computer vision runs on the server (level 1).** The shooter streams JPEG camera frames over a WebSocket to `/api/cv/stream`; MediaPipe finds the hand and `backend/level1/gesture.py` turns it into aim and shots. Frames are analysed in memory and never stored, except when a developer records them with **R** on a server in development mode (`backend/captures/`, git-ignored). Details in [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md).
+- **Levels: each minigame's code lives in its own level folder**, `frontend/levelN/` (the game) and `backend/levelN/` (its server side, with its own `tests/`), and touches the shell only through hooks: the mount function in `src/games/registry.ts`, the router in `app/routers/__init__.py`, `levelN/tests` in `backend/pyproject.toml` testpaths, `levelN` in `frontend/tsconfig.json`, and a `COPY backend/levelN` line in the Dockerfile. Level 1 is the shooter, the Year 1 game. Its wire types live with it (`backend/level1/schemas.py` ↔ `frontend/level1/input/cvStream.ts`), and its settings are `CV_*` (`backend/level1/config.py`).
 - **Secrets stay on the server.** Only `backend/app/ai.py` talks to OpenAI.
-- **Code shared between pages** (React, `misc/`, common components) is split into `dist/pages/chunks/` by esbuild automatically. Phaser is imported only by the two game pages, so esbuild puts it in one shared chunk that `/blackjack` and `/shooter` reuse from the cache, and only `/shooter` downloads MediaPipe.
+- **Code shared between pages** (React, `misc/`, common components) is split into `dist/pages/chunks/` by esbuild automatically. Phaser is imported only by the two game pages, so esbuild puts it in one shared chunk that `/blackjack` and `/shooter` reuse from the cache.
 - **Routing is automatic on both sides.** The build turns every `src/pages/<name>.tsx` into `dist/<name>.html`, and FastAPI serves `/<name>` → `dist/<name>.html`. Adding a page needs no backend change.
 
 ## Setup and commands
@@ -386,9 +388,9 @@ The full rules are in [docs/BRANCH_RULES.md](docs/BRANCH_RULES.md) (humans) and 
 - **The camera only works on a secure origin:** `https://...` or `http://localhost`. `http://<vm-ip>:8000` will never get a camera; use HTTPS or an SSH tunnel to localhost (see ARCHITECTURE.md → Deployment).
 - **Browsers block audio until the user clicks on that page.** A click on the previous page doesn't count after a full page load, so the graduation reveal starts with a click (**Open your diploma**) before the narration plays.
 - **The hand model (`hand_landmarker.task`, 7.8 MB) must never be committed:** CI rejects files over 5 MB. The build downloads it into `frontend/public/models/` (git-ignored); if the download fails the build still succeeds and the shooter falls back to the mouse.
-- **MediaPipe's `detectForVideo` is synchronous** and runs on the main thread, sharing the GPU with the Phaser scene. If frames drop, follow the performance ladder in SHOOTER_CV.md before anything clever.
-- **Game FPS depends on the player's laptop, not on the VM.** WebGL and hand tracking run in the browser; the VM only serves files. Never judge game performance on the VM or in CI: neither has a GPU, so browsers there fall back to software rendering. Use the `?debug=1` overlay on real laptops with the camera on.
-- **The shooter page downloads about 20 MB on its first visit** (MediaPipe wasm + hand model), much more than either engine. Responses are gzip-compressed (`main.py`); preloading it during the intro screen is the shooter track's job.
+- **MediaPipe needs system libraries even on a server without a screen** (`libxcb1`, `libgl1`, `libglib2.0-0`, `libegl1`, `libgles2` in the Dockerfile). A missing one shows up when a detector starts: `/api/cv/status` reports the engine unavailable. **Never let an unchecked image reach MediaPipe:** a frame side of 32767 px or more aborts OpenCV and kills the whole server; `decode_frame` and a guard in `MediaPipeDetector.detect` (`backend/level1/cv.py`) prevent it.
+- **Game FPS depends on the player's laptop; finger detection depends on the server.** WebGL runs in the browser, the hand tracking on the server's CPU (about one core per camera player, capped by `CV_MAX_SESSIONS`): measure it with `backend/.venv/bin/python -m level1.cv_check <url>` from `backend/`. Never judge game performance on the VM or in CI: neither has a GPU, so browsers there fall back to software rendering. Use the `?debug=1` overlay on real laptops with the camera on.
+- **The shooter uploads one ~46 KB JPEG per camera frame** (640 px, about 11 Mbit/s per player) and waits for each answer, so the network round trip is part of the aim's latency: best run the server on the demo laptop itself. In `make dev`, Vite proxies the WebSocket (`ws: true` in `vite.config.ts`).
 - **OpenAI calls never happen in tests or CI,** and only in development when you set `AI_MODE=live`. If you see real calls in a test run, stop and fix the test.
 - Pages deleted from `src/pages/` are removed from `dist/` on the next rebuild. If the watcher acts strangely after big file moves, restart it (it wipes `dist/` on startup).
 
@@ -397,7 +399,7 @@ The full rules are in [docs/BRANCH_RULES.md](docs/BRANCH_RULES.md) (humans) and 
 - **Git: [AGENTS.md](AGENTS.md) is binding.** Never commit on or push to `main`, work only on an owned task branch, stop at a reviewable PR, and never merge unless explicitly asked to merge that PR. Don't add AI attribution to commits, PRs, issues or code.
 - **Never spend OpenAI credits.** Don't run anything that calls OpenAI (`AI_MODE=live`, `make art`, `make ai-check LIVE=1`, scripts or tests with real keys) unless the user explicitly asks for it in that message. Every automated test must pass with no keys and no network.
 - **Never read, print or write real keys.** Don't display the contents of any `.env` file (laptop or server); put only variable names in `.env.example`.
-- **Respect the boundaries:** Phaser only under `games/`; network only through `apiClient.ts`; OpenAI only through `app/ai.py`; Redis only through `app/db.py`; camera frames never leave the browser; no client-side store (no Redux).
+- **Respect the boundaries:** Phaser only under `games/`; network only through `apiClient.ts`; OpenAI only through `app/ai.py`; Redis only through `app/db.py`; camera frames go only to `/api/cv/stream` and are never stored or logged (only a development server's explicit recording may store them); no client-side store (no Redux).
 - Follow the conventions above exactly. Match the surrounding code over your own defaults (`args` not `props`, function declarations, CSS Modules, no `var`).
 - After any frontend change run `cd frontend && npx tsc --noEmit`; after any backend change run `cd backend && .venv/bin/pytest -q`. Before saying you're done, run `make check` and report the result honestly.
 - When adding an endpoint, do all four steps of "Add an API endpoint" plus a test, in one go, and add it to the contract table in `docs/ARCHITECTURE.md`.

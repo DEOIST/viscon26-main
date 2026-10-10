@@ -17,5 +17,11 @@
         "forceConsistentCasingInFileNames": true,
         "types": ["vite/client", "vitest/globals", "node"]
     },
-    "include": ["src", "types", "vite.config.ts", "../shared/game-config.json"]
+    "include": [
+        "src",
+        "level1",
+        "types",
+        "vite.config.ts",
+        "../shared/game-config.json"
+    ]
 }

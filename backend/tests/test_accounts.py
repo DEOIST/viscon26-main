@@ -117,9 +117,22 @@ def test_idempotency_ects_and_graduation(client, connected_games):
 def test_placeholder_and_unknown_games_cannot_earn_credits(client):
     headers = register(client)
     profile(client, headers)
-    assert client.post("/api/completions/year-1-slot", headers=headers).status_code == 409
+    # Year 2 (Casino night) is still a placeholder; Year 1 is the shooter.
+    assert client.post("/api/completions/year-2-slot", headers=headers).status_code == 409
     assert client.post("/api/completions/invented", headers=headers).status_code == 404
     assert client.get("/api/scoreboard").json()[0]["ects"] == 0
+
+
+def test_the_shooter_is_year_1_and_earns_its_credits(client):
+    # The real configuration (no connected_games): the shooter (level 1) is Year 1 and playable;
+    # completing it unlocks Year 2, Casino night, which is still a placeholder.
+    assert [year["games"][0]["title"] for year in YEARS[:2]] == ["Basisprüfung", "Casino night"]
+    headers = register(client)
+    profile(client, headers)
+    progress = client.post("/api/completions/year-1-slot", headers=headers).json()
+    assert progress["ects"] == YEARS[0]["ects"]
+    response = client.post("/api/completions/year-2-slot", headers=headers)
+    assert response.status_code == 409 and "placeholder" in response.json()["detail"]
 
 
 def test_csrf_rotation_logout_and_private_scoreboard(client):

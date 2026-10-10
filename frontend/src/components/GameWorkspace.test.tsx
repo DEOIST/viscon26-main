@@ -65,7 +65,7 @@ it("browses locked years with keyboard and selectors without allowing launch", (
     fireEvent.keyDown(screen.getByRole("region", { name: "Active game" }), {
         key: "Home",
     });
-    fireEvent.click(screen.getByRole("button", { name: "Open preview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Launch game" })); // Year 1: the shooter
     expect(onOpen).toHaveBeenCalledExactlyOnceWith(GAMES[0]);
     expect(
         screen
