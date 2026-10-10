@@ -14,6 +14,7 @@ import type {
     Snapshot,
     Year,
 } from "./types";
+import { gameEcts } from "./misc/credits";
 
 const GENDERS: Gender[] = ["unspecified", "female", "male", "nonbinary"];
 const GLASSES: Glasses[] = ["none", "glasses", "sunglasses"];
@@ -48,7 +49,7 @@ export const calculateEcts = (ids: string[], scores: Record<string, number>) =>
         (sum, game) =>
             sum +
             (game.implemented && ids.includes(game.id)
-                ? Math.floor((game.ects * (scores[game.id] ?? 100)) / 100 + 0.5)
+                ? gameEcts(game, scores[game.id])
                 : 0),
         0,
     );

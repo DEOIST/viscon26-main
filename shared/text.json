@@ -211,6 +211,23 @@
         "gamesRemaining": "Minigames to graduation: {games}",
         "availableEcts": "Up to {ects} ECTS"
     },
+    "credits": {
+        "title": "Credits",
+        "total": "{earned} / {total} ECTS",
+        "progressLabel": "ECTS earned toward the degree",
+        "score": "{score} %",
+        "noScore": "full",
+        "earned": "{earned} / {available}",
+        "pending": "up to {available}",
+        "onTrack": "On track for",
+        "becomes": "Your future",
+        "next": "{ects} more ECTS for {career}",
+        "top": "Top career reached.",
+        "careerScale": "What your ECTS lead to",
+        "careerFrom": "from {ects} ECTS",
+        "sum": "Total",
+        "gained": "+{ects} ECTS · {game} · score {score} %"
+    },
     "minigameHost": {
         "eyebrow": "MINIGAME",
         "placeholderEyebrow": "PLACEHOLDER PREVIEW",
@@ -564,6 +581,10 @@
                 "Leaving ahead of the house. That is rare.",
                 "Last hand played and still in profit. Respect."
             ]
+        },
+        "fullscreen": {
+            "enter": "Fullscreen (F)",
+            "exit": "Exit fullscreen (F)"
         }
     },
     "thesisDefense": {

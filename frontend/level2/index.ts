@@ -1,6 +1,11 @@
 import BlackjackScene from "./BlackjackScene";
 import { mountScene } from "../src/games/shared/createGame";
 import type { MountMinigame } from "../src/games/shared/minigame";
+import { attachFullscreen } from "../src/games/shared/fullscreen";
+import { TEXT } from "../src/misc/text";
+
+// The felt's darkest edge, so a fullscreen letterbox looks like more table.
+const FELT_EDGE = "#06361c";
 
 // The canvas says nothing to a screen reader, so the table's state is also written into a
 // visually hidden live region next to it.
@@ -36,8 +41,14 @@ export const mountBlackjack: MountMinigame = (options) => {
             }),
     );
     options.parent.appendChild(liveRegion);
+    // F or the corner button: the table fills the screen for a projector or a big audience.
+    const fullscreen = attachFullscreen(options.parent, {
+        labels: TEXT.blackjack.fullscreen,
+        background: FELT_EDGE,
+    });
     return {
         destroy() {
+            fullscreen.dispose();
             game.destroy();
             liveRegion.remove();
         },

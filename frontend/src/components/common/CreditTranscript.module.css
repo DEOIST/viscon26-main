@@ -1,0 +1,212 @@
+.transcript {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+.header strong {
+    color: var(--reward);
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* The degree on one bar; each career's starting ECTS is a tick on it. */
+.scale {
+    position: relative;
+    height: 12px;
+    border-radius: 999px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    overflow: visible;
+}
+.fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: 999px;
+    background: var(--reward);
+    transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.tick {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    left: var(--at);
+    width: 2px;
+    margin-left: -1px;
+    border-radius: 1px;
+    background: var(--text-muted);
+    opacity: 0.7;
+}
+.tick.reached {
+    background: var(--on-accent);
+    opacity: 0.9;
+}
+
+.career {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+.career strong {
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.3;
+}
+.next {
+    font-size: 11px;
+    color: var(--secondary);
+}
+
+.rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: none;
+}
+.rows li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+        "title score ects"
+        "bar bar bar";
+    align-items: baseline;
+    column-gap: 10px;
+    row-gap: 4px;
+    font-size: 13px;
+}
+.rowTitle {
+    grid-area: title;
+    display: flex;
+    flex-direction: column;
+    color: var(--text);
+    font-weight: 600;
+    min-width: 0;
+}
+.rowTitle small {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+}
+.rowScore {
+    grid-area: score;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+.rowEcts {
+    grid-area: ects;
+    color: var(--reward);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.rowBar {
+    grid-area: bar;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--surface-raised);
+    overflow: hidden;
+}
+.rowBar i {
+    display: block;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--success);
+}
+.pending .rowTitle,
+.pending .rowEcts {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+.fresh .rowEcts {
+    animation: earned 1600ms ease-out both;
+}
+@keyframes earned {
+    0% {
+        color: var(--success);
+        transform: scale(1.25);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.rows .sum {
+    grid-template-areas: "title score ects";
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+}
+
+.legend {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+.legend ol {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.legend li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+.legend li.current {
+    background: var(--surface-raised);
+    color: var(--text);
+    font-weight: 700;
+}
+.legend small {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* The narrow student record. */
+.compact .rows li {
+    font-size: 11px;
+    column-gap: 6px;
+}
+.compact .rowTitle small {
+    font-size: 9px;
+}
+.compact .career strong {
+    font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fill {
+        transition: none;
+    }
+    .fresh .rowEcts {
+        animation: none;
+    }
+}
