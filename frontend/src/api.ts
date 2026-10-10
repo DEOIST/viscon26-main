@@ -1,6 +1,8 @@
 import type { Player, Progress, Snapshot } from "./types";
 import { GAMES, profileMajor } from "./config";
 import type {
+    CompanionReply,
+    CompanionSpeechRequest,
     DialoguePack,
     DialogueScene,
     PublicConfig,
@@ -85,6 +87,31 @@ async function request<T>(
     }
     return data as T;
 }
+// The one non-JSON answer: narration audio, as an object URL for an <audio> element. The caller
+// revokes it with URL.revokeObjectURL when done.
+async function audioRequest(path: string, body: unknown): Promise<string> {
+    let response: Response;
+    try {
+        response = await fetch(`/api${path}`, {
+            method: "POST",
+            signal: AbortSignal.timeout(30000),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+        });
+    } catch {
+        throw new ApiError("Cannot reach the server.", 0);
+    }
+    if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new ApiError(
+            typeof data?.detail === "string"
+                ? data.detail
+                : "The voice could not play that.",
+            response.status,
+        );
+    }
+    return URL.createObjectURL(await response.blob());
+}
 function profileBody(player: Player) {
     return {
         name: player.name,
@@ -140,6 +167,14 @@ export const api = {
         return sync;
     },
     scoreboard: () => request<ScoreRow[]>("/scoreboard"),
+    askCompanion: (question: string) =>
+        request<CompanionReply>(`${playerPath()}/companion`, "POST", {
+            question,
+        }),
+    companionSpeech: (replyId: string) =>
+        audioRequest(`${playerPath()}/companion/speech`, {
+            replyId,
+        } satisfies CompanionSpeechRequest),
     dialogue(scene: DialogueScene): Promise<DialoguePack> {
         let pack = dialogues.get(scene);
         if (!pack) {

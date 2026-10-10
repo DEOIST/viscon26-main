@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.routers import avatar, health, leaderboard, players, runs, story
+from app.routers import avatar, companion, health, leaderboard, players, runs, story
 from level1 import router as level1
 
 api_router = APIRouter(prefix="/api")
@@ -15,6 +15,8 @@ api_router.include_router(leaderboard.router)
 api_router.include_router(story.router)
 # --- anonymous shell ---
 api_router.include_router(players.router)
+# --- companion (the dealer you can talk to) ---
+api_router.include_router(companion.router)
 # --- avatar ---
 api_router.include_router(avatar.router)
 # --- level 1: the shooter's finger-detection engine (backend/level1/) ---

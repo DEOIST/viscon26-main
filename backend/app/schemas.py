@@ -239,3 +239,22 @@ class AvatarSuggestion(CamelModel):
     glasses: Glasses | None = None
     gender: PresentedGender | None = None
     source: Literal["ai", "fallback"]
+
+
+# --- companion (the dealer you can talk to at the blackjack table) ---
+
+
+class CompanionQuestion(CamelModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    question: str = Field(min_length=1, max_length=200)
+
+
+class CompanionReply(CamelModel):
+    id: str  # names the reply for its narration (CompanionSpeechRequest)
+    answer: str
+    source: AiSource  # "fallback": pre-written, because the AI is off or failed
+
+
+class CompanionSpeechRequest(CamelModel):
+    model_config = ConfigDict(extra="forbid")
+    reply_id: str = Field(pattern=r"^[0-9a-f]{32}$")

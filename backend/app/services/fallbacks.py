@@ -4,6 +4,8 @@ Templated with the character, so even the fallback feels personal. `{name}` and 
 are the only placeholders; names can't contain braces (schemas.CharacterName).
 """
 
+import random
+
 from app.prompts import DEPARTMENT_NAMES, DIALOGUE_EVENTS
 from app.schemas import DialogueScene, EndingId, Run
 from level2 import dialogue as level2_dialogue
@@ -94,3 +96,27 @@ def _fill(template: str, run: Run) -> str:
     return template.format(
         name=run.character.name, department=DEPARTMENT_NAMES[run.character.department]
     )
+
+
+# --- companion ---
+
+# When the AI is off or fails, the dealer still answers, honestly and in character.
+COMPANION_OFFLINE = (
+    "The dealer taps the felt and says nothing. Chatty mode is offline, {name}; deal again.",
+    "Not tonight, {name}. My clever lines are on strike, but the cards still work.",
+    "I would answer, {name}, but my speechwriter is out of credit. Place your bet.",
+)
+COMPANION_DECLINE = "Let's keep it about the cards, {name}. The house has rules, and so do I."
+
+
+def companion_offline(name: str) -> str:
+    return random.choice(COMPANION_OFFLINE).format(name=name)
+
+
+def companion_decline(name: str) -> str:
+    return COMPANION_DECLINE.format(name=name)
+
+
+def companion_fake(question: str) -> str:
+    """AI_MODE=fake: shows the round trip without a call."""
+    return f'(Fake AI) You asked: "{question}". The house thanks you for your curiosity.'

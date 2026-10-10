@@ -1,5 +1,6 @@
 // Adapts the independent destination mount contract without changing game code.
 import { useEffect, useRef, useState } from "react";
+import CompanionChat from "../components/CompanionChat";
 import { GAMES, departmentLabel } from "../config";
 import { MINIGAME_REGISTRY } from "../games/registry";
 import type { MinigameHandle, MinigameId } from "../games/shared/minigame";
@@ -111,6 +112,13 @@ export default function DestinationGame(args: MinigameProps) {
         args.ectsPoints,
         args.completedGameIds,
     ]);
+    const mountArea = (
+        <div
+            ref={parent}
+            className="destination-game-mount"
+            aria-label="Minigame play area"
+        />
+    );
     return failed ? (
         <div className="placeholder" role="alert">
             <h2>This minigame could not open.</h2>
@@ -125,11 +133,15 @@ export default function DestinationGame(args: MinigameProps) {
                     Shuffling the deck…
                 </p>
             )}
-            <div
-                ref={parent}
-                className="destination-game-mount"
-                aria-label="Minigame play area"
-            />
+            {dialogueScene(args.gameId) === "blackjack" ? (
+                // The dealer chat docks beside the table, which shrinks to fit (Phaser FIT).
+                <div className="destination-row">
+                    {mountArea}
+                    <CompanionChat playerName={args.playerName} />
+                </div>
+            ) : (
+                mountArea
+            )}
         </>
     );
 }

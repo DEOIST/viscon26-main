@@ -40,6 +40,18 @@ def dead_key_flag(index: int) -> str:
     return f"ai:key:{index}:dead"
 
 
+def companion_history_key(player_id: str) -> str:
+    return f"companion:history:{player_id}"
+
+
+def companion_asks_key(player_id: str, hour: str) -> str:
+    return f"companion:asks:{player_id}:{hour}"
+
+
+def companion_speech_key(text_hash: str) -> str:
+    return f"companion:speech:{text_hash}"
+
+
 @lru_cache
 def get_redis() -> redis.Redis:
     if settings.redis_url:

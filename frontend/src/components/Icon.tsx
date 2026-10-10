@@ -9,7 +9,9 @@ type IconName =
     | "sun"
     | "moon"
     | "close"
-    | "slot";
+    | "slot"
+    | "chat"
+    | "speaker";
 const paths: Record<IconName, string> = {
     cap: "m2 8 10-5 10 5-10 5L2 8Zm4 3v6c4 3 8 3 12 0v-6m4-3v9",
     arrow: "M4 12h16m-6-6 6 6-6 6",
@@ -22,6 +24,8 @@ const paths: Record<IconName, string> = {
     moon: "M20 15A9 9 0 0 1 9 4a9 9 0 1 0 11 11Z",
     close: "m6 6 12 12M6 18 18 6",
     slot: "M3 6h18v13H3V6Zm5 4-3 3 3 3m8-6 3 3-3 3m-3-7-2 8",
+    chat: "M4 5h16v11H9l-5 4V5Zm4 5h8m-8 3h5",
+    speaker: "M4 9h4l5-4v14l-5-4H4V9Zm13 0a4 4 0 0 1 0 6m2-9a8 8 0 0 1 0 12",
 };
 export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
     return (

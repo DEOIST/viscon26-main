@@ -83,7 +83,7 @@ def generate_epilogue_speech(run_id: str) -> SpeechAudio | None:
     if stored_epilogue is None:
         raise RunStateError("Generate the epilogue before its narration")
     if ai.mode() == "fake":
-        return SpeechAudio(_tone_wav(), "audio/wav")
+        return SpeechAudio(tone_wav(), "audio/wav")
     cached = db.get_redis().get(db.speech_key(run_id))
     if cached:
         return SpeechAudio(base64.b64decode(cached), "audio/mpeg")
@@ -158,7 +158,7 @@ def _cache_seconds(source: str) -> int | None:
     return None if source == "ai" else FALLBACK_CACHE_SECONDS
 
 
-def _tone_wav(seconds: float = 0.6, frequency: float = 440.0, rate: int = 16_000) -> bytes:
+def tone_wav(seconds: float = 0.6, frequency: float = 440.0, rate: int = 16_000) -> bytes:
     """A short beep standing in for narration in AI_MODE=fake."""
     samples = (
         int(8000 * math.sin(2 * math.pi * frequency * index / rate))

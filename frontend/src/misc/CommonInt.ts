@@ -139,3 +139,19 @@ export interface Epilogue {
     text: string;
     source: AiSource;
 }
+
+// --- companion (the dealer you can talk to at the blackjack table) ---
+
+export interface CompanionQuestion {
+    question: string; // 1–200 characters
+}
+
+export interface CompanionReply {
+    id: string; // names the reply for its narration
+    answer: string;
+    source: AiSource; // "fallback": pre-written, because the AI is off or failed
+}
+
+export interface CompanionSpeechRequest {
+    replyId: string;
+}

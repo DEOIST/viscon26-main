@@ -1914,6 +1914,20 @@ td strong {
     overflow: hidden;
     background: #11151e;
 }
+.destination-row {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    gap: 10px;
+}
+.destination-row > .destination-game-mount {
+    min-width: 0;
+}
+@media (max-width: 760px) {
+    .destination-row {
+        flex-direction: column;
+    }
+}
 .destination-game-mount canvas {
     display: block;
     max-width: 100%;
