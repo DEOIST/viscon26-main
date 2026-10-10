@@ -227,8 +227,8 @@ isometric shooter art match:
 |---|---|
 | **Must** | Character creation (all 5 fields; avatars may start as placeholders) · campus hub · blackjack · shooter with webcam finger gun, calibration and mouse fallback · scoring → ending · graduation reveal with fallback epilogue · runs stored in Redis · deployed and demoable with the camera |
 | **Should** | AI dialogue packs · AI epilogue · narrator voice · generated art · Hall of Fame and ending stats · archetype perks · hand skeleton overlay and juice · name moderation |
-| **Could** | Boss paper · open-palm reload · dual-wield (two hands) · webcam shader effect (Phaser filter on the video) · glow on the `sharp` quality setting · blackjack split · round timer pauses while the hand is lost · per-department stats |
-| **Won't (this event)** | Accounts or login · multiplayer · phone support · walkable campus · runtime image generation |
+| **Could** | Accounts with a round history, streaks and an activity graph (built) · Boss paper · open-palm reload · dual-wield (two hands) · webcam shader effect (Phaser filter on the video) · glow on the `sharp` quality setting · blackjack split · round timer pauses while the hand is lost · per-department stats |
+| **Won't (this event)** | Multiplayer · phone support · walkable campus · runtime image generation |
 
 ## Demo script hook (draft for `docs/DEMO.md`)
 

@@ -9,7 +9,8 @@ type IconName =
     | "sun"
     | "moon"
     | "close"
-    | "slot";
+    | "slot"
+    | "calendar";
 const paths: Record<IconName, string> = {
     cap: "m2 8 10-5 10 5-10 5L2 8Zm4 3v6c4 3 8 3 12 0v-6m4-3v9",
     arrow: "M4 12h16m-6-6 6 6-6 6",
@@ -22,6 +23,7 @@ const paths: Record<IconName, string> = {
     moon: "M20 15A9 9 0 0 1 9 4a9 9 0 1 0 11 11Z",
     close: "m6 6 12 12M6 18 18 6",
     slot: "M3 6h18v13H3V6Zm5 4-3 3 3 3m8-6 3 3-3 3m-3-7-2 8",
+    calendar: "M4 6h16v14H4V6Zm0 4h16M8 3v4m8-4v4",
 };
 export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
     return (

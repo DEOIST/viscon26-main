@@ -53,6 +53,7 @@ def account_error(_request: Request, error: AccountError) -> JSONResponse:
     code = {
         "unauthorized": status.HTTP_401_UNAUTHORIZED,
         "not_found": status.HTTP_404_NOT_FOUND,
+        "too_many": status.HTTP_429_TOO_MANY_REQUESTS,
     }.get(error.kind, status.HTTP_409_CONFLICT)
     return JSONResponse(status_code=code, content={"detail": str(error)})
 

@@ -221,6 +221,9 @@ interface Epilogue {
 | Narration | `POST /api/runs/{run_id}/epilogue/speech` | `generate_epilogue_speech` | `apiGenerateEpilogueSpeech` | 200 `audio/mpeg` · 404 · 409 no epilogue yet · 503 narrator unavailable |
 | Health | `GET /api/health` | `get_health` (exists) | `apiGetHealth` | 200; touches no dependency |
 | Avatar suggestion | `POST /api/avatar/suggestion` (body `AvatarPhoto`: `{ image }`, a JPEG/PNG/WebP data URL), CSRF header required | `suggest_from_photo` | `api.avatarSuggestion` | 200 `AvatarSuggestion` (`hairColor`, `eyeColor` as preset hex values, `hairLength`, `glasses`, `gender` guess; all `null` with `source: "fallback"` when the AI is unavailable) · 403 missing CSRF token · 422 not an image data URL |
+| Record a round | `POST /api/attempts` (body `AttemptInput`: `{ gameId, score }`, shell game id, 0–100), signed in, CSRF header required | `record_attempt` | `api.recordAttempt` | 201 `Attempt` (`id`, `gameId`, `score`, `finishedAt`) · 401 · 403 · 404 unknown game · 409 placeholder or year still locked · 422 · 429 over 300 rounds in 24 h |
+| Round history | `GET /api/attempts?limit=20` (1–100), signed in | `list_attempts` | `api.attempts` | 200 `Attempt[]`, newest first · 401 |
+| Activity graph | `GET /api/activity?tz=Europe/Zurich` (IANA zone, default `UTC`), signed in | `get_activity` | `api.activity` | 200 `ActivitySummary` (`today`, `days: {day, attempts}[]` for the last 53 weeks, `totalAttempts`, `activeDays`, `currentStreak`, `longestStreak`, `bestScores`) · 401 · 422 unknown time zone |
 
 Routers: `routers/runs.py` (prefix `/runs`), `routers/leaderboard.py` (prefix
 `/leaderboard`), `routers/story.py` (prefix `/runs`, tag `story`). Services have
@@ -245,6 +248,11 @@ the same file names.
   `off`/`fake` mode only the character rules apply.
 - Scores are reported by the client. Nothing here is cheat-proof, and for a
   hackathon game it doesn't need to be.
+- **Attempts** (`routers/attempts.py`, `services/attempts.py`) keep every finished round of
+  a signed-in player, replays included, in the account database's `attempts` table
+  (`user_id`, `game_id`, `score`, `finished_at`). `completions` still keeps only the first
+  one per game, for ECTS. Days and streaks are counted in the time zone the browser sends,
+  and a streak survives until a whole day passes without a round. Guests have no history.
 - If Redis is unreachable, an exception handler in `main.py` answers 503
   "Storage is unavailable, try again in a moment". `/api/health` stays
   dependency-free.

@@ -33,6 +33,7 @@ function setup(selected = false) {
             onGraduate={vi.fn()}
             onAccount={vi.fn()}
             onScoreboard={vi.fn()}
+            onHistory={vi.fn()}
             onEditCharacter={onEditCharacter}
         />,
     );

@@ -70,9 +70,10 @@ export default function DestinationGame(args: MinigameProps) {
                     if (
                         GAMES.find((game) => game.id === args.gameId)
                             ?.implemented
-                    )
+                    ) {
+                        callbacks.current.onAttempt?.(result.score);
                         callbacks.current.onComplete();
-                    else callbacks.current.onExit();
+                    } else callbacks.current.onExit();
                 },
                 onExit() {
                     if (active) callbacks.current.onExit();

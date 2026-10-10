@@ -101,6 +101,7 @@ describe("independent destination minigame adapter", () => {
 
     it("does not award preview credits, then completes implemented components once", () => {
         const onComplete = vi.fn();
+        const onAttempt = vi.fn();
         const onExit = vi.fn();
         GAMES[0].implemented = false;
         const args = {
@@ -111,19 +112,22 @@ describe("independent destination minigame adapter", () => {
             ectsPoints: 0,
             completedGameIds: [],
             onComplete,
+            onAttempt,
             onExit,
         };
         const view = render(<DestinationGame {...args} />);
         const preview = mount.mock.calls[0][0] as MinigameOptions;
         preview.onFinish({ score: 100, stats: {} });
         expect(onComplete).not.toHaveBeenCalled();
+        expect(onAttempt).not.toHaveBeenCalled(); // previews stay out of the history
         expect(onExit).toHaveBeenCalledOnce();
         view.unmount();
         GAMES[0].implemented = true;
         render(<DestinationGame {...args} />);
         const implemented = mount.mock.calls[1][0] as MinigameOptions;
-        implemented.onFinish({ score: 100, stats: {} });
+        implemented.onFinish({ score: 73, stats: {} });
         implemented.onFinish({ score: 100, stats: {} });
         expect(onComplete).toHaveBeenCalledOnce();
+        expect(onAttempt).toHaveBeenCalledExactlyOnceWith(73);
     });
 });

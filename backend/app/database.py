@@ -68,6 +68,17 @@ class Completion(Base):
     completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
+class Attempt(Base):
+    """Every finished round, replays included; `completions` only keeps the first one per game."""
+
+    __tablename__ = "attempts"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    game_id: Mapped[str] = mapped_column(String(80))
+    score: Mapped[int]
+    finished_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
 class LoginSession(Base):
     __tablename__ = "sessions"
     token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)

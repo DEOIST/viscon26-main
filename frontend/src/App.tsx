@@ -10,6 +10,7 @@ import {
 import { AuthDialog, ScoreboardDialog } from "./components/Dialogs";
 import { Icon } from "./components/Icon";
 import GameWorkspace from "./components/GameWorkspace";
+import HistoryDialog from "./components/HistoryDialog";
 import {
     completeGame,
     defaultPlayer,
@@ -35,7 +36,9 @@ export function App() {
     const [user, setUser] = useState<SessionData["user"]>(null);
     const [booting, setBooting] = useState(true);
     const [bootError, setBootError] = useState("");
-    const [dialog, setDialog] = useState<"auth" | "scoreboard" | null>(null);
+    const [dialog, setDialog] = useState<
+        "auth" | "scoreboard" | "history" | null
+    >(null);
     const [selectedGame, setSelectedGame] = useState<Game | null>(null);
     const [graduation, setGraduation] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -124,6 +127,13 @@ export function App() {
             setBusy(false);
         }
     }
+    // Best effort: a lost history entry must never cost the player their ECTS.
+    function recordAttempt(score: number) {
+        if (!user || !selectedGame) return;
+        api.recordAttempt(selectedGame.id, score).catch(() =>
+            setNotice("This round could not be added to your history."),
+        );
+    }
     async function finishGame() {
         if (!selectedGame || saving.current) return;
         if (progress.completedGameIds.includes(selectedGame.id)) {
@@ -143,7 +153,9 @@ export function App() {
             else dispatch(completeGame(selectedGame.id));
             setSelectedGame(null);
             setNotice(
-                "Minigame completed. ECTS earned. Your library chair misses you already.",
+                user
+                    ? "Minigame completed. ECTS earned. Your library chair misses you already."
+                    : "Minigame completed. ECTS earned. Log in to keep a history of every round and a daily streak.",
             );
         } catch (err) {
             setError(errorMessage(err));
@@ -340,6 +352,8 @@ export function App() {
                                             setNotice("");
                                         }}
                                         onComplete={() => void finishGame()}
+                                        onAttempt={recordAttempt}
+                                        onHistory={() => setDialog("history")}
                                         onExit={() => {
                                             if (!saving.current) {
                                                 setSelectedGame(null);
@@ -365,6 +379,13 @@ export function App() {
                     authenticated={!!user}
                     onClose={() => setDialog(null)}
                     onSession={(data) => applySession(data, true)}
+                />
+            )}
+            {dialog === "history" && (
+                <HistoryDialog
+                    authenticated={!!user}
+                    onClose={() => setDialog(null)}
+                    onAccount={() => setDialog("auth")}
                 />
             )}
             {dialog === "scoreboard" && (

@@ -9,7 +9,7 @@ import { api, errorMessage, type ScoreRow, type SessionData } from "../api";
 import { departmentLabel, TOTAL_ECTS } from "../config";
 import { Icon } from "./Icon";
 
-function Dialog({
+export function Dialog({
     title,
     children,
     onClose,

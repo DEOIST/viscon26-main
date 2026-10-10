@@ -22,6 +22,23 @@ export type ScoreRow = {
     ects: number;
     graduated: boolean;
 };
+/** One finished round of a minigame, replays included */
+export type Attempt = {
+    id: number;
+    gameId: string;
+    score: number;
+    finishedAt: string;
+};
+/** Days are YYYY-MM-DD in the player's time zone; only days with rounds are listed */
+export type ActivitySummary = {
+    today: string;
+    days: { day: string; attempts: number }[];
+    totalAttempts: number;
+    activeDays: number;
+    currentStreak: number;
+    longestStreak: number;
+    bestScores: Record<string, number>;
+};
 export class ApiError extends Error {
     constructor(
         message: string,
@@ -104,6 +121,23 @@ export const api = {
         ).then(progressOnly),
     graduate: () => request<Progress>("/graduation", "POST").then(progressOnly),
     scoreboard: () => request<ScoreRow[]>("/scoreboard"),
+    recordAttempt: (gameId: string, score: number) =>
+        request<Attempt>("/attempts", "POST", { gameId, score }),
+    attempts: (limit = 10) => request<Attempt[]>(`/attempts?limit=${limit}`),
+    activity: async () => {
+        // Days are counted in the player's own time zone, so a late-night round counts today.
+        const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+        try {
+            return await request<ActivitySummary>(
+                `/activity?tz=${encodeURIComponent(zone)}`,
+            );
+        } catch (err) {
+            // A zone the server doesn't know: UTC days beat no graph at all.
+            if (err instanceof ApiError && err.status === 422 && zone !== "UTC")
+                return request<ActivitySummary>("/activity?tz=UTC");
+            throw err;
+        }
+    },
     avatarSuggestion: async (image: string) => {
         if (!csrfToken) await sessionRequest("/session");
         return request<AvatarSuggestion>("/avatar/suggestion", "POST", {

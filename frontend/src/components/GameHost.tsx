@@ -47,6 +47,7 @@ export function GameHost({
     busy,
     error,
     onComplete,
+    onAttempt,
     onExit,
     registry = minigameRegistry,
     compact = false,
@@ -58,6 +59,7 @@ export function GameHost({
     busy: boolean;
     error: string;
     onComplete: () => void;
+    onAttempt?: (score: number) => void;
     onExit: () => void;
     registry?: Record<string, ComponentType<MinigameProps>>;
     compact?: boolean;
@@ -115,6 +117,7 @@ export function GameHost({
                     ectsPoints={ects}
                     completedGameIds={completedGameIds}
                     onComplete={onComplete}
+                    onAttempt={onAttempt}
                     onExit={onExit}
                 />
             </GameBoundary>

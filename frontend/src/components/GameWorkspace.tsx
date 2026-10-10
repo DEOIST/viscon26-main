@@ -22,10 +22,12 @@ interface GameWorkspaceArgs {
     selectedGame: Game | null;
     onOpen(game: Game): void;
     onComplete(): void;
+    onAttempt?(score: number): void;
     onExit(): void;
     onGraduate(): void;
     onAccount(): void;
     onScoreboard(): void;
+    onHistory(): void;
     onEditCharacter(): void;
 }
 
@@ -127,6 +129,15 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                     }}
                 >
                     <Icon name="trophy" size={17} /> Scoreboard
+                </button>
+                <button
+                    className="button secondary compact"
+                    onClick={() => {
+                        handleCloseMenu();
+                        args.onHistory();
+                    }}
+                >
+                    <Icon name="calendar" size={17} /> History
                 </button>
                 <button
                     className="button ghost compact"
@@ -358,6 +369,7 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                                 busy={args.busy}
                                 error={args.error}
                                 onComplete={args.onComplete}
+                                onAttempt={args.onAttempt}
                                 onExit={args.onExit}
                             />
                         ) : (

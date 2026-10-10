@@ -41,5 +41,7 @@ export type MinigameProps = {
     ectsPoints: number;
     completedGameIds: string[];
     onComplete: () => void;
+    /** Every finished round's 0–100 score, replays included, for the player's history */
+    onAttempt?: (score: number) => void;
     onExit: () => void;
 };

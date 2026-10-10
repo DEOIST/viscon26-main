@@ -5,10 +5,12 @@ Convention: `XWHid` ("without id") is the create payload the client sends;
 Fields are snake_case in Python and camelCase in JSON (see `CamelModel`).
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import (
+    AfterValidator,
     BaseModel,
     ConfigDict,
     Field,
@@ -241,3 +243,45 @@ class AvatarSuggestion(CamelModel):
     glasses: Glasses | None = None
     gender: PresentedGender | None = None
     source: Literal["ai", "fallback"]
+
+
+# --- attempts (account history and activity graph) ---
+
+
+class AttemptInput(CamelModel):
+    model_config = ConfigDict(extra="forbid")
+    game_id: str = Field(min_length=1, max_length=80)  # shell game id, e.g. "year-1-slot"
+    score: int = Field(ge=0, le=100, strict=True)
+
+
+class Attempt(AttemptInput):
+    id: int
+    finished_at: datetime
+
+
+def _known_time_zone(name: str) -> str:
+    try:
+        ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError, OSError) as error:
+        raise ValueError("Unknown time zone") from error
+    return name
+
+
+# An IANA name from the browser (Intl.DateTimeFormat().resolvedOptions().timeZone), so a round
+# played at 00:30 in Zurich lands on the right square of the activity graph.
+TimeZoneName = Annotated[str, Field(min_length=1, max_length=64), AfterValidator(_known_time_zone)]
+
+
+class ActivityDay(CamelModel):
+    day: date
+    attempts: int
+
+
+class ActivitySummary(CamelModel):
+    today: date  # in the requested time zone; the graph ends on this day
+    days: list[ActivityDay]  # only days with attempts, oldest first, within the last 53 weeks
+    total_attempts: int  # all time
+    active_days: int  # all time
+    current_streak: int  # consecutive days ending today, or yesterday if today has none yet
+    longest_streak: int
+    best_scores: dict[str, int]  # shell game id → best score
