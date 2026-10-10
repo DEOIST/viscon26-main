@@ -6,6 +6,9 @@ import type { Scene } from "phaser";
 import type { DefenseState } from "./engine";
 import { CENTER_X, HUD_LEFT_X, HUD_RIGHT_X } from "./layout";
 import { COLORS, FONT, MONO } from "./textures";
+import { fill, TEXT } from "../src/misc/text";
+
+const T = TEXT.thesisDefense.hud;
 
 const BAR_W = 250;
 const MULTIPLIER_COLORS = ["#ffffff", "#3ee0ff", "#ff4fd8", "#ffd84a"];
@@ -50,23 +53,23 @@ export default class Hud {
     constructor(scene: Scene) {
         this.scene = scene;
         const x = HUD_LEFT_X;
-        text(scene, x, 262, "SCORE", 16, "#8fa2ff");
+        text(scene, x, 262, T.score, 16, "#8fa2ff");
         this.score = text(scene, x, 296, "0", 40, "#ffffff", MONO);
         this.combo = text(scene, x - 20, 392, "", 72);
-        this.comboLabel = text(scene, x - 20, 444, "COMBO", 18, "#8fa2ff");
+        this.comboLabel = text(scene, x - 20, 444, T.combo, 18, "#8fa2ff");
         this.multiplier = text(scene, x + 92, 380, "×1", 34);
         this.accuracy = text(scene, x, 500, "", 18, "#c9d3ff");
 
         const right = HUD_RIGHT_X;
-        text(scene, right, 262, "THESIS CONFIDENCE", 16, "#8fa2ff");
-        text(scene, right, 340, "EUREKA", 16, "#ffd84a");
-        text(scene, right, 418, "DEFENSE PROGRESS", 14, "#8fa2ff");
+        text(scene, right, 262, T.confidence, 16, "#8fa2ff");
+        text(scene, right, 340, T.eureka, 16, "#ffd84a");
+        text(scene, right, 418, T.progress, 14, "#8fa2ff");
         this.bars = scene.add.graphics().setDepth(30);
         this.eurekaHint = text(
             scene,
             right,
             384,
-            "PRESS SPACE!",
+            T.pressSpace,
             18,
             "#ffd84a",
         ).setAlpha(0);
@@ -152,7 +155,9 @@ export default class Hud {
         const acc = Math.round(accuracy * 10);
         if (acc !== this.shown.accuracy) {
             this.shown.accuracy = acc;
-            this.accuracy.setText(`ACCURACY ${(acc / 10).toFixed(1)}%`);
+            this.accuracy.setText(
+                fill(T.accuracy, { accuracy: (acc / 10).toFixed(1) }),
+            );
         }
         this.drawBars(state, progress, time);
         const ready = state.eureka >= 100 && !state.eurekaActive;

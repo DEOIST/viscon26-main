@@ -19,6 +19,12 @@ import type { Point } from "./layout";
 import type { Ball, BallColor } from "./rules";
 import { BALL_FRAMES, COLORS } from "./textures";
 import { FONT } from "./ui";
+import { fill, TEXT } from "../src/misc/text";
+
+function ballCount(count: number): string {
+    const balls = TEXT.blackjack.balls;
+    return fill(count === 1 ? balls.one : balls.other, { count });
+}
 
 type Landing = {
     color: BallColor;
@@ -90,7 +96,7 @@ export default class BoardView {
         this.burst.setDepth(45);
 
         this.countText = scene.add
-            .text(counter.x, counter.y, "0 BALLS", {
+            .text(counter.x, counter.y, ballCount(0), {
                 fontFamily: FONT,
                 fontSize: "30px",
                 fontStyle: "bold",
@@ -324,9 +330,7 @@ export default class BoardView {
         this.burst.explode(ball.color === "green" ? 6 : 12, world.x, world.y);
 
         this.landed++;
-        this.countText.setText(
-            `${this.landed} BALL${this.landed === 1 ? "" : "S"}`,
-        );
+        this.countText.setText(ballCount(this.landed));
         this.scene.tweens.add({
             targets: this.countText,
             scale: { from: 1.25, to: 1 },
@@ -401,7 +405,7 @@ export default class BoardView {
         this.yellow = 0;
         this.red = 0;
         this.stacks.forEach((stack) => (stack.length = 0));
-        this.countText.setText("0 BALLS");
+        this.countText.setText(ballCount(0));
         this.dots.forEach((dot) => dot.setFillStyle(0x0b3d24, 0.55));
         const balls = [...this.ballLayer.list];
         return new Promise((resolve) => {

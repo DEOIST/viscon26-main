@@ -24,6 +24,7 @@
         "level3",
         "types",
         "vite.config.ts",
-        "../shared/game-config.json"
+        "../shared/game-config.json",
+        "../shared/text.json"
     ]
 }

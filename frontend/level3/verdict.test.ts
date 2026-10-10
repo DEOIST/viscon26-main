@@ -1,17 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { loadBest, saveBest, swissGrade, verdictFor } from "./verdict";
 import type { BestRun } from "./verdict";
+import { TEXT } from "../src/misc/text";
+
+const VERDICTS = TEXT.thesisDefense.verdicts;
 
 describe("verdictFor", () => {
     it("ranks a finished defense by accuracy", () => {
-        expect(verdictFor(false, 97).title).toBe("SUMMA CUM LAUDE");
-        expect(verdictFor(false, 85).title).toBe("THESIS DEFENDED");
-        expect(verdictFor(false, 70).title).toBe("CONDITIONAL PASS");
-        expect(verdictFor(false, 40).title).toBe("MAJOR REVISIONS REQUIRED");
+        expect(verdictFor(false, 97).title).toBe(VERDICTS.summaCumLaude.title);
+        expect(verdictFor(false, 85).title).toBe(VERDICTS.defended.title);
+        expect(verdictFor(false, 70).title).toBe(
+            VERDICTS.conditionalPass.title,
+        );
+        expect(verdictFor(false, 40).title).toBe(VERDICTS.majorRevisions.title);
     });
 
-    it("destroys a failed defense whatever the accuracy", () => {
-        expect(verdictFor(true, 99).title).toBe("ACADEMICALLY DESTROYED");
+    it("sends a failed defense back to the drawing board whatever the accuracy", () => {
+        expect(verdictFor(true, 99).title).toBe(VERDICTS.destroyed.title);
     });
 });
 

@@ -3,6 +3,9 @@
 // goes to the server.
 
 import { BEST_KEY } from "./config";
+import { TEXT } from "../src/misc/text";
+
+const VERDICT_TEXT = TEXT.thesisDefense.verdicts;
 
 export interface Verdict {
     title: string;
@@ -13,43 +16,23 @@ export interface Verdict {
 const VERDICTS: { min: number; verdict: Verdict }[] = [
     {
         min: 93,
-        verdict: {
-            title: "SUMMA CUM LAUDE",
-            line: "The committee requests a selfie. Prof. Lemma is crying.",
-            color: "#ffd84a",
-        },
+        verdict: { ...VERDICT_TEXT.summaCumLaude, color: "#ffd84a" },
     },
     {
         min: 80,
-        verdict: {
-            title: "THESIS DEFENDED",
-            line: '"Solid work." Highest praise ever recorded in HG E 41.',
-            color: "#9dff4a",
-        },
+        verdict: { ...VERDICT_TEXT.defended, color: "#9dff4a" },
     },
     {
         min: 65,
-        verdict: {
-            title: "CONDITIONAL PASS",
-            line: "Pass, if you fix the typo on page 3. And chapter 4.",
-            color: "#3ee0ff",
-        },
+        verdict: { ...VERDICT_TEXT.conditionalPass, color: "#3ee0ff" },
     },
     {
         min: 0,
-        verdict: {
-            title: "MAJOR REVISIONS REQUIRED",
-            line: "Reviewer 2 has entered the chat.",
-            color: "#ffb43c",
-        },
+        verdict: { ...VERDICT_TEXT.majorRevisions, color: "#ffb43c" },
     },
 ];
 
-const DESTROYED: Verdict = {
-    title: "ACADEMICALLY DESTROYED",
-    line: "Your thesis has been reassigned to a first-semester TA.",
-    color: "#ff4f6d",
-};
+const DESTROYED: Verdict = { ...VERDICT_TEXT.destroyed, color: "#ff4f6d" };
 
 export function verdictFor(failed: boolean, accuracy: number): Verdict {
     if (failed) return DESTROYED;

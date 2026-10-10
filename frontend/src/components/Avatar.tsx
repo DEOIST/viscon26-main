@@ -1,9 +1,10 @@
 import type { Character } from "../types";
+import { TEXT } from "../misc/text";
 
 export function Avatar({
     character,
     className = "",
-    label = "Your character",
+    label = TEXT.common.avatarLabel,
 }: {
     character: Character;
     className?: string;

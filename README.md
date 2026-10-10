@@ -370,6 +370,7 @@ backend/
 ├── level1/              CV engine: cv.py (MediaPipe), gesture.py, router.py (WebSocket), recorded play fixtures + tests
 └── level2/              The blackjack dealer's dialogue + tests
 shared/game-config.json  Years, minigame slots, ECTS and colour presets, shared by both sides
+shared/text.json         Every player-facing string of the shell and the three minigames, by screen
 docs/                    Game design, architecture, CV deep dive, stack, decisions, playbook
 ```
 

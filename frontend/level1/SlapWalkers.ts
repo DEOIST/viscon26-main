@@ -2,6 +2,7 @@
 import { swipeHits } from "./swipeHit";
 import type { CvSlide } from "./input/cvStream";
 import { floatText } from "./effects";
+import { TEXT } from "../src/misc/text";
 import { GAME_HEIGHT, GAME_WIDTH } from "./gameSize";
 import {
     INTERRUPTER_MIN_DELAY_MS,
@@ -85,7 +86,13 @@ export default class SlapWalkers {
         const sprite = walker.sprite;
         this.scene.tweens.killTweensOf(sprite);
         const direction = side === "left" ? -1 : 1;
-        floatText(this.scene, sprite.x, sprite.y - 80, "KO! ★", "#f2c14e");
+        floatText(
+            this.scene,
+            sprite.x,
+            sprite.y - 80,
+            TEXT.shooter.dodged,
+            "#f2c14e",
+        );
         this.scene.cameras.main.shake(100, 0.003);
         // A sideways tumble, then a short pause lying down before disappearing.
         this.scene.tweens.add({
@@ -115,18 +122,7 @@ export default class SlapWalkers {
             .sprite(0, 0, this.textureKey(color, 0))
             .setOrigin(0.5, 1)
             .setScale(3.2);
-        const sayings = [
-            "Quick call?",
-            "Works on my machine!",
-            "Can you fix my printer?",
-            "Just one tiny change…",
-            "Have you tried AI?",
-            "Let's circle back!",
-            "Why isn't it done yet?",
-            "Can you hop on Zoom?",
-            "Make the logo bigger!",
-            "Deadline was yesterday!",
-        ];
+        const sayings = TEXT.shooter.interruptions;
         const bubble = this.scene.add
             .rectangle(0, -277, 222, 54, 0xffefd7)
             .setStrokeStyle(3, 0x6c5344);

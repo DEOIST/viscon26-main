@@ -4,6 +4,7 @@
 import type { Scene } from "phaser";
 import { LANE_CSS, LANE_GLYPHS } from "./config";
 import { HEIGHT, WIDTH } from "./layout";
+import { TEXT } from "../src/misc/text";
 
 export const FONT = '"Avenir Next", "Segoe UI", system-ui, sans-serif';
 export const MONO = '"JetBrains Mono", "SF Mono", Menlo, Consolas, monospace';
@@ -19,20 +20,7 @@ export const COLORS = {
 };
 
 // Formulas on the chalkboard behind the committee.
-const CHALK = [
-    "∀ε>0 ∃δ>0",
-    "P ≟ NP",
-    "∇·E = ρ/ε₀",
-    "p = 0.051 :(",
-    "O(n log n)",
-    "λx. x x",
-    "E[X] = Σ x·p(x)",
-    "git push --force",
-    "∂L/∂θ = 0 ?",
-    "det(A) ≠ 0 ⇒ hope",
-    "sudo make thesis",
-    "lim coffee(n) = ∞",
-];
+const CHALK = TEXT.thesisDefense.chalkboard;
 
 function canvas(
     scene: Scene,

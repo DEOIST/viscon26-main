@@ -16,6 +16,7 @@ from app.schemas import (
     ShellProgress,
 )
 from app.shell_config import GAMES, YEARS, can_graduate, earned_ects, year_unlocked
+from app.text import TEXT
 
 
 class PlayerError(Exception):
@@ -31,7 +32,7 @@ def database_health(db: Session) -> None:
 def get_player(db: Session, player_id: str) -> Player:
     player = db.scalar(select(Player).where(Player.anonymous_id == player_id))
     if not player:
-        raise PlayerError("Player not found.", "not_found")
+        raise PlayerError(TEXT["errors"]["player"]["notFound"], "not_found")
     return player
 
 
@@ -116,9 +117,9 @@ def save_profile(db: Session, player_id: str, body: ProfileInput) -> ShellPlayer
 def complete_game(db: Session, player: Player, game_id: str, score: int | None) -> ShellProgress:
     game = GAMES.get(game_id)
     if not game:
-        raise PlayerError("Unknown minigame.", "not_found")
+        raise PlayerError(TEXT["errors"]["player"]["unknownGame"], "not_found")
     if not game["implemented"]:
-        raise PlayerError("This placeholder cannot award ECTS.")
+        raise PlayerError(TEXT["errors"]["player"]["placeholder"])
     # Refresh after taking the per-player lock, including a concurrent graduation change.
     player = db.scalar(
         select(Player)
@@ -128,16 +129,16 @@ def complete_game(db: Session, player: Player, game_id: str, score: int | None) 
     )
     profile = db.get(Profile, player.id)
     if not profile or profile.onboarding_stage != "main":
-        raise PlayerError("Finish onboarding before playing.")
+        raise PlayerError(TEXT["errors"]["player"]["onboardingRequired"])
     completed = completion_scores(db, player.id)
     # The first result counts: replaying a finished game cannot improve its ECTS.
     if game_id in completed:
         return progress_data(db, player)
     if player.graduated_at:
-        raise PlayerError("This run has already graduated.")
+        raise PlayerError(TEXT["errors"]["player"]["alreadyGraduated"])
     index = next(i for i, year in enumerate(YEARS) if game in year["games"])
     if not year_unlocked(index, completed):
-        raise PlayerError("Complete every minigame in the previous years first.")
+        raise PlayerError(TEXT["errors"]["player"]["previousYearsRequired"])
     db.add(
         Completion(
             player_id=player.id, game_id=game_id, completed_at=datetime.now(UTC), score=score
@@ -157,7 +158,7 @@ def graduate(db: Session, player: Player) -> ShellProgress:
     if player.graduated_at:
         return progress_data(db, player)
     if not can_graduate(completion_scores(db, player.id)):
-        raise PlayerError("Complete all three years first.")
+        raise PlayerError(TEXT["errors"]["player"]["graduationRequirements"])
     if not player.graduated_at:
         player.graduated_at = datetime.now(UTC)
         db.commit()
