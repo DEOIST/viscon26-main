@@ -1,4 +1,4 @@
-﻿import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import GameWorkspace from "./GameWorkspace";
 import { GAMES, YEARS } from "../config";
@@ -14,30 +14,43 @@ afterEach(() => {
     GAMES[0].implemented = originalFlag;
 });
 
-function setup(selected = false) {
+function setup(selected = false, graduationPreview = false) {
     const onOpen = vi.fn();
     const onEditCharacter = vi.fn();
+    const onGraduate = vi.fn();
     const view = render(
         <GameWorkspace
             player={{ ...defaultPlayer, name: "Ada" }}
             progress={{ completedGameIds: [], graduated: false }}
             ects={0}
             eligible={false}
-            authenticated={false}
+            graduationPreview={graduationPreview}
             busy={false}
             error=""
             selectedGame={selected ? GAMES[0] : null}
             onOpen={onOpen}
             onComplete={vi.fn()}
             onExit={vi.fn()}
-            onGraduate={vi.fn()}
-            onAccount={vi.fn()}
+            onGraduate={onGraduate}
             onScoreboard={vi.fn()}
             onEditCharacter={onEditCharacter}
         />,
     );
-    return { view, onOpen, onEditCharacter };
+    return { view, onOpen, onEditCharacter, onGraduate };
 }
+
+it("allows a flagged graduation preview while keeping the button unavailable during a game", () => {
+    const { view, onGraduate } = setup(false, true);
+    fireEvent.click(screen.getByRole("button", { name: "Preview graduation" }));
+    expect(onGraduate).toHaveBeenCalledOnce();
+    view.unmount();
+    setup(true, true);
+    expect(
+        screen
+            .getByRole("button", { name: "Preview graduation" })
+            .hasAttribute("disabled"),
+    ).toBe(true);
+});
 
 it("opens the character builder from the profile picture, but not mid-game", () => {
     const { onEditCharacter, view } = setup();

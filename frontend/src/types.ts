@@ -16,7 +16,11 @@ export type Player = {
     major: string;
     onboardingStage: OnboardingStage;
 };
-export type Progress = { completedGameIds: string[]; graduated: boolean };
+export type Progress = {
+    completedGameIds: string[];
+    graduated: boolean;
+    graduatedAt?: string | null;
+};
 export type Snapshot = { player: Player; progress: Progress };
 export type Game = {
     id: string;

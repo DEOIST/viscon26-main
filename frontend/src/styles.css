@@ -100,13 +100,14 @@ strong {
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 .topbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding: 28px 0;
+    padding: 14px 0;
     border-bottom: 1px solid var(--border);
 }
 .brand {
@@ -144,7 +145,8 @@ strong {
 }
 main {
     flex: 1;
-    padding: 40px 0 56px;
+    min-width: 0;
+    padding: 18px 0 20px;
     outline: none;
 }
 .button {
@@ -286,8 +288,7 @@ main {
     grid-template-columns: 1.15fr 1fr;
     gap: 32px;
     align-items: center;
-    min-height: 544px;
-    padding: 26px 0 56px;
+    padding: 12px 0 24px;
 }
 .welcome-copy {
     position: relative;
@@ -300,9 +301,9 @@ main {
     border-radius: 50%;
 }
 .welcome-copy h1 {
-    font-size: clamp(44px, 5.5vw, 69px);
+    font-size: clamp(40px, 5vw, 60px);
     letter-spacing: -0.065em;
-    margin: 24px 0 18px;
+    margin: 16px 0 14px;
 }
 .hero-lead {
     color: var(--text);
@@ -314,7 +315,7 @@ main {
 .hero-description {
     max-width: 410px;
     font-size: 15px;
-    margin: 22px 0 28px;
+    margin: 16px 0 20px;
     line-height: 1.75;
 }
 .fine-print {
@@ -322,7 +323,7 @@ main {
     margin-top: 13px;
 }
 .letter-scene {
-    height: 445px;
+    height: 388px;
     position: relative;
     display: grid;
     place-items: center;
@@ -349,8 +350,8 @@ main {
     background: #f0eee7;
     color: #152238;
     width: 300px;
-    min-height: 362px;
-    padding: 26px;
+    min-height: 334px;
+    padding: 22px;
     border: 1px solid #d2d4d5;
     border-radius: 4px;
     transform: rotate(-5deg);
@@ -444,7 +445,7 @@ main {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 28px;
-    padding: 30px 0 8px;
+    padding: 18px 0 4px;
     border-top: 1px solid var(--border);
 }
 .journey-item {
@@ -472,29 +473,29 @@ main {
     margin-top: 4px;
 }
 .section-heading {
-    margin: 4px 0 30px;
+    margin: 0 0 16px;
 }
 .section-heading h1 {
-    font-size: 36px;
-    margin: 10px 0;
+    font-size: 32px;
+    margin: 6px 0;
 }
 .section-heading p {
     font-size: 14px;
 }
 .builder-layout {
     display: grid;
-    grid-template-columns: 0.85fr 1.15fr;
-    gap: 28px;
-    max-width: 980px;
+    grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.8fr);
+    gap: 20px;
+    max-width: 1080px;
     margin: auto;
 }
 .onboarding > .section-heading {
-    max-width: 980px;
+    max-width: 1080px;
     margin-left: auto;
     margin-right: auto;
 }
 .character-preview {
-    padding: 26px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -511,19 +512,19 @@ main {
     padding-bottom: 16px;
 }
 .portrait-frame {
-    width: 224px;
-    height: 245px;
+    width: 184px;
+    height: 200px;
     border-radius: 100px 100px 14px 14px;
     background: var(--surface-raised);
     border: 1px solid var(--border);
     display: flex;
     align-items: flex-end;
     justify-content: center;
-    margin: 36px 0 23px;
+    margin: 20px 0 16px;
     overflow: hidden;
 }
 .portrait-frame .avatar {
-    width: 200px;
+    width: 180px;
 }
 .character-preview h2 {
     font-size: 25px;
@@ -540,7 +541,7 @@ main {
     justify-content: space-between;
     width: 100%;
     margin-top: auto;
-    padding-top: 30px;
+    padding-top: 16px;
     gap: 20px;
 }
 .id-bottom > span:last-child {
@@ -557,7 +558,45 @@ main {
     opacity: 0.55;
 }
 .builder-form {
-    padding: 29px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 16px;
+    align-content: start;
+    min-width: 0;
+    padding: 18px;
+}
+.builder-form > .field:first-child,
+.builder-form > .photo-avatar,
+.builder-form > .appearance-fields,
+.builder-form > .error-box,
+.builder-form > .form-actions {
+    grid-column: 1 / -1;
+}
+.builder-form .field,
+.builder-form .swatches {
+    margin: 0;
+}
+.builder-form .field {
+    gap: 5px;
+}
+.appearance-fields {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+.builder-form .swatches legend {
+    margin-bottom: 6px;
+}
+.builder-form .swatch-options {
+    gap: 4px;
+}
+.builder-form .swatch {
+    width: 34px;
+    height: 34px;
+}
+.builder-form .photo-avatar > .button {
+    min-height: 40px;
+    padding: 8px 12px;
 }
 .field {
     display: flex;
@@ -681,11 +720,12 @@ fieldset {
 }
 .builder-form .form-actions {
     border-top: 1px solid var(--border);
-    padding-top: 23px;
+    padding-top: 10px;
+    margin-top: 0;
 }
 .story-wrap {
     max-width: 740px;
-    margin: 12px auto;
+    margin: 0 auto;
 }
 .story-wrap > .eyebrow {
     display: flex;
@@ -699,7 +739,7 @@ fieldset {
     display: flex;
     align-items: center;
     gap: 13px;
-    padding: 25px 36px;
+    padding: 18px 30px;
     border-bottom: 1px solid var(--border);
     color: var(--primary);
 }
@@ -713,7 +753,7 @@ fieldset {
     margin-left: auto;
 }
 .story-body {
-    padding: 38px 44px 28px;
+    padding: 26px 32px 18px;
 }
 .story-avatar {
     width: 100px;
@@ -723,23 +763,23 @@ fieldset {
     border-radius: 50%;
 }
 .story-body h1 {
-    font-size: 40px;
-    margin: 18px 0 23px;
+    font-size: 36px;
+    margin: 14px 0 18px;
 }
 .story-body p:not(.eyebrow) {
     max-width: 540px;
-    margin-bottom: 17px;
+    margin-bottom: 14px;
     font-size: 14px;
 }
 .story-body p strong {
     color: var(--text);
 }
 .story-body .story-signoff {
-    margin-top: 26px;
+    margin-top: 18px;
     font-size: 12px;
 }
 .story-footer {
-    padding: 15px 44px;
+    padding: 12px 32px;
     border-top: 1px solid var(--border);
     font-size: 10px;
     color: var(--text-muted);
@@ -753,7 +793,7 @@ fieldset {
     display: flex;
     justify-content: space-between;
     gap: 15px;
-    margin-top: 25px;
+    margin-top: 16px;
 }
 .player-header {
     padding: 25px 28px;
@@ -788,12 +828,6 @@ fieldset {
 }
 .player-summary p {
     font-size: 12px;
-}
-.account-tag {
-    padding-left: 12px;
-    margin-left: 10px;
-    border-left: 1px solid var(--border);
-    font-size: 10px;
 }
 .header-actions {
     align-self: start;
@@ -1075,20 +1109,20 @@ progress::-moz-progress-bar {
 .graduation {
     text-align: center;
     max-width: 840px;
-    margin: 20px auto;
-    padding: 45px 30px 50px;
+    margin: 0 auto;
+    padding: 26px 30px;
     border-top: 3px solid var(--reward);
 }
 .graduate-portrait {
-    width: 170px;
-    height: 180px;
+    width: 130px;
+    height: 144px;
     background: var(--surface-raised);
     border: 1px solid var(--border);
     border-radius: 80px 80px 16px 16px;
     display: flex;
     align-items: end;
     position: relative;
-    margin: 35px auto 30px;
+    margin: 20px auto;
 }
 .graduate-portrait .avatar {
     width: 100%;
@@ -1107,7 +1141,7 @@ progress::-moz-progress-bar {
     place-items: center;
 }
 .graduation h1 {
-    font-size: 40px;
+    font-size: 34px;
     overflow-wrap: anywhere;
 }
 .graduation .hero-lead {
@@ -1118,7 +1152,7 @@ progress::-moz-progress-bar {
     font-size: 13px;
 }
 .graduation .graduation-copy {
-    margin: 25px auto 32px;
+    margin: 18px auto 22px;
     font-size: 14px;
 }
 .dialog {
@@ -1129,7 +1163,12 @@ progress::-moz-progress-bar {
     width: min(460px, calc(100% - 32px));
     max-height: calc(100dvh - 48px);
     padding: 0;
+    overflow: auto;
     box-shadow: 0 24px 80px #00000066;
+}
+.dialog[open] {
+    display: flex;
+    flex-direction: column;
 }
 .dialog::backdrop {
     background: #060b16c9;
@@ -1138,14 +1177,27 @@ progress::-moz-progress-bar {
     width: min(720px, calc(100% - 32px));
 }
 .dialog-inner {
-    padding: 26px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    padding: 22px;
 }
 .dialog-heading {
+    flex-shrink: 0;
+    padding: 6px 0;
+    background: var(--surface);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     margin-bottom: 12px;
+}
+.dialog-body {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 4px;
 }
 .dialog-heading h2 {
     font-size: 24px;
@@ -1160,29 +1212,6 @@ progress::-moz-progress-bar {
     border-radius: 8px;
     font-size: 11px !important;
     margin: 20px 0;
-}
-.auth-tabs {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 4px;
-    background: var(--background);
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    margin: 22px 0;
-}
-.auth-tabs button {
-    background: transparent;
-    color: var(--text-muted);
-    padding: 9px;
-    border: 1px solid transparent;
-    border-radius: 6px;
-    font-weight: 650;
-    font-size: 12px;
-}
-.auth-tabs button.active {
-    color: var(--primary);
-    border-color: var(--border);
-    background: var(--surface-raised);
 }
 .full-width {
     width: 100%;
@@ -1298,7 +1327,7 @@ td strong {
     align-items: center;
     justify-content: space-between;
     gap: 25px;
-    padding: 22px 0 25px;
+    padding: 12px 0;
     border-top: 1px solid var(--border);
     font-size: 9px;
     color: var(--text-muted);
@@ -1353,7 +1382,7 @@ td strong {
     }
     .letter-scene {
         margin-left: 0;
-        height: 420px;
+        height: 388px;
     }
     .admission-paper {
         width: 265px;
@@ -1376,17 +1405,25 @@ td strong {
         font-size: 10px;
     }
     .builder-layout {
+        grid-template-columns: minmax(200px, 0.7fr) minmax(0, 1.6fr);
         gap: 20px;
     }
     .builder-form {
-        padding: 23px;
+        padding: 16px;
+    }
+    .appearance-fields {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    .builder-form .swatch-options {
+        gap: 7px;
     }
     .character-preview {
         padding: 23px;
     }
     .portrait-frame {
-        width: 195px;
-        height: 235px;
+        width: 170px;
+        height: 190px;
     }
     .player-header {
         grid-template-columns: 1fr;
@@ -1446,7 +1483,7 @@ td strong {
         height: 34px;
     }
     main {
-        padding: 28px 0 36px;
+        padding: 18px 0 24px;
     }
     .welcome-layout {
         grid-template-columns: 1fr;
@@ -1505,7 +1542,7 @@ td strong {
         grid-template-columns: 1fr;
     }
     .character-preview {
-        min-height: 405px;
+        min-height: 0;
     }
     .portrait-frame {
         width: 175px;
@@ -1523,7 +1560,8 @@ td strong {
         padding-top: 15px;
     }
     .builder-form {
-        padding: 23px;
+        grid-template-columns: 1fr;
+        padding: 18px;
     }
     .swatch-options {
         gap: 16px;
@@ -1590,12 +1628,6 @@ td strong {
     }
     .player-summary p {
         font-size: 10px;
-    }
-    .account-tag {
-        display: block;
-        border: 0;
-        padding: 0;
-        margin: 3px 0 0;
     }
     .small-portrait {
         width: 58px;
@@ -1796,10 +1828,9 @@ td strong {
 /* The degree workspace fills the space beneath navigation; games own their scrolling. */
 .app-shell.game-screen {
     height: 100dvh;
-    min-height: 0;
+    min-height: 600px;
     max-width: none;
     padding: 0 20px 12px;
-    overflow: hidden;
 }
 .game-screen .topbar {
     padding: 10px 0;
@@ -1837,8 +1868,8 @@ td strong {
     overflow: auto;
 }
 .compact-host .placeholder {
-    min-height: 0;
-    flex: 1;
+    min-height: 240px;
+    flex: 1 0 auto;
     padding: 24px 16px;
 }
 .compact-host .placeholder-icon {
@@ -1875,6 +1906,8 @@ td strong {
 }
 @media (max-width: 760px) {
     .app-shell.game-screen {
+        height: auto;
+        min-height: max(640px, 100dvh);
         padding: 0 8px 8px;
     }
     .game-screen .topbar {
@@ -1882,6 +1915,7 @@ td strong {
     }
     .game-screen main {
         padding-top: 8px;
+        min-height: 560px;
     }
 }
 @media (max-height: 550px) {
