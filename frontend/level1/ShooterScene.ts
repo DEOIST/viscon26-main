@@ -164,6 +164,18 @@ export default class ShooterScene extends Scene {
         this.hint.setText(this.hintText());
         this.updateHud();
         const shots = this.args.input.takeShots(); // always drained, so none pile up
+        // Slaps are only shown for now (no game effect yet), in every phase
+        for (const side of input.takeSlaps()) {
+            const x = GAME_WIDTH * (side === "left" ? 0.3 : 0.7);
+            floatText(
+                this,
+                x,
+                GAME_HEIGHT * 0.45,
+                `SLAP! ${side === "left" ? "⬅" : "➡"}`,
+                "#ff4d4d",
+            );
+            this.backdrop.pulse(x, GAME_HEIGHT * 0.45, MISS_FLASH, 0.8);
+        }
         if (this.phase === "trigger") {
             this.updateTriggerCalibration(delta, shots);
             return;

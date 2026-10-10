@@ -57,6 +57,12 @@ export default class SwitchableInput implements InputSource {
             this.current.calibrateTrigger(step);
     }
 
+    takeSlaps(): ("left" | "right")[] {
+        return this.current instanceof ServerHandInput
+            ? this.current.takeSlaps()
+            : [];
+    }
+
     takeTriggerReplies(): CvTriggerReply[] {
         return this.current instanceof ServerHandInput
             ? this.current.takeTriggerReplies()

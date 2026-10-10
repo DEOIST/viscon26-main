@@ -30,6 +30,7 @@ class CvFrame(CamelModel):
     landmarks: list[tuple[float, float]] | None  # 21 points, for drawing the hand
     thumb_angle: float | None  # degrees from straight up (cocked < 32, fires > 55), for tuning
     processing_ms: float
+    slap: Literal["left", "right"] | None = None  # set on the frame a slap is recognised
 
 
 # Client → server control messages on /api/cv/stream. JSON numbers only (no booleans, NaN or

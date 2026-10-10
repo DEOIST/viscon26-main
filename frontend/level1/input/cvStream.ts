@@ -17,6 +17,7 @@ export interface CvFrame {
     landmarks: GamePoint[] | null; // 21 points for drawing the hand; may lie outside 0..1
     thumbAngle: number | null; // degrees from straight up (cocked < 32, fires > 55), for tuning
     processingMs: number;
+    slap: "left" | "right" | null; // set on the frame a slap is recognised
 }
 
 // Control messages the browser sends; the engine answers a bad one with {type: "error", detail}.

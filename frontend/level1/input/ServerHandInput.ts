@@ -31,6 +31,7 @@ export default class ServerHandInput implements InputSource {
     recording = false; // the engine confirmed it saves this stream's frames
     private shots: AimPoint[] = [];
     private triggerReplies: CvTriggerReply[] = [];
+    private slaps: ("left" | "right")[] = [];
     private video: HTMLVideoElement | null = null;
     private stream: MediaStream | null = null;
     private socket: WebSocket | null = null;
@@ -81,6 +82,12 @@ export default class ServerHandInput implements InputSource {
         const replies = this.triggerReplies;
         this.triggerReplies = [];
         return replies;
+    }
+
+    takeSlaps(): ("left" | "right")[] {
+        const slaps = this.slaps;
+        this.slaps = [];
+        return slaps;
     }
 
     takeShots(): AimPoint[] {
@@ -148,6 +155,7 @@ export default class ServerHandInput implements InputSource {
             this.landmarks =
                 message.landmarks?.map((point) => toAim(point)!) ?? null;
             if (message.firedAt) this.shots.push(toAim(message.firedAt)!);
+            if (message.slap) this.slaps.push(message.slap);
             this.pacer.done();
         } else if (message.type === "record") {
             if (message.dir) console.info(`Recording frames to ${message.dir}`);

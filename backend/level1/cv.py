@@ -206,6 +206,7 @@ class CvSession:
             ),
             thumb_angle=gesture.thumb_angle,
             processing_ms=round((time.perf_counter() - started) * 1000, 1),
+            slap=gesture.slap,
         )
         if self._recorder:
             self._recorder.write(jpeg, (width, height), timestamp_ms, gesture, reply)

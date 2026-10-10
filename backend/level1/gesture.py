@@ -116,6 +116,18 @@ TRACK_TIMEOUT_S = 0.3
 # one's bounding box lies inside the other's.
 DUPLICATE_OVERLAP = 0.5
 
+# Slap: a huge, fast move of the player's palm (docs/SHOOTER_CV.md → Slap). Aiming needs at most
+# about 1/AIM_GAIN of the frame width, so moving SLAP_MIN_DISTANCE frame widths within
+# SLAP_WINDOW_S is never an aim. A slap often blurs the hand out of view: vanishing while moving
+# at least SLAP_MIN_SPEED counts too. Shots are ignored for SLAP_SHOT_BLOCK_S after a slap, since a
+# blurred thumb can read as dropped. Untuned: record real slaps (R) and adjust.
+SLAP_WINDOW_S = 0.25
+SLAP_MIN_DISTANCE = 0.35  # frame widths
+SLAP_MIN_SPEED = 1.5  # frame widths per second, between the last two frames before vanishing
+SLAP_COOLDOWN_S = 0.6  # one slap per swing
+SLAP_SHOT_BLOCK_S = 0.3
+Slap = Literal["left", "right"]  # on screen (the camera image is mirrored)
+
 # Minimum time between two shots of the player. The ASVZ-athlete perk lowers it per stream
 # ({"type": "settings"}); re-cocking the thumb is still required for every shot.
 DEFAULT_COOLDOWN_MS = 250.0
@@ -471,6 +483,7 @@ class GestureFrame:
     hands: list[TrackedHand]  # every distinct hand, largest first
     duplicates: list[Hand]  # detections dropped as a second copy of a hand above
     player_id: int | None
+    slap: Slap | None = None  # set on the frame a slap is recognised
 
 
 class PlayerGun:
@@ -498,6 +511,10 @@ class PlayerGun:
         self._last_aim: tuple[float, float] | None = None
         self.trigger = DEFAULT_TRIGGER
         self._trigger_calibration: TriggerCalibration | None = None
+        # The player's recent palm positions (t, x, y) in frame widths, for slaps
+        self._palms: deque[tuple[float, float, float]] = deque()
+        self._palms_of: int | None = None  # whose palms they are
+        self._last_slap_s: float | None = None
 
     def update(
         self, detections: Sequence[Hand], width: int, height: int, timestamp_ms: float
@@ -512,16 +529,26 @@ class PlayerGun:
         )
         if self._player_id not in ids and not recently:
             self._player_id = ids[0] if ids else None  # (re)acquire: the largest hand
+        t = timestamp_ms / 1000
         if self._player_id not in ids:
             if not recently:
                 self._last_aim = None
             return GestureFrame(
-                "lost", self._last_aim, None, None, None, tracked, duplicates, self._player_id
+                "lost",
+                self._last_aim,
+                None,
+                None,
+                None,
+                tracked,
+                duplicates,
+                self._player_id,
+                slap=self._slap_on_vanishing(t),
             )
 
         player = tracked[ids.index(self._player_id)]
         reading = player.reading
         self._last_seen_ms = timestamp_ms
+        slap = self._slap_on_moving(self._player_id, reading.palm, t)
         if self._trigger_calibration is not None:
             self._trigger_calibration.add(reading)
         if self._neutral is None and not self._calibrate(reading):
@@ -535,12 +562,18 @@ class PlayerGun:
                 hands=tracked,
                 duplicates=duplicates,
                 player_id=self._player_id,
+                slap=slap,
             )
 
         aim = self._aim(reading.palm, timestamp_ms / 1000)
         fired_at = None
-        if reading.shot and (
-            self._last_shot_ms is None or timestamp_ms - self._last_shot_ms >= self.cooldown_ms
+        just_slapped = self._last_slap_s is not None and t - self._last_slap_s < SLAP_SHOT_BLOCK_S
+        if (
+            reading.shot
+            and not just_slapped
+            and (
+                self._last_shot_ms is None or timestamp_ms - self._last_shot_ms >= self.cooldown_ms
+            )
         ):
             self._last_shot_ms = timestamp_ms
             # The shot lands where the gun pointed before the thumb drop dragged the aim. It is
@@ -555,7 +588,40 @@ class PlayerGun:
             hands=tracked,
             duplicates=duplicates,
             player_id=self._player_id,
+            slap=slap,
         )
+
+    def _slap_on_moving(self, player_id: int, palm: tuple[float, float], t: float) -> Slap | None:
+        """A slap when the palm moved SLAP_MIN_DISTANCE within SLAP_WINDOW_S."""
+        if self._palms_of != player_id:  # another hand took over: its moves are its own
+            self._palms.clear()
+            self._palms_of = player_id
+        self._palms.append((t, *palm))
+        while self._palms[0][0] < t - SLAP_WINDOW_S:
+            self._palms.popleft()
+        _, x, y = self._palms[-1]
+        far = max(self._palms, key=lambda p: math.hypot(x - p[1], y - p[2]))
+        if math.hypot(x - far[1], y - far[2]) < SLAP_MIN_DISTANCE:
+            return None
+        return self._slap(t, x - far[1])
+
+    def _slap_on_vanishing(self, t: float) -> Slap | None:
+        """A slap when the hand blurred out of view while moving fast (checked once per loss)."""
+        if len(self._palms) < 2:
+            return None
+        (t0, x0, y0), (t1, x1, y1) = self._palms[-2], self._palms[-1]
+        self._palms.clear()
+        if t1 <= t0 or math.hypot(x1 - x0, y1 - y0) / (t1 - t0) < SLAP_MIN_SPEED:
+            return None
+        return self._slap(t, x1 - x0)
+
+    def _slap(self, t: float, dx: float) -> Slap | None:
+        if self._last_slap_s is not None and t - self._last_slap_s < SLAP_COOLDOWN_S:
+            return None
+        self._last_slap_s = t
+        self._palms.clear()
+        # The camera image is mirrored on screen: moving to the image's right is a slap left
+        return "left" if dx > 0 else "right"
 
     def recenter(self) -> None:
         """Calibrates the neutral position again, from the next moment the gun is held still."""
