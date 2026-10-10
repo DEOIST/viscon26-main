@@ -71,7 +71,7 @@ def test_independent_games_replay_and_idempotent_graduation(client, connected_ga
     assert response.json()["completedGameIds"] == ["blackjack", "shooter"]
     graduated = client.post(f"{path}/graduate").json()
     assert graduated["totalScore"] == 85
-    assert graduated["ending"]["id"] == "c_level"
+    assert graduated["ending"]["id"] == "quant"
     assert client.post(f"{path}/graduate").json() == graduated
     assert client.post(f"{path}/scores", json={"game": "shooter", "score": 100}).status_code == 409
     assert client.get("/api/leaderboard/endings").json()["total"] == 1

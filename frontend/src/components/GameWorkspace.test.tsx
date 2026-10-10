@@ -21,7 +21,7 @@ function setup(selected = false, graduationPreview = false) {
     const view = render(
         <GameWorkspace
             player={{ ...defaultPlayer, name: "Ada" }}
-            progress={{ completedGameIds: [], graduated: false }}
+            progress={{ completedGameIds: [], scores: {}, graduated: false }}
             ects={0}
             eligible={false}
             graduationPreview={graduationPreview}
@@ -116,7 +116,11 @@ it("explains Galton Blackjack in three steps before Year 2 launches", () => {
     render(
         <GameWorkspace
             player={{ ...defaultPlayer, name: "Ada" }}
-            progress={{ completedGameIds: ["year-1-slot"], graduated: false }}
+            progress={{
+                completedGameIds: ["year-1-slot"],
+                scores: {},
+                graduated: false,
+            }}
             ects={60}
             eligible={false}
             busy={false}

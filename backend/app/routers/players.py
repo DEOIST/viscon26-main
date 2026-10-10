@@ -8,7 +8,14 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
-from app.schemas import HealthStatus, ProfileInput, ScoreboardEntry, ShellPlayer, ShellProgress
+from app.schemas import (
+    CompletionInput,
+    HealthStatus,
+    ProfileInput,
+    ScoreboardEntry,
+    ShellPlayer,
+    ShellProgress,
+)
 from app.services import players as players_service
 
 router = APIRouter(tags=["players"])
@@ -32,9 +39,14 @@ def save_profile(player_id: UUID, body: ProfileInput, db: Db) -> ShellPlayer:
 
 
 @router.post("/players/{player_id}/completions/{game_id}")
-def complete_game(player_id: UUID, game_id: str, db: Db) -> ShellProgress:
+def complete_game(
+    player_id: UUID, game_id: str, db: Db, body: CompletionInput | None = None
+) -> ShellProgress:
     return players_service.complete_game(
-        db, players_service.get_player(db, str(player_id)), game_id
+        db,
+        players_service.get_player(db, str(player_id)),
+        game_id,
+        body.score if body else None,
     )
 
 

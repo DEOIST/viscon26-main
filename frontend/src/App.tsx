@@ -85,9 +85,17 @@ export function App() {
                     (local.completedGameIds.includes(game.id) ||
                         remote.completedGameIds.includes(game.id)),
             ).map((game) => game.id);
+            // A score saved in this browser wins over the server's copy of the same game.
+            const scores = Object.fromEntries(
+                ids.flatMap((id) => {
+                    const score = local.scores[id] ?? remote.scores[id];
+                    return score === undefined ? [] : [[id, score]];
+                }),
+            );
             dispatch(
                 replaceProgress({
                     completedGameIds: ids,
+                    scores,
                     graduated:
                         (local.graduated || remote.graduated) &&
                         canGraduate(ids),
@@ -165,25 +173,31 @@ export function App() {
             if (mounted.current) setBusy(false);
         }
     }
-    function finishGame() {
+    // `score` is undefined when the player retries saving an already recorded result.
+    function finishGame(score?: number) {
         if (!selectedGame || saving.current) return;
-        const previous = store.getState().progress.completedGameIds;
-        if (previous.includes(selectedGame.id)) {
+        const previous = store.getState().progress;
+        if (previous.completedGameIds.includes(selectedGame.id)) {
             setSelectedGame(null);
             return;
         }
+        if (score === undefined) return;
         if (!GAMES.find((game) => game.id === selectedGame.id)?.implemented) {
             setError("Placeholder previews cannot award ECTS.");
             return;
         }
-        dispatch(completeGame(selectedGame.id));
-        const ids = store.getState().progress.completedGameIds;
+        dispatch(completeGame({ gameId: selectedGame.id, score }));
+        const current = store.getState().progress;
+        const ids = current.completedGameIds;
         if (!ids.includes(selectedGame.id)) return;
         setCompletionFeedback({
             id: ++completionId.current,
-            delta: calculateEcts(ids) - calculateEcts(previous),
+            delta:
+                calculateEcts(ids, current.scores) -
+                calculateEcts(previous.completedGameIds, previous.scores),
             unlockedYears: YEARS.flatMap((_, index) =>
-                !isYearUnlocked(index, previous) && isYearUnlocked(index, ids)
+                !isYearUnlocked(index, previous.completedGameIds) &&
+                isYearUnlocked(index, ids)
                     ? [index]
                     : [],
             ),

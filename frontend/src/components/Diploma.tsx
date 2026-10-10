@@ -1,10 +1,13 @@
 // The certificate presents a completed run; opening it never submits results.
+// The career comes from the earned ECTS (config.ts endingFor), the art from misc/endingArt.ts.
 import type { CSSProperties } from "react";
-import { DEPARTMENT, GAMES, YEARS } from "../config";
+import { DEPARTMENT, GAMES, YEARS, endingFor } from "../config";
 import type { Player } from "../types";
 import { Avatar } from "./Avatar";
 import { Dialog } from "./Dialogs";
 import { Icon } from "./Icon";
+import EndingPhoto from "./common/EndingPhoto";
+import { ENDING_ART } from "../misc/endingArt";
 import styles from "./Diploma.module.css";
 
 interface DiplomaArgs {
@@ -22,6 +25,8 @@ interface DiplomaArgs {
 
 export default function Diploma(args: DiplomaArgs) {
     const completed = new Set(args.completedGameIds);
+    const ending = endingFor(args.ects);
+    const art = ENDING_ART[ending.id];
     const games = GAMES.filter((game) => completed.has(game.id));
     const years = YEARS.filter((year) =>
         year.games.every((game) => completed.has(game.id)),
@@ -72,29 +77,35 @@ export default function Diploma(args: DiplomaArgs) {
                     Diploma of determined survival
                 </p>
                 <h2>Congratulations, {args.player.name}!</h2>
-                <div className={styles.certificateHero}>
-                    <div className={styles.avatarFrame}>
+                <p>
+                    {args.preview
+                        ? "A preview of the diploma awaiting your completed degree. At this rate you are headed for a career as"
+                        : "Awarded for an impressive commitment to the degree, the deadlines, and the plot, and hereby sentenced to a career as"}
+                </p>
+                <p className={styles.career}>{ending.title}</p>
+                <EndingPhoto
+                    ending={ending.id}
+                    avatar={
                         <Avatar
                             character={args.player.character}
                             label={`Graduate ${args.player.name}`}
                         />
+                    }
+                />
+                <p className={styles.resultLabel}>
+                    {args.preview ? "Current result" : "Final result"} · Total
+                    earned ECTS
+                </p>
+                <strong className={styles.result}>{args.ects} ECTS</strong>
+                <dl className={styles.records}>
+                    <div>
+                        <dt>Starting salary</dt>
+                        <dd>{art.salary}</dd>
                     </div>
                     <div>
-                        <p>
-                            {args.preview
-                                ? "A preview of the diploma awaiting your completed degree."
-                                : "Awarded for an impressive commitment to the degree, the deadlines, and the plot."}
-                        </p>
-                        <p className={styles.resultLabel}>
-                            {args.preview ? "Current result" : "Final result"} ·
-                            Total earned ECTS
-                        </p>
-                        <strong className={styles.result}>
-                            {args.ects} ECTS
-                        </strong>
+                        <dt>Housing</dt>
+                        <dd>{art.housing}</dd>
                     </div>
-                </div>
-                <dl className={styles.records}>
                     <div>
                         <dt>Department</dt>
                         <dd>{DEPARTMENT}</dd>

@@ -53,21 +53,22 @@ def profile_data(profile: Profile | None) -> ShellProfile | None:
     )
 
 
-def completed_ids(db: Session, player_id: int) -> set[str]:
-    return {
-        key
-        for key in db.scalars(select(Completion.game_id).where(Completion.player_id == player_id))
-        if key in GAMES and GAMES[key]["implemented"]
-    }
+def completion_scores(db: Session, player_id: int) -> dict[str, int | None]:
+    """Completed game id → its score (None for completions saved before scores existed)."""
+    rows = db.execute(
+        select(Completion.game_id, Completion.score).where(Completion.player_id == player_id)
+    )
+    return {key: score for key, score in rows if key in GAMES and GAMES[key]["implemented"]}
 
 
 def progress_data(db: Session, player: Player) -> ShellProgress:
-    completed = completed_ids(db, player.id)
+    completed = completion_scores(db, player.id)
     graduated_at = player.graduated_at
     if graduated_at and graduated_at.tzinfo is None:
         graduated_at = graduated_at.replace(tzinfo=UTC)
     return ShellProgress(
         completed_game_ids=sorted(completed),
+        scores={key: score for key, score in completed.items() if score is not None},
         graduated=player.graduated_at is not None,
         graduated_at=graduated_at,
         ects=earned_ects(completed),
@@ -112,7 +113,7 @@ def save_profile(db: Session, player_id: str, body: ProfileInput) -> ShellPlayer
     return player_data(db, player)
 
 
-def complete_game(db: Session, player: Player, game_id: str) -> ShellProgress:
+def complete_game(db: Session, player: Player, game_id: str, score: int | None) -> ShellProgress:
     game = GAMES.get(game_id)
     if not game:
         raise PlayerError("Unknown minigame.", "not_found")
@@ -128,7 +129,8 @@ def complete_game(db: Session, player: Player, game_id: str) -> ShellProgress:
     profile = db.get(Profile, player.id)
     if not profile or profile.onboarding_stage != "main":
         raise PlayerError("Finish onboarding before playing.")
-    completed = completed_ids(db, player.id)
+    completed = completion_scores(db, player.id)
+    # The first result counts: replaying a finished game cannot improve its ECTS.
     if game_id in completed:
         return progress_data(db, player)
     if player.graduated_at:
@@ -136,7 +138,11 @@ def complete_game(db: Session, player: Player, game_id: str) -> ShellProgress:
     index = next(i for i, year in enumerate(YEARS) if game in year["games"])
     if not year_unlocked(index, completed):
         raise PlayerError("Complete every minigame in the previous years first.")
-    db.add(Completion(player_id=player.id, game_id=game_id, completed_at=datetime.now(UTC)))
+    db.add(
+        Completion(
+            player_id=player.id, game_id=game_id, completed_at=datetime.now(UTC), score=score
+        )
+    )
     db.commit()
     return progress_data(db, player)
 
@@ -150,8 +156,8 @@ def graduate(db: Session, player: Player) -> ShellProgress:
     )
     if player.graduated_at:
         return progress_data(db, player)
-    if not can_graduate(completed_ids(db, player.id)):
-        raise PlayerError("Complete all three years and earn every required ECTS first.")
+    if not can_graduate(completion_scores(db, player.id)):
+        raise PlayerError("Complete all three years first.")
     if not player.graduated_at:
         player.graduated_at = datetime.now(UTC)
         db.commit()
@@ -162,16 +168,18 @@ def scoreboard(db: Session) -> list[ScoreboardEntry]:
     profiles = db.execute(
         select(Player, Profile).join(Profile, Profile.player_id == Player.id)
     ).all()
-    completions: dict[int, set[str]] = {}
-    for player_id, game_id in db.execute(select(Completion.player_id, Completion.game_id)):
-        completions.setdefault(player_id, set()).add(game_id)
+    completions: dict[int, dict[str, int | None]] = {}
+    for player_id, game_id, score in db.execute(
+        select(Completion.player_id, Completion.game_id, Completion.score)
+    ):
+        completions.setdefault(player_id, {})[game_id] = score
     rows = [
         (
             player.id,
             ScoreboardEntry(
                 name=profile.name,
                 major=profile.major,
-                ects=earned_ects(completions.get(player.id, set())),
+                ects=earned_ects(completions.get(player.id, {})),
                 graduated=player.graduated_at is not None,
             ),
         )
