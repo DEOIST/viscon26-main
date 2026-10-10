@@ -21,10 +21,10 @@ server the demo will use. CI has no camera; it only proves that the engine loads
 
 | What | Target |
 |---|---|
-| Intentional shots detected | ≥ 95 % (20 deliberate thumb drops → at least 19 shots) |
+| Intentional shots detected | ≥ 95 % (20 deliberate index recoils → at least 19 shots) |
 | False shots | ≤ 1 per 30 s of aiming without shooting |
 | Aim jitter at rest | crosshair moves < 1 % of the screen width while the hand is still |
-| Input-to-feedback latency | < 150 ms from thumb drop to muzzle flash (film the screen and hand with a 240 fps phone video) |
+| Input-to-feedback latency | < 150 ms from index flick to muzzle flash (film the screen and hand with a 240 fps phone video) |
 | Engine rate | one answer per camera frame (~30 per second); `python -m level1.cv_check <server>` round trip ≤ 60 ms |
 | Game frame rate | 60 fps on the demo laptop with the camera on |
 | New player | understands the gesture within the 3 practice papers, without coaching |
@@ -76,10 +76,9 @@ getUserMedia 640×480 ~30 fps, never shown (the scene draws its own backdrop)
                                                                  ├ GunTracks: one GunTracker per hand, stable
                                                                  │ across frames; the largest is the player
                                                                  ├ pose: ring and pinky curled?
-                                                                 ├ aim: knuckle position + wrist→index direction
-                                                                 │ → One-Euro
-                                                                 └ trigger: thumb angle, hysteresis, cooldown,
-                                                                   aim from 0.2 s earlier
+                                                                 ├ aim: calibrated palm offset → One-Euro
+                                                                 └ trigger: quick upward index recoil + return,
+                                                                   cooldown, aim from before the flick
 {type: "frame", tracking, aim, firedAt, landmarks, thumbAngle, processingMs} ◄── JSON
   ▼
 SwitchableInput (camera, or the mouse as fallback) → ShooterScene (Phaser): crosshair,
@@ -115,15 +114,15 @@ client turns every close into mouse mode with a readable reason (`closeMessage`)
 
 ```ts
 // frontend/level1/input/cvStream.ts (mirrors backend/level1/schemas.py)
-type Tracking = "ok" | "noPose" | "lost";
+type Tracking = "ok" | "noPose" | "lost" | "calibrating";
 type GamePoint = [number, number]; // game area 0..1, x already mirrored
 interface CvFrame {
     type: "frame";
     tracking: Tracking;
     aim: GamePoint | null; // filtered: where the gun points
-    firedAt: GamePoint | null; // set on the frame a shot fires (look-back applied)
+    firedAt: GamePoint | null; // set on confirmation, aim from before the flick
     landmarks: GamePoint[] | null; // 21 points for the skeleton (through the box), not clamped
-    thumbAngle: number | null; // degrees from straight up, for tuning
+    thumbAngle: number | null; // legacy thumb diagnostic; shooting uses recoil
     processingMs: number; // server time for this frame
 }
 ```
@@ -214,11 +213,13 @@ angles don't depend on the camera's aspect ratio. MediaPipe's metric "world"
 landmarks are not used: they are unreliable when the index finger points
 straight at the camera, which is exactly how players aim.
 
-The rules in `backend/level1/gesture.py` are tuned on two recordings of real play in
-the game (`backend/level1/tests/fixtures/captures/play_*.jsonl`, 41 s, every frame's
+The legacy thumb rules in `backend/level1/gesture.py` are tuned on four recordings of real play in
+the game (`backend/level1/tests/fixtures/captures/play_*.jsonl`, every frame's
 landmarks, with the frames where the thumb was visibly down labeled by eye) and
 checked on photos (`backend/level1/tests/fixtures/aim*.jpg`, `shoot1.jpg`). `test_gesture.py`
-replays the recordings: every labeled drop must fire, nothing else may. Re-run
+replays the recordings with the explicit legacy thumb trigger: every labeled drop must fire,
+nothing else may. `test_recoil.py` checks the live recoil trigger with synthetic motion and
+replays those same recordings to ensure ordinary thumb drops do not produce recoil shots. Re-run
 the tests whenever a threshold changes, and record new play (see
 [Recording](#recording-debugging-gestures)) when players report misfires.
 
@@ -226,8 +227,10 @@ the tests whenever a threshold changes, and record new play (see
 mislabels the hand: it calls the upright thumb the index finger and lays the
 thumb chain along the curled fingers. On the recordings that happened in about
 15 % of the frames. Read naively it is a dropped thumb (a false shot), and the
-index tip jumps onto the thumb (which threw the old aim around). So the
-trigger recognizes the swap, and the aim uses no thumb or index landmark.
+index tip jumps onto the thumb (which threw the old aim around). The legacy thumb
+trigger recognizes the static swap. Recoil instead checks temporal continuity of both fingers:
+a real index lifting upright can look like a swapped thumb in a single frame. The aim uses no
+thumb or index landmark.
 
 ## Picking the hand
 
@@ -241,10 +244,10 @@ MediaPipe returns up to two hands.
 - **Tracks:** every distinct hand gets its own `GunTracker`, matched across
   frames by the nearest palm point (at most 0.2 frame widths per frame,
   closest pairs first), so a second hand can't disturb the player's aim or
-  cocked thumb.
+  trigger.
 - **The player** is the largest hand in the image (the one closest to the
   camera) when the crosshair is acquired, and stays that hand for as long as it
-  is tracked. Someone walking behind cannot steal the crosshair, and their thumb
+  is tracked. Someone walking behind cannot steal the crosshair, and their recoil
   can't fire. Choosing the largest hand on every frame made the crosshair jump
   between two hands of similar size: on a two-hand recording, jumps of more
   than 10 % of the screen in one frame fell from 50 to 12 with the sticky
@@ -260,7 +263,7 @@ joint (`reach` < 1). Checked on every frame, no debounce.
 - The index is not checked: pointing at the camera foreshortens it to a reach
   of ~1.05, the same as a curled finger, which blocked real shots.
 - The middle finger is too ambiguous to use (0.76–1.17 on the samples).
-- The thumb is not part of the pose; it is the trigger.
+- The thumb is not part of the pose or the recoil trigger; it can rest in any position.
 
 The crosshair shows the state: gold when aiming; grey in the centre with "Hold
 your finger gun still, pointing at the centre" while calibrating; grey with the
@@ -310,59 +313,73 @@ pixels; y 0.225–0.675 for a 4:3 camera) and sends it once as
 `{"type": "box"}` before the first frame, so the skeleton isn't stretched. The
 box does not change the aim.
 
-## Trigger: the thumb hammer
+## Trigger: upward index recoil
 
-The thumb starts up (cocked) and drops forward onto the index finger to fire.
+Aim with the hand, pause briefly, then flick the index upward and let it return, as if a gun
+recoils. Thumb drops no longer fire in live camera sessions. The return is part of the gesture:
+a fast upward movement that stays at the new position is an aim change, so speed alone is not
+enough to shoot.
 
-Players drop the thumb two ways, and the trigger watches both:
+`backend/level1/recoil.py` holds the detector and its tunable thresholds. Distances use the
+image-space middle-to-pinky knuckle span as a palm width; times use camera-frame timestamps.
+The same gesture therefore works at different hand sizes, distances and frame rates.
 
-- **Sideways:** the thumb tilts away from straight up. Signal: the angle
-  between the thumb (MCP 2 → tip 4) and straight up, in the image. When the
-  labels are swapped (the "index" points straight up in the image, < 35°, and
-  is extended, reach > 1.15; a real index pointing at the camera is
-  foreshortened, reach ~1.0), the angle of that upright digit is used instead:
-  the thumb is up.
-- **Forward, toward the camera:** the thumb folds over the fist and looks
-  short, while its angle only reaches 30–54° (MediaPipe compresses depth).
-  Signal: the thumb's image length (MCP 2 → tip 4) in knuckle spans (middle to
-  pinky MCP, so the distance to the camera cancels out), as a fraction of its
-  **upright length**. That length is learned while the thumb points up: it
-  follows a longer thumb at once (rate 0.5 per frame) and a shorter one slowly
-  (0.02 per frame, ~1.5 s), so a fold barely moves it but each player's hand
-  and posture are learned within moments. Swapped frames are skipped: that
-  chain is not the thumb.
-- **Hysteresis (measured):** the gun is *cocked* when the thumb points up
-  (below **32°**) and is long again (above **80 %** of its upright length). It
-  fires when the thumb is down, above **55°** or shorter than **70 %**, for **2
-  frames in a row**, and must be cocked again before the next shot.
-- **Measured on four recordings of play** (63 drops labeled by eye, both
-  kinds, `backend/level1/tests/fixtures/captures/`): every drop caught, no false shot. The
-  angle alone at 55° missed 21 forward drops; at 40° it fired on hands that
-  only rolled; with the old label handling it fired on thumb/index swaps.
-  Rolling the hand to point sideways tilts the thumb but keeps its length, so
-  it doesn't fire. The second frame costs ~33 ms and removes one-frame
-  flickers.
-- **Labeling lesson:** a thumb folded toward the camera looks like an upright
-  one in a single small frame. Label drops by comparing each frame with the
-  ones before it.
-- Shots only fire in the finger-gun pose, and not while calibrating.
-- **Cooldown:** at least **250 ms** between the player's shots; the ASVZ-athlete
-  perk sends `{"type": "settings", "cooldownMs": 175}` (30 % shorter).
-- **Aim look-back:** the thumb drop drags the aim in the frames before a shot
-  registers, so the shot lands where the gun pointed **0.2 s** earlier. `aim`
-  keeps following the hand, so the crosshair never jumps.
-- Every threshold is a constant in `backend/level1/gesture.py`; the gameplay values
-  (round length, points, perks) live in `frontend/level1/config.ts`.
+1. **Settle:** the finger and palm stay within 0.10 and 0.18 palm widths for at least **120 ms**
+   (at least three observations). This arms the gesture at the player's current finger angle.
+2. **Rise:** the index tip rises relative to its own knuckle, at least **0.35 palm widths**, with
+   an upward speed of at least **2.5 palm widths/s**, within **180 ms**. At least two rising
+   observations are required, rejecting a single-frame landmark spike.
+3. **Confirm the return:** within **350 ms** of the pre-flick observation, the index returns
+   at least **35 %** of its peak lift (and at least 0.12 palm widths). This is when one shot fires;
+   it does not wait for a complete return. A slow lift or a raised finger held in place does not
+   fire. The partial return costs a few camera frames but distinguishes recoil from re-aiming.
+4. **Re-arm:** the index returns within 0.10 palm widths of its starting position, then settles
+   again. Staying raised or bouncing around the peak cannot produce repeated shots. If a player
+   re-aims before returning fully, recovery expires after **450 ms** and a fresh settle at the
+   new position can arm another gesture, avoiding a permanently disarmed gun.
 
-**Known limitation:** the player must hold the gun upright (thumb toward the
-ceiling).
+During the pulse, sideways travel must stay below 65 % of the upward lift, and palm travel
+below 0.60 palm widths. Whole-hand translation cancels out of the relative index measurement:
+moving the hand up, sideways or diagonally changes the crosshair without firing. A recoil can
+include a small wrist/palm movement. Large simultaneous thumb/index jumps discard the gesture
+as a possible landmark swap; an index lifting upright with a continuous thumb remains valid.
+
+- **Pose and tracking:** shots require the finger-gun pose. A missing hand frame, a gap longer
+  than 120 ms, invalid geometry, calibration/recentering or a change of player discards any
+  pending recoil. Tracking may retain the crosshair for 300 ms, but recovery never completes
+  an old shot.
+- **Cooldown:** at least **250 ms** between accepted shots; the ASVZ-athlete perk sends
+  `{"type": "settings", "cooldownMs": 175}`. A suppressed pulse is consumed, not queued.
+- **Shot aim:** the shot lands at the last filtered aim **before the flick starts**. The live
+  crosshair continues following the palm, so the recoil cannot drag the shot off the target.
+- **Protocol:** unchanged. `firedAt` carries the shot point; `thumbAngle` remains a legacy debug
+  measurement. Recordings also include `recoil_phase`, `recoil_lift` (palm widths), `shot_time`
+  (pre-flick timestamp in seconds), and `cocked` (whether recoil is armed).
+
+**Playtesting:** these thresholds are starting values, validated with synthetic gestures at
+15, 24, 30 and 60 fps and with the old recordings as negative examples. The existing camera
+recordings contain thumb drops, not labeled intentional recoil gestures. Use **R** to record
+several players aiming normally and shooting, label their recoils, and check the acceptance
+criteria above before claiming a measured detection rate. A quick wrist tilt up and back with
+a mostly stationary palm is recognized; a pure upward translation of the entire hand is aiming.
+
+### Legacy thumb trigger (recording regressions only)
+
+`PlayerGun(trigger="thumb")` explicitly enables the old trigger from Python, keeping the
+four labeled recordings and photo assertions intact. Live WebSocket sessions always use the
+default recoil mode; there is no browser setting for the old trigger.
+
+The old thumb detector learns upright thumb length in knuckle spans. It arms below 32 degrees
+and above 80 % upright length, then fires above 55 degrees or below 70 % length for two frames.
+It uses a fixed 0.2-second aim look-back. Those measurements and their original regression tests
+remain in `gesture.py`; they are not evidence that recoil works for every player.
 
 ## Tracking loss and recovery
 
 | Situation | Behavior |
 |---|---|
-| Hand out of view ≤ 300 ms | The last aim stays (grey); the hand keeps its track and its cocked thumb, so a shot that blurred out of tracking still fires on the way back |
-| Hand out of view > 300 ms | Crosshair hidden, "Show your hand to the camera"; the hand comes back as a new, uncocked track |
+| Hand out of view ≤ 300 ms | The last aim stays (grey); the hand keeps its track, but pending recoil is discarded and must settle again |
+| Hand out of view > 300 ms | Crosshair hidden, "Show your hand to the camera"; the hand comes back as a new track and must settle before shooting |
 | Camera denied, busy or missing; page not on `https://` or `localhost` | Mouse mode with the reason, the round continues; the shell shows the reason |
 | Camera unplugged or its permission revoked mid-round | Mouse mode at once (the track's `ended` event) |
 | Engine busy (1013), unavailable (1011) or the connection lost | Mouse mode with the reason |
@@ -385,14 +402,16 @@ Docker image):
 - `00000.jpg`, `00001.jpg`, ...: each frame exactly as received;
 - `frames.jsonl`, one line per frame: `size`, `t_ms`, the `reply` the browser
   got (`tracking`, `aim`, `fired_at`, `processing_ms`), every distinct hand
-  (`id`, `player`, `shot`, `gun`, `hammer_angle` (what the trigger uses),
+  (`id`, `player`, `shot`, `gun`, `hammer_angle` (legacy thumb diagnostic),
   `thumb_angle` (as labeled), `thumb_length` (fraction of the learned upright
   length), `swapped`, `cocked`, `palm`, `reach` of index,
-  ring and pinky, the 21 `landmarks`), and the `duplicates` that were dropped.
+  ring and pinky, `recoil_phase`, `recoil_lift`, `shot_time`, the 21 `landmarks`),
+  and the `duplicates` that were dropped. `swapped` is the legacy static heuristic;
+  a real upright index recoil can also match it.
 
 The landmarks make a recording replayable through `PlayerGun` without the
 model, the way `test_gesture.py` replays `backend/level1/tests/fixtures/captures/play_*.jsonl`
-(made from two such recordings, landmarks only);
+(made from four such recordings, landmarks only);
 the JPEGs allow running the model again, e.g. at another frame size.
 
 **Only a server in development mode records** (`ENVIRONMENT=development`, the
@@ -481,14 +500,17 @@ soon as an answer arrived; now the camera is the limit.
 
 - **pytest** (`make check`): `test_gesture.py` (synthetic hands from
   `backend/level1/tests/hands.py` for pose, aim, calibration, tracks, duplicates, both drop
-  styles, label swaps, cooldown and look-back, plus four replayed recordings
-  of play that must fire exactly the labeled shots with a smooth aim),
+  styles, label swaps, cooldown and look-back in explicit legacy thumb mode, plus four replayed
+  recordings of play that must fire exactly the labeled thumb shots with a smooth aim),
+  `test_recoil.py` (recoil versus ordinary aim, slow/one-way movements, jitter and swaps,
+  hand sizes, 15–60 fps, return/re-arm, loss, recenter and pre-flick aim; old recordings must
+  not fire recoil shots),
   `test_cv.py` (the HTTP and WebSocket contract with a scripted detector:
   frames, errors, limits, busy, unavailable, idle, settings, recording and its
   refusal in production),
   `test_cv_mediapipe.py` (the real model through the stream on
   `backend/level1/tests/fixtures/`: the aim photos read as cocked guns, the aim follows the
-  finger, aim → shoot fires one shot; skipped when the model hasn't been
+  finger, aim → thumb drop fires one shot in explicit legacy mode; skipped when the model hasn't been
   downloaded).
 - **vitest** (`make check`): `depth`, `hitTest`, `score`, `spawn`, `box`,
   `cvStream`, `FramePacer`, `glide`, the backdrop's colours, and `SwitchableInput.test.ts`, which runs the whole

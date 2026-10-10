@@ -2,11 +2,13 @@
 MediaPipe (tests/test_cv_mediapipe.py runs the real model)."""
 
 import io
+import itertools
 import json
 import struct
 import time
 from collections.abc import Iterator
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -17,10 +19,22 @@ from app.config import settings
 from level1 import cv as cv_service
 from level1.config import cv_settings
 from level1.gesture import CALIBRATION_FRAMES, Hand
-from level1.tests.hands import make_hand
+from level1.tests.hands import make_hand, recoil_hand
 
 UP, DOWN = [make_hand(thumb_up=True)], [make_hand(thumb_up=False)]
 STILL = [UP] * CALIBRATION_FRAMES  # the player holds the gun still: the aim calibrates
+RECOIL = [[recoil_hand(UP[0], lift)] for lift in (0.15, 0.36, 0.55, 0.32, 0.10, 0)]
+
+
+@pytest.fixture
+def camera_clock(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Camera time advances at 30 Hz even though the scripted detector runs instantly."""
+    ticks = itertools.count(0, 1 / 30)
+    monkeypatch.setattr(
+        cv_service,
+        "time",
+        SimpleNamespace(monotonic=lambda: next(ticks), perf_counter=time.perf_counter),
+    )
 
 
 class ScriptedDetector:
@@ -209,7 +223,9 @@ def test_no_hand_in_view_is_reported_as_lost(client: TestClient, detectors):
     assert reply["thumbAngle"] is None
 
 
-def test_dropping_the_thumb_on_camera_fires_one_shot(client: TestClient, detectors):
+def test_dropping_the_thumb_on_camera_fires_one_shot(
+    client: TestClient, detectors, legacy_thumb_trigger
+):
     detectors.append(ScriptedDetector(*STILL, UP, DOWN, DOWN, DOWN))
 
     with client.websocket_connect("/api/cv/stream") as ws:
@@ -218,6 +234,39 @@ def test_dropping_the_thumb_on_camera_fires_one_shot(client: TestClient, detecto
         shots = [reply["firedAt"] for reply in _frames(ws, 4)]
 
     assert [shot is not None for shot in shots] == [False, False, True, False]  # held 2 frames
+
+
+def test_live_camera_recoil_fires_once_at_the_pre_flick_aim(
+    client: TestClient, detectors, camera_clock
+):
+    detectors.append(ScriptedDetector(*STILL, *([UP] * 8), *RECOIL, *([UP] * 5)))
+    with client.websocket_connect("/api/cv/stream") as ws:
+        ws.receive_json()
+        before = _frames(ws, CALIBRATION_FRAMES + 8)[-1]
+        replies = _frames(ws, len(RECOIL) + 5)
+    assert before["tracking"] == "ok"
+    assert [reply["firedAt"] is not None for reply in replies] == [False] * 3 + [True] + [False] * 7
+    assert replies[3]["firedAt"] == before["aim"]
+
+
+def test_thumb_drops_do_not_fire_live_camera_shots(client: TestClient, detectors, camera_clock):
+    detectors.append(ScriptedDetector(*STILL, *([UP] * 8), *([DOWN] * 5), *([UP] * 5)))
+    with client.websocket_connect("/api/cv/stream") as ws:
+        ws.receive_json()
+        assert not any(_shots(ws, CALIBRATION_FRAMES + 18))
+
+
+@pytest.mark.parametrize(("cooldown_ms", "expected"), [(500, 1), (175, 2)])
+def test_camera_settings_apply_cooldown_to_recoil_shots(
+    client: TestClient, detectors, camera_clock, cooldown_ms, expected
+):
+    sequence = [*STILL, *([UP] * 8), *RECOIL, *([UP] * 6), *RECOIL]
+    detectors.append(ScriptedDetector(*sequence))
+    with client.websocket_connect("/api/cv/stream") as ws:
+        ws.receive_json()
+        ws.send_json({"type": "settings", "cooldownMs": cooldown_ms})
+        assert ws.receive_json() == {"type": "settings", "cooldownMs": cooldown_ms}
+        assert sum(_shots(ws, len(sequence))) == expected
 
 
 def test_recenter_calibrates_the_aim_again(client: TestClient, detectors):
@@ -467,7 +516,9 @@ def _shots(ws, count: int) -> list[bool]:
 TWO_QUICK_SHOTS = (*STILL, DOWN, DOWN, UP, DOWN, DOWN)
 
 
-def test_the_default_cooldown_blocks_an_instant_second_shot(client: TestClient, detectors):
+def test_the_default_cooldown_blocks_an_instant_second_shot(
+    client: TestClient, detectors, legacy_thumb_trigger
+):
     detectors.append(ScriptedDetector(*TWO_QUICK_SHOTS))
 
     with client.websocket_connect("/api/cv/stream") as ws:
@@ -475,7 +526,9 @@ def test_the_default_cooldown_blocks_an_instant_second_shot(client: TestClient, 
         assert _shots(ws, len(TWO_QUICK_SHOTS)).count(True) == 1  # frames arrive ms apart
 
 
-def test_a_shorter_cooldown_setting_allows_quick_shots(client: TestClient, detectors):
+def test_a_shorter_cooldown_setting_allows_quick_shots(
+    client: TestClient, detectors, legacy_thumb_trigger
+):
     detectors.append(ScriptedDetector(*TWO_QUICK_SHOTS))
 
     with client.websocket_connect("/api/cv/stream") as ws:
@@ -503,7 +556,7 @@ def recordings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 def test_a_recording_saves_each_frame_with_the_engine_measurements(
-    client: TestClient, detectors, recordings: Path
+    client: TestClient, detectors, recordings: Path, legacy_thumb_trigger
 ):
     detectors.append(ScriptedDetector(*STILL, DOWN, DOWN))
     frames = [jpeg(), jpeg(80, 60)]

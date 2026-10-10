@@ -97,3 +97,14 @@ def make_hand(
     index_tip = _index_at_camera()[-1]  # also for a swapped hand: same palm, other labels
     wrist = (tip[0] - index_tip[0] * scale, tip[1] + index_tip[1] * scale)
     return tuple((wrist[0] + wx * scale, wrist[1] - wy * scale, wz * scale) for wx, wy, wz in world)
+
+
+def recoil_hand(hand: Hand, lift: float, sideways: float = 0.0) -> Hand:
+    """Lift the index around its knuckle, leaving the palm and thumb alone. Displacements use
+    the middle-to-pinky knuckle span in the image; square frames give exact palm-width units."""
+    span = math.dist(hand[9][:2], hand[17][:2])
+    raised = list(hand)
+    for index, fraction in ((6, 1 / 3), (7, 2 / 3), (8, 1.0)):
+        x, y, z = hand[index]
+        raised[index] = (x + sideways * span * fraction, y - lift * span * fraction, z)
+    return tuple(raised)

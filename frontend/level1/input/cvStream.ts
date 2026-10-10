@@ -15,7 +15,7 @@ export interface CvFrame {
     aim: GamePoint | null;
     firedAt: GamePoint | null; // set on the frame a shot fires
     landmarks: GamePoint[] | null; // 21 points for drawing the hand; may lie outside 0..1
-    thumbAngle: number | null; // degrees from straight up (cocked < 32, fires > 55), for tuning
+    thumbAngle: number | null; // legacy thumb diagnostic; shooting uses index recoil
     processingMs: number;
 }
 

@@ -82,9 +82,10 @@ def test_the_aim_follows_the_hand_mirrored(client: TestClient):
     assert replies[CALIBRATION_FRAMES - 1]["aim"] == pytest.approx([0.5, 0.5], abs=0.02)
     assert replies[-1]["aim"][0] > 0.75
     assert replies[-1]["aim"][1] == pytest.approx(0.5, abs=0.05)
+    assert not any(reply["firedAt"] for reply in replies)
 
 
-def test_dropping_the_thumb_fires_one_shot(client: TestClient):
+def test_dropping_the_thumb_fires_one_shot(client: TestClient, legacy_thumb_trigger):
     replies = _stream(client, ["aim1"] * CALIBRATION_FRAMES + ["shoot1"] * 3)[CALIBRATION_FRAMES:]
     assert replies[0]["thumbAngle"] > 55
     assert [reply["firedAt"] is not None for reply in replies] == [False, True, False]

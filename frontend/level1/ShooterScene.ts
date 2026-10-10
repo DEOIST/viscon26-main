@@ -416,11 +416,13 @@ export default class ShooterScene extends Scene {
         if (input.mode === "camera" && input.tracking === "calibrating")
             return "Hold your finger gun still, pointing at the centre";
         if (input.mode === "camera" && input.tracking === "noPose")
-            return "Make a finger gun 👉  thumb up, drop it to shoot";
+            return "Make a finger gun 👉  flick your index up and let it return to shoot";
         if (input.mode === "camera" && input.tracking === "lost")
             return "Show your hand to the camera";
         if (this.phase === "practice")
-            return "Warm-up: shoot the practice paper (Enter skips)";
+            return input.mode === "camera"
+                ? "Aim, pause, then flick your index up and back to shoot (Enter skips)"
+                : "Warm-up: click the practice paper (Enter skips)";
         return "";
     }
 

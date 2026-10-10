@@ -39,7 +39,9 @@ def shifted(hand, dx: float, dy: float = 0.0):
 
 
 def shots(tracker: GunTracker, hands) -> list[bool]:
-    return [tracker.update(hand, SIZE, SIZE).shot for hand in hands]
+    return [
+        tracker.update(hand, SIZE, SIZE, i * FRAME_MS / 1000).shot for i, hand in enumerate(hands)
+    ]
 
 
 UP, DOWN = make_hand(thumb_up=True), make_hand(thumb_up=False)
@@ -47,7 +49,7 @@ FOLDED = make_hand(thumb_folded=True)  # dropped forward: short, but barely tilt
 SWAPPED = make_hand(swapped=True)
 
 
-# --- the trigger (GunTracker) ---
+# --- the legacy thumb trigger (GunTracker, explicitly enabled) ---
 
 
 def test_the_synthetic_hands_read_as_cocked_and_dropped():
@@ -71,47 +73,60 @@ def test_finger_gun_pose(fingers: dict[str, bool], expected: bool):
 
 def test_a_drop_held_for_two_frames_fires_once_per_cock():
     frames = [UP, DOWN, DOWN, DOWN, UP, DOWN, DOWN, UP]
-    assert shots(GunTracker(), frames) == [False, False, True, False, False, False, True, False]
+    assert shots(GunTracker(trigger="thumb"), frames) == [
+        False,
+        False,
+        True,
+        False,
+        False,
+        False,
+        True,
+        False,
+    ]
 
 
 def test_a_thumb_folded_toward_the_camera_fires_though_it_barely_tilts():
     assert COCKED_BELOW_DEG < hammer_angle(points(FOLDED)) < FIRED_ABOVE_DEG
-    shot = shots(GunTracker(), [UP, UP, FOLDED, FOLDED, FOLDED, UP])
+    shot = shots(GunTracker(trigger="thumb"), [UP, UP, FOLDED, FOLDED, FOLDED, UP])
     assert shot == [False, False, False, True, False, False]
 
 
 def test_a_folded_thumb_only_counts_once_the_upright_length_is_known():
-    assert not any(shots(GunTracker(), [FOLDED] * 4))
+    assert not any(shots(GunTracker(trigger="thumb"), [FOLDED] * 4))
 
 
 def test_the_hand_moving_closer_or_away_never_fires():
     near, far = make_hand(size=0.25), make_hand(size=0.08)
-    assert not any(shots(GunTracker(), [UP, far, far, near, near, far, far]))
+    assert not any(shots(GunTracker(trigger="thumb"), [UP, far, far, near, near, far, far]))
 
 
 def test_a_one_frame_flicker_never_fires():
-    assert not any(shots(GunTracker(), [UP, DOWN, UP, DOWN, UP, DOWN, UP]))
+    assert not any(shots(GunTracker(trigger="thumb"), [UP, DOWN, UP, DOWN, UP, DOWN, UP]))
 
 
 def test_a_thumb_hovering_between_the_thresholds_never_fires():
     hovering = make_hand(thumb_degrees=(COCKED_BELOW_DEG + FIRED_ABOVE_DEG) / 2)
-    assert not any(shots(GunTracker(), [UP] + [hovering] * 6))
+    assert not any(shots(GunTracker(trigger="thumb"), [UP] + [hovering] * 6))
 
 
 def test_swapped_thumb_and_index_labels_read_as_an_upright_thumb():
     # MediaPipe lays the thumb chain sideways: read naively, that is a dropped thumb.
     assert labels_swapped(points(SWAPPED)) and not labels_swapped(points(UP))
     assert hammer_angle(points(SWAPPED)) < COCKED_BELOW_DEG
-    assert not any(shots(GunTracker(), [UP, SWAPPED, SWAPPED, SWAPPED, UP]))
-    assert not any(shots(GunTracker(), [UP, SWAPPED, SWAPPED, FOLDED, UP]))  # one fold: no shot
+    assert not any(shots(GunTracker(trigger="thumb"), [UP, SWAPPED, SWAPPED, SWAPPED, UP]))
+    assert not any(
+        shots(GunTracker(trigger="thumb"), [UP, SWAPPED, SWAPPED, FOLDED, UP])
+    )  # one fold: no shot
     # ...and it re-cocks the gun like any upright thumb.
-    assert shots(GunTracker(), [UP, DOWN, DOWN, SWAPPED, DOWN, DOWN]).count(True) == 2
+    assert (
+        shots(GunTracker(trigger="thumb"), [UP, DOWN, DOWN, SWAPPED, DOWN, DOWN]).count(True) == 2
+    )
 
 
 def test_no_shot_without_the_finger_gun_pose():
     open_up = make_hand(middle=True, ring=True, pinky=True)
     open_down = make_hand(middle=True, ring=True, pinky=True, thumb_up=False)
-    assert not any(shots(GunTracker(), [open_up, open_down, open_down, open_down]))
+    assert not any(shots(GunTracker(trigger="thumb"), [open_up, open_down, open_down, open_down]))
 
 
 # --- telling hands apart (GunTracks, drop_duplicate_hands) ---
@@ -120,7 +135,7 @@ def test_no_shot_without_the_finger_gun_pose():
 def test_each_hand_keeps_its_id_and_its_own_shots():
     right_up, right_down = shifted(UP, 0.3), shifted(DOWN, 0.3)
     left = shifted(UP, -0.2)
-    tracks = GunTracks()
+    tracks = GunTracks(trigger="thumb")
 
     tracks.update([left, right_up], SIZE, SIZE, t=0.0)
     left_id, right_id = tracks.ids
@@ -135,7 +150,7 @@ def test_each_hand_keeps_its_id_and_its_own_shots():
 
 
 def test_a_hand_missing_briefly_keeps_its_track_and_cocked_thumb():
-    tracks = GunTracks()
+    tracks = GunTracks(trigger="thumb")
     tracks.update([UP], SIZE, SIZE, t=0.0)
     hand_id = tracks.ids[0]
     assert tracks.update([], SIZE, SIZE, t=TRACK_TIMEOUT_S / 2) == []
@@ -145,7 +160,7 @@ def test_a_hand_missing_briefly_keeps_its_track_and_cocked_thumb():
 
 
 def test_a_hand_gone_too_long_comes_back_as_a_new_uncocked_track():
-    tracks = GunTracks()
+    tracks = GunTracks(trigger="thumb")
     tracks.update([UP], SIZE, SIZE, t=0.0)
     hand_id = tracks.ids[0]
     tracks.update([DOWN], SIZE, SIZE, t=TRACK_TIMEOUT_S * 1.5)
@@ -188,9 +203,9 @@ def play(gun: PlayerGun, frames, start_ms: float = 0):
     ]
 
 
-def calibrated(hand=UP) -> tuple[PlayerGun, float]:
+def calibrated(hand=UP, *, trigger="recoil") -> tuple[PlayerGun, float]:
     """A PlayerGun whose neutral position is `hand`, and the time after calibrating."""
-    gun = PlayerGun()
+    gun = PlayerGun(trigger=trigger)
     frames = play(gun, [[hand]] * CALIBRATION_FRAMES)
     assert frames[-1].tracking == "ok"
     return gun, CALIBRATION_FRAMES * FRAME_MS
@@ -238,7 +253,7 @@ def test_recenter_calibrates_again_where_the_hand_is_now():
 
 
 def test_a_shot_lands_where_the_gun_pointed_before_the_thumb_drop():
-    gun, start = calibrated()
+    gun, start = calibrated(trigger="thumb")
     sweep = [[shifted(UP, -0.01 * i)] for i in range(12)]
     dropped = [[shifted(DOWN, -0.12)]] * 2
     frames = play(gun, sweep + dropped, start_ms=start)
@@ -317,7 +332,7 @@ def test_a_lost_hand_keeps_the_last_aim_briefly_then_clears_it():
 def test_the_cooldown_blocks_an_instant_second_shot_and_can_be_shortened(
     cooldown_ms: float, expected: int
 ):
-    gun, start = calibrated()
+    gun, start = calibrated(trigger="thumb")
     gun.cooldown_ms = cooldown_ms
     frames = play(gun, [[DOWN], [DOWN], [UP], [DOWN], [DOWN]], start_ms=start)  # 2 shots, 100 ms
     assert sum(f.fired_at is not None for f in frames) == expected
@@ -371,9 +386,9 @@ RECORDINGS = {
 }
 
 
-def replay(name: str):
+def replay(name: str, *, trigger="thumb"):
     """The game's frames for a recording, cooldown included."""
-    gun = PlayerGun()
+    gun = PlayerGun(trigger=trigger)
     with open(FIXTURES / "captures" / name) as rows:
         return [
             gun.update(

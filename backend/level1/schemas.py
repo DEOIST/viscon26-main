@@ -28,7 +28,7 @@ class CvFrame(CamelModel):
     aim: tuple[float, float] | None
     fired_at: tuple[float, float] | None  # set on the frame a shot fires
     landmarks: list[tuple[float, float]] | None  # 21 points, for drawing the hand
-    thumb_angle: float | None  # degrees from straight up (cocked < 32, fires > 55), for tuning
+    thumb_angle: float | None  # legacy thumb diagnostic; shooting uses index recoil
     processing_ms: float
 
 

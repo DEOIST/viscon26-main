@@ -10,8 +10,10 @@ they are not used.
 With the index pointing at the camera, MediaPipe often swaps the thumb and the index finger: the
 upright thumb is labeled as the index, and the thumb chain is laid along the curled fingers. On
 our recordings that happened in ~15 % of the frames and fired most false shots, and it threw the
-aim around, which then used the index tip. So the trigger recognizes the swap (labels_swapped),
-and the aim uses only landmarks that are never swapped (the wrist and the curled fingers).
+aim around, which then used the index tip. The recoil trigger checks finger continuity instead
+of rejecting every upright index (a real recoil lifts it upright too). The aim uses only
+landmarks that are never swapped (the wrist and the curled fingers). The previous thumb trigger
+is retained as an explicit Python-only mode for replaying its labeled recordings.
 """
 
 import math
@@ -22,10 +24,13 @@ from typing import Literal
 
 import numpy as np
 
+from level1.recoil import RECOIL_MAX_DURATION_S, RecoilPhase, RecoilTrigger
+
 Point = Sequence[float]  # (x, y, z): x, y normalized to the camera image (not mirrored)
 Hand = Sequence[Point]  # MediaPipe's 21 image landmarks of one hand
 Box = tuple[float, float, float, float]  # x0, y0, x1, y1 in mirrored image coordinates
 Tracking = Literal["ok", "noPose", "lost", "calibrating"]
+Trigger = Literal["recoil", "thumb"]
 
 WRIST, THUMB_MCP, THUMB_TIP = 0, 2, 4
 INDEX_MCP, INDEX_PIP, INDEX_TIP = 5, 6, 8
@@ -36,6 +41,7 @@ PINKY_PIP, PINKY_TIP = 18, 20
 # recordings) and it swings with the fist when the player points.
 PALM = [0, 9, 13, 17]
 
+# Legacy thumb trigger, only enabled with trigger="thumb" for recording regressions.
 # The hammer falls two ways, and the trigger watches both:
 # - sideways: the thumb tilts away from straight up. Its angle (or, when the labels are swapped,
 #   that of the upright digit MediaPipe calls the index) passes FIRED_ABOVE_DEG.
@@ -85,8 +91,8 @@ AIM_BETA = 0.5  # higher = less lag on fast moves, but more abrupt
 
 # Telling hands apart between frames: a hand is the same one if its palm moved less than this
 # (fraction of the frame width) since it was last seen; a hand unseen for longer than the timeout
-# is gone, and one appearing later gets a new id. Within the timeout it keeps its cocked thumb,
-# and the crosshair keeps its last aim.
+# is gone, and one appearing later gets a new id. The crosshair keeps its last aim within the
+# timeout; recoil history is cleared on every missing frame so recovery cannot fire a shot.
 TRACK_MAX_JUMP = 0.2
 TRACK_TIMEOUT_S = 0.3
 
@@ -96,8 +102,9 @@ TRACK_TIMEOUT_S = 0.3
 DUPLICATE_OVERLAP = 0.5
 
 # Minimum time between two shots of the player. The ASVZ-athlete perk lowers it per stream
-# ({"type": "settings"}); re-cocking the thumb is still required for every shot.
+# ({"type": "settings"}); returning and settling is still required for every recoil shot.
 DEFAULT_COOLDOWN_MS = 250.0
+SHOT_AIM_HISTORY_S = max(SHOT_AIM_LOOKBACK_S, RECOIL_MAX_DURATION_S) + 0.1
 
 UP = np.array([0.0, -1.0, 0.0])
 
@@ -198,26 +205,31 @@ class OneEuroFilter:
 class GunReading:
     """One hand on one frame: its trigger and the measurements behind it (for recordings)."""
 
-    shot: bool  # the hammer fell on this frame, in finger-gun pose
+    shot: bool  # a confirmed recoil (or legacy thumb drop), in finger-gun pose
     gun: bool  # in finger-gun pose (ring and pinky curled)
-    hammer_angle: float  # degrees from straight up, swap-corrected: what the trigger uses
+    hammer_angle: float  # degrees from straight up, swap-corrected; legacy thumb diagnostic
     thumb_angle: float  # degrees from straight up, as labeled by MediaPipe
     thumb_length: float | None  # fraction of its learned upright length; None when swapped
     swapped: bool  # MediaPipe swapped the thumb and index labels
-    cocked: bool  # after this frame
+    cocked: bool  # ready for a recoil, or the legacy thumb is cocked, after this frame
     palm: tuple[float, float]  # the aim's reference point, frame widths, camera view
     reach: tuple[float, float, float]  # index, ring, pinky: above 1 means extended
+    recoil_phase: RecoilPhase
+    recoil_lift: float  # in palm widths, above the pre-flick index position
+    shot_time: float | None  # seconds: pre-flick aim timestamp, for recoil shots
 
 
 class GunTracker:
     """One hand's trigger. Feed frames in order, one at a time."""
 
-    def __init__(self) -> None:
+    def __init__(self, trigger: Trigger = "recoil") -> None:
+        self.trigger = trigger
+        self.recoil = RecoilTrigger()
         self._cocked = False
         self._down_frames = 0  # consecutive frames with the hammer down while cocked
         self._upright_length: float | None = None  # learned thumb length, in knuckle spans
 
-    def update(self, hand: Hand, width: int, height: int) -> GunReading:
+    def update(self, hand: Hand, width: int, height: int, t: float) -> GunReading:
         pts = to_points(hand, width, height)
         swapped = labels_swapped(pts)
         angle = hammer_angle(pts)
@@ -237,6 +249,9 @@ class GunTracker:
         else:
             self._down_frames = 0
 
+        if self.trigger == "recoil":
+            shot = self.recoil.update(pts, t, gun)
+
         palm = palm_point(pts, width)
         return GunReading(
             shot=shot,
@@ -245,13 +260,16 @@ class GunTracker:
             thumb_angle=round(thumb_angle(pts), 1),
             thumb_length=None if length is None else round(length, 2),
             swapped=swapped,
-            cocked=self._cocked,
+            cocked=self.recoil.phase == "ready" if self.trigger == "recoil" else self._cocked,
             palm=(round(palm[0], 4), round(palm[1], 4)),
             reach=(
                 round(_reach(pts, INDEX_PIP, INDEX_TIP), 2),
                 round(_reach(pts, RING_PIP, RING_TIP), 2),
                 round(_reach(pts, PINKY_PIP, PINKY_TIP), 2),
             ),
+            recoil_phase=self.recoil.phase,
+            recoil_lift=round(self.recoil.lift, 3),
+            shot_time=self.recoil.shot_time,
         )
 
     def _relative_length(self, length: float | None, angle: float) -> float | None:
@@ -301,9 +319,9 @@ def drop_duplicate_hands(hands: Sequence[Hand]) -> tuple[list[Hand], list[Hand]]
 
 
 class _Track:
-    def __init__(self, track_id: int) -> None:
+    def __init__(self, track_id: int, trigger: Trigger) -> None:
         self.id = track_id
-        self.gun = GunTracker()
+        self.gun = GunTracker(trigger)
         self.palm = np.zeros(2)  # in frame widths
         self.last_seen = 0.0
 
@@ -315,7 +333,8 @@ class GunTracks:
     (closest pairs first), so ids survive hands moving and MediaPipe reordering them.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, trigger: Trigger = "recoil") -> None:
+        self.trigger = trigger
         self._tracks: list[_Track] = []
         self._next_id = 1
         self.ids: list[int] = []  # track id of each hand in the last update, in the same order
@@ -342,13 +361,21 @@ class GunTracks:
         for h, hand in enumerate(hands):
             track = matched.get(h)
             if track is None:
-                track = _Track(self._next_id)
+                track = _Track(self._next_id, self.trigger)
                 self._next_id += 1
                 self._tracks.append(track)
             track.palm, track.last_seen = palms[h], t
-            readings.append(track.gun.update(hand, width, height))
+            readings.append(track.gun.update(hand, width, height, t))
             self.ids.append(track.id)
+        for track in self._tracks:
+            if track.id not in self.ids:
+                track.gun.recoil.reset()
         return readings
+
+    def reset_recoil(self) -> None:
+        """Calibration cannot carry a half-finished recoil into live play."""
+        for track in self._tracks:
+            track.gun.recoil.reset()
 
 
 @dataclass(frozen=True)
@@ -362,7 +389,7 @@ class TrackedHand:
 class GestureFrame:
     tracking: Tracking
     aim: tuple[float, float] | None  # game area 0..1, filtered
-    fired_at: tuple[float, float] | None  # set on the frame a shot fires (look-back applied)
+    fired_at: tuple[float, float] | None  # set on confirmation; aim from before the gesture
     hand: Hand | None  # the player's hand, for drawing
     thumb_angle: float | None  # the player's hammer angle in degrees, for tuning
     # Everything behind the decision, for recordings (services/cv.py → Recorder).
@@ -376,15 +403,17 @@ class PlayerGun:
     the palm to the game area and smooths it, and turns the hand's trigger into shots.
 
     Every distinct hand in view keeps its own GunTracker, so a second hand can't disturb the
-    player's cocked thumb. The player is the largest hand (closest to the camera) when the
+    player's trigger. The player is the largest hand (closest to the camera) when the
     crosshair is acquired, and stays that hand for as long as it is tracked: choosing the largest
     hand on every frame made the crosshair jump between two hands of similar size. While the
     player's hand is briefly out of view (TRACK_TIMEOUT_S) the frame is "lost" even if another
     hand is visible, so a short dropout can't hand the crosshair to someone else."""
 
-    def __init__(self, cooldown_ms: float = DEFAULT_COOLDOWN_MS) -> None:
+    def __init__(
+        self, cooldown_ms: float = DEFAULT_COOLDOWN_MS, *, trigger: Trigger = "recoil"
+    ) -> None:
         self.cooldown_ms = cooldown_ms
-        self._tracks = GunTracks()
+        self._tracks = GunTracks(trigger)
         self._player_id: int | None = None
         self._neutral: np.ndarray | None = None  # the calibrated palm position
         self._still: deque[tuple[float, float]] = deque(maxlen=CALIBRATION_FRAMES)
@@ -406,8 +435,14 @@ class PlayerGun:
             self._last_seen_ms is not None
             and timestamp_ms - self._last_seen_ms <= TRACK_TIMEOUT_S * 1000
         )
+        player_changed = False
         if self._player_id not in ids and not recently:
-            self._player_id = ids[0] if ids else None  # (re)acquire: the largest hand
+            player_id = ids[0] if ids else None  # (re)acquire: the largest hand
+            if player_id != self._player_id:
+                player_changed = True
+                self._recent_aims.clear()
+                self._tracks.reset_recoil()
+            self._player_id = player_id
         if self._player_id not in ids:
             if not recently:
                 self._last_aim = None
@@ -418,7 +453,8 @@ class PlayerGun:
         player = tracked[ids.index(self._player_id)]
         reading = player.reading
         self._last_seen_ms = timestamp_ms
-        if self._neutral is None and not self._calibrate(reading):
+        was_calibrating = self._neutral is None
+        if was_calibrating and not self._calibrate(reading):
             self._last_aim = (0.5, 0.5)  # the crosshair waits in the centre
             return GestureFrame(
                 tracking="calibrating" if reading.gun else "noPose",
@@ -430,16 +466,29 @@ class PlayerGun:
                 duplicates=duplicates,
                 player_id=self._player_id,
             )
+        if was_calibrating:
+            self._tracks.reset_recoil()
 
         aim = self._aim(reading.palm, timestamp_ms / 1000)
         fired_at = None
-        if reading.shot and (
-            self._last_shot_ms is None or timestamp_ms - self._last_shot_ms >= self.cooldown_ms
+        if (
+            reading.shot
+            and not ((was_calibrating or player_changed) and self._tracks.trigger == "recoil")
+            and (
+                self._last_shot_ms is None or timestamp_ms - self._last_shot_ms >= self.cooldown_ms
+            )
         ):
             self._last_shot_ms = timestamp_ms
-            # The shot lands where the gun pointed before the thumb drop dragged the aim. It is
-            # reported separately so the live aim never jumps.
-            fired_at = self._recent_aims[0][1]
+            # Use the last aim before recoil began, not the raised crosshair. Legacy recordings
+            # keep their original fixed look-back. The live aim follows the hand throughout.
+            if reading.shot_time is not None:
+                fired_at = next(
+                    (aim for t, aim in reversed(self._recent_aims) if t <= reading.shot_time),
+                    self._recent_aims[0][1],
+                )
+            else:
+                cutoff = timestamp_ms / 1000 - SHOT_AIM_LOOKBACK_S
+                fired_at = next(aim for t, aim in self._recent_aims if t >= cutoff)
         return GestureFrame(
             tracking="ok" if reading.gun else "noPose",
             aim=aim,
@@ -458,6 +507,7 @@ class PlayerGun:
         self._filter_x = OneEuroFilter(AIM_MIN_CUTOFF_HZ, AIM_BETA)
         self._filter_y = OneEuroFilter(AIM_MIN_CUTOFF_HZ, AIM_BETA)
         self._recent_aims.clear()
+        self._tracks.reset_recoil()
 
     def _calibrate(self, reading: GunReading) -> bool:
         """Collects the palm while the finger gun is held still; True once calibrated."""
@@ -482,6 +532,6 @@ class PlayerGun:
         aim = (round(self._filter_x(raw_x, t), 4), round(self._filter_y(raw_y, t), 4))
         self._last_aim = aim
         self._recent_aims.append((t, aim))
-        while self._recent_aims[0][0] < t - SHOT_AIM_LOOKBACK_S:
+        while len(self._recent_aims) > 1 and self._recent_aims[1][0] < t - SHOT_AIM_HISTORY_S:
             self._recent_aims.popleft()
         return aim

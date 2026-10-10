@@ -139,11 +139,14 @@ new "over 21"; landing on it three times is the new blackjack.
 The Basisprüfung, ETH's first-year exam block, attacks: exam questions fly
 toward you out of an isometric exam hall (2D art that fakes depth, in Phaser),
 layered over your own mirrored webcam image. Make a finger gun, aim with your
-index finger, drop your thumb to shoot. The technical design is in
+hand, pause briefly, then flick your index finger upward and let it return to
+shoot. The technical design is in
 [SHOOTER_CV.md](SHOOTER_CV.md). Both minigames use Phaser.
 
-- **Controls:** finger gun via the webcam (hand tracking in the browser). The
-  mouse (aim + click) is the automatic fallback when the camera is unavailable;
+- **Controls:** finger gun via the webcam (hand tracking on the server).
+  Shooting requires a quick upward index recoil with a return, relative to the
+  hand; moving the whole hand changes aim. The thumb can rest in any position.
+  The mouse (aim + click) is the automatic fallback when the camera is unavailable;
   the operator can force it with `M`.
 - **Flow:** calibration doubles as the tutorial (shoot 3 practice targets:
   centre, top-left, bottom-right), then a 60-second round with a rising spawn
