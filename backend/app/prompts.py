@@ -10,6 +10,7 @@ import json
 from pydantic import BaseModel
 
 from app.schemas import ArchetypeId, DepartmentId, DialogueScene, Run
+from level2 import dialogue as level2_dialogue
 
 DEPARTMENT_NAMES: dict[DepartmentId, str] = {
     "arch": "Architecture",
@@ -40,29 +41,13 @@ ARCHETYPE_NAMES: dict[ArchetypeId, str] = {
 # The event keys each scene's game looks up (docs/GAME_DESIGN.md).
 DIALOGUE_EVENTS: dict[DialogueScene, tuple[str, ...]] = {
     "campus": ("advisor",),
-    "blackjack": (
-        "intro",
-        "deal",
-        "playerBlackjack",
-        "playerBust",
-        "dealerBust",
-        "win",
-        "lose",
-        "push",
-        "broke",
-        "cashOut",
-    ),
+    "blackjack": level2_dialogue.EVENTS,  # level 2 (backend/level2/)
     "shooter": ("intro", "streak", "miss", "halfway", "boss", "end"),
 }
 
 DIALOGUE_SPEAKERS: dict[DialogueScene, str] = {
     "campus": "Dr. Gradient, the player's study advisor, greeting them on campus",
-    # Galton Blackjack (docs/GAME_DESIGN.md) has no card totals: no jokes about 21.
-    "blackjack": (
-        "the casino dealer at the player's Galton blackjack table, where every card drops balls "
-        "onto a Galton board: a red ball above the curve busts, three yellow balls on the curve "
-        "are a blackjack, otherwise more balls wins (never mention 21 or card totals)"
-    ),
+    "blackjack": level2_dialogue.SPEAKER,
     "shooter": "the strict exam proctor while exam questions fly at the player",
 }
 

@@ -104,7 +104,8 @@ new "over 21"; landing on it three times is the new blackjack.
 - **Dealer lines** (AI dialogue event keys): `intro`, `deal`, `playerBlackjack`,
   `playerBust`, `dealerBust`, `win`, `lose`, `push`, `broke`, and `cashOut`
   (said when you finish the ten hands ahead). Without a dialogue pack the game
-  uses its own lines (`games/blackjack/lines.ts`).
+  uses its own lines (`frontend/level2/lines.ts`). The keys, the AI's speaker
+  description and the fallback lines are in `backend/level2/dialogue.py`.
 - **Balance:** the curve (the expected stack of 26 balls, 1.2 times wider than
   the binomial the balls follow), the three yellows and the dealer's limit of
   10 were searched together by simulation for odds close to classic blackjack.
@@ -121,7 +122,8 @@ new "over 21"; landing on it three times is the new blackjack.
 
   Busts are more common than in classic blackjack (34 % of hands) and pushes
   rarer, because ball counts spread wider than card totals.
-- **Code:** the rules (`games/blackjack/rules.ts`, with unit tests) decide every
+- **Code:** blackjack is level 2: the game in `frontend/level2/`, its server
+  side in `backend/level2/`. The rules (`rules.ts`, with unit tests) decide every
   card, ball path, landing slot and colour, and emit an event log; the Phaser
   scene only plays it back. Board geometry and the curve are in `board.ts`,
   tunables in `config.ts`. Cards are composed from the frame, number, symbol
@@ -232,7 +234,7 @@ isometric shooter art match:
 
 1. A judge enrolls (name, department, archetype, avatar): about 20 s.
 2. Campus: the advisor greets them by name and department ("the game knows me").
-3. Blackjack: up to ten hands (`HANDS` in `games/blackjack/config.ts` sets the length).
+3. Blackjack: up to ten hands (`HANDS` in `frontend/level2/config.ts` sets the length).
 4. Shooter: calibration, then 60 s of finger-gun shooting. **This is the wow.**
 5. Graduation: open the diploma; the career and a personal epilogue are read aloud.
 

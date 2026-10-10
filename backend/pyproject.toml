@@ -14,7 +14,7 @@ ignore-names = ["*WHid"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ["tests"]
+testpaths = ["tests", "level2/tests"]
 # No test may reach the network (OpenAI credits, real Redis). Unix sockets stay allowed because
 # the event loop under TestClient uses a socketpair.
 addopts = "--disable-socket --allow-unix-socket"

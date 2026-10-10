@@ -19,7 +19,7 @@ Guidance for Claude Code **and for every teammate** working in this repository. 
 | [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md) | The finger-gun computer vision |
 | [docs/STACK.md](docs/STACK.md) | Versions, what to add, what we rejected and why |
 
-> **Status:** the foundation is built (#12): API contract, Redis, OpenAI plumbing, Phaser and MediaPipe in the build, and every page as a working skeleton. Blackjack is the real game (Galton Blackjack, see GAME_DESIGN.md); the shooter is still a **placeholder** for its tracks. Anything marked *(planned)* below does not exist until its PR lands ([build status](docs/ARCHITECTURE.md#build-status)).
+> **Status:** the foundation is built (#12): API contract, Redis, OpenAI plumbing, Phaser and MediaPipe in the build, and every page as a working skeleton. **Blackjack** is built as level 2 (Galton Blackjack: `frontend/level2/`, `backend/level2/`, see GAME_DESIGN.md); the shooter is still a **placeholder** for its tracks. Anything marked *(planned)* below does not exist until its PR lands ([build status](docs/ARCHITECTURE.md#build-status)).
 
 Stack: **React + TypeScript** outer shell bundled by **esbuild**; a WebGL inner shell for the minigames: **Phaser 4** for both (blackjack, and the shooter, which fakes depth with isometric 2D art); **MediaPipe** hand tracking in the browser; a **FastAPI** backend with **Redis** (no Redux, no client-side store); and **OpenAI** called only from the backend. FastAPI serves both the JSON API and the built frontend from **one origin**, so there is no CORS, no proxy and no API base URL.
 
@@ -33,7 +33,8 @@ Browser GET /blackjack?run=abc
   → blackjack.html loads              /pages/blackjack.js (incl. Phaser) + shared chunks (React, misc/)
   → src/pages/blackjack.tsx           mountPage(App)
   → src/components/blackjack/App.tsx  React outer shell: intro, MinigameHost, result screen, navigation
-  → src/games/blackjack/index.ts      mountBlackjack(): Phaser 4 inner shell (2D, WebGL canvas)
+  → level2/index.ts                   mountBlackjack(): Phaser 4 inner shell (2D, WebGL canvas),
+                                      registered in src/games/registry.ts
   (/shooter works the same way: games/shooter/index.ts mountShooter() = Phaser isometric scene + MediaPipe)
 
 Browser fetch POST /api/runs/abc/scores
@@ -47,6 +48,7 @@ Story endpoints: app/routers/story.py → app/services/story.py → app/ai.py �
 
 - **Navigation** is plain `<a href="/other-page">` or `window.location.href` (a full page load). Pass state between pages through the query string: the run id is `?run=<id>`, built and read only through `misc/run.ts`. **Do not add `react-router`.**
 - **Two shells, one seam.** React owns everything around a round (menus, character creator, hub, overlays, saving, navigation). Phaser 4 owns the round itself, in both minigames. They meet only through the `MountMinigame` contract in `games/shared/minigame.ts`. Pages never import Phaser; `games/` never fetches, never navigates and never imports React.
+- **Blackjack is level 2.** A minigame's own code lives in a level folder: `frontend/level2/` holds the game (rules, scene, sprite sheets) and `backend/level2/` its server side (the dealer's dialogue, with its own `tests/`). A level touches the shell only through hooks: its mount function in `src/games/registry.ts`, `level2` in `frontend/tsconfig.json`, the imports in `app/prompts.py` and `app/services/fallbacks.py`, `level2/tests` in `backend/pyproject.toml`, and `COPY backend/level2` in the Dockerfile.
 - **No client-side store (no Redux).** Every navigation is a full page load, which wipes in-memory state. The character and the run live on the server; each page loads them through the API.
 - **Computer vision runs in the browser.** MediaPipe tracks the hand on the device; video frames never reach the backend. Details in [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md).
 - **Secrets stay on the server.** Only `backend/app/ai.py` talks to OpenAI.
@@ -132,6 +134,10 @@ The tree shows the target. *(planned)* marks parts that don't exist yet.
 │
 ├── frontend/
 │   ├── build.js                  esbuild script: discovers pages, bundles, writes HTML, copies public/
+│   ├── level2/                   Level 2, Galton Blackjack (Phaser 4, 2D): index.ts (mountBlackjack),
+│   │                             rules.ts + rules.test.ts, board.ts, config.ts, lines.ts,
+│   │                             BlackjackScene.ts, BoardView.ts, CardView.ts, layout.ts, textures.ts,
+│   │                             ui.ts, assets/ (sprite sheets)
 │   ├── template.html             HTML shell for every page ({{page}}, {{css}} placeholders)
 │   ├── package.json  tsconfig.json  .prettierrc  .nvmrc
 │   ├── public/                   copied verbatim to dist/static/ → served at /static/<file>
@@ -148,9 +154,7 @@ The tree shows the target. *(planned)* marks parts that don't exist yet.
 │       │                         Avatar, MissingRun; LegiCard, Typewriter planned)
 │       ├── games/                WebGL inner shell: plain TS + Phaser. No React, no fetch.
 │       │   ├── shared/           minigame.ts (the MountMinigame contract), createGame.ts (Phaser setup)
-│       │   ├── blackjack/        Phaser 4, 2D: index.ts (mountBlackjack), rules.ts + rules.test.ts,
-│       │   │                     board.ts, config.ts, lines.ts, BlackjackScene.ts, BoardView.ts,
-│       │   │                     CardView.ts, layout.ts, textures.ts, ui.ts, assets/ (sprite sheets)
+│       │   ├── registry.ts       which mount function plays each game (blackjack: ../../level2)
 │       │   └── shooter/          Phaser 4, isometric 2D: index.ts (mountShooter), ShooterScene.ts,
 │       │       │                 hitTest.ts (+ test), config.ts, assets/
 │       │       └── input/        InputSource.ts, HandInput.ts, gesture.ts (+ test), MouseInput.ts,
@@ -181,6 +185,8 @@ The tree shows the target. *(planned)* marks parts that don't exist yet.
     │   ├── routers/__init__.py   api_router (prefix /api), includes each feature router
     │   ├── routers/<feature>.py  HTTP layer for one feature: health · runs · leaderboard · story
     │   └── services/<feature>.py data + business logic for one feature (+ endings.py, fallbacks.py)
+    ├── level2/                   Level 2's server side: dialogue.py (the dealer's event keys, AI
+    │                             speaker and fallback lines) and its own tests/
     ├── tools/                    ai_check.py (generate_art.py planned); not shipped in the image
     └── tests/
         ├── conftest.py           `client` fixture (FastAPI TestClient); + fakeredis, FakeAI,
@@ -274,7 +280,7 @@ APP_PORT=9000 docker compose up --build -d   # publish on another host port
 How the image is built ([Dockerfile](Dockerfile)):
 
 1. **Stage `frontend`** (`node:26-alpine`): `npm ci`, then `node build.js --prod` (minified, production React, no source maps).
-2. **Runtime stage** (`python:3.14-slim`): installs **only** `backend/requirements.txt`, copies `backend/app/` and the built `frontend/dist/`, runs as a non-root user, and starts `uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1`.
+2. **Runtime stage** (`python:3.14-slim`): installs **only** `backend/requirements.txt`, copies `backend/app/`, `backend/level2/` and the built `frontend/dist/`, runs as a non-root user, and starts `uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1`.
 
 Both base images are pulled from `public.ecr.aws/docker/library/`, AWS's mirror of the Docker Official Images (same digests as Docker Hub), because Docker Hub rate-limits anonymous pulls per IP and shared IPs (CI runners, the event network) hit that limit. Use the same prefix for any new service image, e.g. `public.ecr.aws/docker/library/redis:8-alpine`, and don't add a `# syntax=` line to the Dockerfile (it pulls from Docker Hub).
 

@@ -1,6 +1,6 @@
 // The dealer's built-in lines, used when the shell passes no dialogue pack or the pack has no
-// line for an event. The keys are the blackjack dialogue events in docs/GAME_DESIGN.md, which
-// the story API (backend/app/prompts.py) fills in for this player.
+// line for an event. The keys are this level's dialogue events (EVENTS in
+// backend/level2/dialogue.py), which the story API fills in for this player.
 
 export type DealerEvent =
     | "intro"

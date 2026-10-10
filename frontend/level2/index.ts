@@ -1,6 +1,6 @@
 import BlackjackScene from "./BlackjackScene";
-import { mountScene } from "../shared/createGame";
-import type { MountMinigame } from "../shared/minigame";
+import { mountScene } from "../src/games/shared/createGame";
+import type { MountMinigame } from "../src/games/shared/minigame";
 
 // The canvas says nothing to a screen reader, so the table's state is also written into a
 // visually hidden live region next to it.
@@ -19,6 +19,8 @@ function createLiveRegion(): HTMLElement {
     return region;
 }
 
+// Level 2, Galton Blackjack ("Casino night", docs/GAME_DESIGN.md): the shell mounts it through
+// src/games/registry.ts. Its server side, the dealer's dialogue, lives in backend/level2/.
 export const mountBlackjack: MountMinigame = (options) => {
     const liveRegion = createLiveRegion();
     const game = mountScene(

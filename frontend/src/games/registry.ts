@@ -1,6 +1,6 @@
 // Destination scenes use the shell seam. Shared metadata controls credit eligibility.
 import type { GameId } from "../misc/CommonInt";
-import { mountBlackjack } from "./blackjack";
+import { mountBlackjack } from "../../level2";
 import { mountShooter } from "./shooter";
 import type { MountMinigame } from "./shared/minigame";
 

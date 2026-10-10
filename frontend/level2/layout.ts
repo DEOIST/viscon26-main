@@ -3,7 +3,7 @@
 // units: the table is 1000 units tall and as wide as the shared 16:9 game canvas allows, and
 // the scene's camera zooms it onto that canvas.
 
-import { GAME_HEIGHT, GAME_WIDTH } from "../shared/createGame";
+import { GAME_HEIGHT, GAME_WIDTH } from "../src/games/shared/createGame";
 import type { Rank } from "./rules";
 
 export const HEIGHT = 1000;

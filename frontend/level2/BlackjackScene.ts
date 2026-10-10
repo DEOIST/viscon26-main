@@ -58,8 +58,8 @@ import {
     tween,
     wait,
 } from "./ui";
-import { pickLine } from "../shared/minigame";
-import type { MinigameResult } from "../shared/minigame";
+import { pickLine } from "../src/games/shared/minigame";
+import type { MinigameResult } from "../src/games/shared/minigame";
 
 interface BlackjackSceneArgs {
     playerName: string;

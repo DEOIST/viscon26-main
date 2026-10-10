@@ -18,7 +18,7 @@ import {
     SCORE_AT_START_CHIPS,
     START_CHIPS,
 } from "./config";
-import type { MinigameResult } from "../shared/minigame";
+import type { MinigameResult } from "../src/games/shared/minigame";
 
 export type Suit = "spades" | "hearts" | "diamonds" | "clubs";
 export type Rank =
