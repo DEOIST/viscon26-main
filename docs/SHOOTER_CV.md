@@ -335,16 +335,19 @@ noise when the fist rotates edge-on and its knuckle span collapses.
    preparatory motion; continuing to move requires a fresh settle.
 2. **Rise:** the index rises relative to its knuckle at **2.5 scales/s** or faster. A rise starts
    at **0.10 scales**; its peak must arrive within **180 ms**. Direction is checked at the peak,
-   with sideways travel at most **65 %** of the lift. Palm motion up to **3 scales** is allowed:
-   natural recoil rotates and moves the wrist instead of keeping the fist fixed.
+   with sideways travel at most **65 %** of the lift for small flicks. A strong pitch may
+   instead finish with the barrel upright, allowing recoil from a sideways aim. Palm motion
+   up to **3 scales** is allowed: natural recoil rotates and moves the wrist instead of keeping
+   the fist fixed.
 3. **Confirm once**, by either of two paths:
    - A small flick has at least two rising observations before the first fall, reaches
      **0.28 scales**, and returns **35 %** of its peak (at least **0.12 scales**) within **350 ms**.
-     At the peak the index joint must rise at least **20 %** as much as the tip. Isolated tip
-     spikes, diagonal flicks, and a rise held at its new position do not fire.
+     At the peak the index joint must rise at least **25 %** as much as the tip. Isolated tip
+     spikes, diagonal flicks, and a rise held at its new position do not fire. A higher peak
+     after the first fall discards the candidate rather than borrowing earlier rises.
    - A pronounced wrist recoil has two observations within **180 ms** with relative tip lift
      at least **0.85 scales**, the tip pointing upward by at least **0.65 scales**, and joint
-     lift at least **0.20 scales** and **20 %** of the tip lift. The palm must also rise at least
+     lift at least **0.20 scales** and **25 %** of the tip lift. The palm must also rise at least
      **0.35 scales**. A bad index reading between these observations can be tolerated. This
      catches the real recoil that is followed immediately by lost tracking.
 4. **Re-arm:** the index falls back below **35 %** of its peak lift (with a **0.10 scale**
@@ -355,13 +358,17 @@ noise when the fist rotates edge-on and its knuckle span collapses.
 Whole-hand translation cancels out of the relative index measurement, so moving the hand up,
 sideways or diagonally changes the crosshair without firing. An index jumping up while the
 thumb simultaneously jumps down discards the gesture as a possible label swap. Wrist recoil
-commonly lifts both fingers; that thumb motion is allowed. A single spike cannot accumulate
-later unrelated jitter into a shot.
+commonly lifts both fingers; that thumb motion is allowed. Once a credible pitch is observed,
+thumb folding is also allowed if the index joint continues to corroborate the tip. A single
+spike cannot accumulate later unrelated jitter into a shot.
 
 - **Pose and tracking:** shots require the finger-gun pose. A missing hand frame, a gap longer
   than 120 ms, invalid geometry, calibration/recentering or a change of player discards a
-  pending recoil. Tracking may retain the crosshair for 300 ms; reacquisition cannot complete
-  an old shot.
+  pending recoil. An established pose survives a curled-finger misread for at most **150 ms**
+  if ring/pinky reach stays below **1.20**. Uncertain observations retain the baseline and aim
+  but cannot arm or confirm shots; continuity guards still reject label swaps. A clearly open
+  hand disarms immediately. Tracking may retain the crosshair for 300 ms; reacquisition cannot
+  complete an old shot.
 - **Cooldown:** at least **250 ms** between accepted shots; the ASVZ-athlete perk sends
   `{"type": "settings", "cooldownMs": 175}`. A suppressed pulse is consumed, not queued.
 - **Aim:** hold the pre-flick filtered crosshair while distinguishing a recoil and for
@@ -370,15 +377,17 @@ later unrelated jitter into a shot.
   aiming motion; normal aiming resumes when the bounded hold ends.
 - **Protocol:** unchanged. `firedAt` carries the shot point; `thumbAngle` remains a legacy debug
   measurement. Recordings include `recoil_phase`, `recoil_lift` (hand scales), `shot_time`
-  (pre-flick timestamp in seconds), `recoil_aim_time` (the held aim timestamp), and `cocked`.
+  (pre-flick timestamp in seconds), `recoil_aim_time` (the held aim timestamp), `pose_certain`
+  (raw pose before brief continuity), and `cocked`.
 
 **Playtesting:** the original recoil implementation fired **0/6** on the recording
-`20261010-142709-729104`. The current replay fires **6/6**, once in each labeled interval and
-nowhere else, and keeps the crosshair at the shot point through recovery. The four older thumb
-recordings produce no recoil shots. Synthetic tests cover 15–60 fps, hand sizes, both hands,
+`20261010-142709-729104`. The first fix fired **2/6** clear gestures in the follow-up recording
+`20261010-153125-043562`. The current replay fires **6/6 in each capture**, once in each labeled
+interval and nowhere else, and keeps the crosshair at the shot point through recovery. The
+four older thumb recordings produce no recoil shots. Synthetic tests cover 15–60 fps, hand sizes, both hands,
 small one-way aim changes, slow lifts, jitter, swaps, tracking loss, calibration and cooldown.
-See [the measured failure analysis](RECOIL_PLAYTEST.md). These are results for one recoil
-playtest, not a measured success rate across players; record more players with **R** to check
+See [the measured failure analysis](RECOIL_PLAYTEST.md). These are results for two recordings
+from one player, not a measured success rate across players; record more players with **R** to check
 the acceptance criteria above. A large, fast upward wrist pitch held upright is ambiguous
 with a shooting gesture and uses the pronounced-recoil path.
 

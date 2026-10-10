@@ -4,6 +4,7 @@
 |---|---|---|
 | `pointing_up.jpg` | MediaPipe's test data, downloaded from `https://storage.googleapis.com/mediapipe-assets/pointing_up.jpg` (also in the MediaPipe repository under `mediapipe/tasks/testdata/vision/`) | Apache License 2.0, © Google LLC |
 | `aim1.jpg` … `aim4.jpg`, `shoot1.jpg` | Our own photos of the gesture (the finger-gun prototype), scaled to 720×480 | ours |
+| `captures/recoil_2.jsonl` | Landmarks of `20261010-153125-043562`, six clear recoil gestures with sideways aim and brief pose misreads, no images | ours |
 | `captures/recoil_1.jsonl` | Landmarks of `20261010-142709-729104`, six recoil attempts and ordinary aiming, no images | ours |
 | `captures/play_1.jsonl` … `captures/play_4.jsonl` | Landmarks of four recordings of real play in the game (`backend/captures/`, R key), no images | ours |
 
@@ -31,3 +32,10 @@ original JPEGs. Every interval must fire once; no other frame may fire. The seco
 includes a misread index followed by lost tracking. Cursor tests include actual wrist travel
 and pose loss on return. See [the analysis](../../../../docs/RECOIL_PLAYTEST.md). More players'
 recordings are still needed to measure reliability across different hands and shooting styles.
+
+`captures/recoil_2.jsonl` preserves all 329 frames of the follow-up capture. Its visually
+labeled clear recoil intervals are **41–44, 81–84, 132–139, 152–155, 222–225, 287–290**.
+All six must fire once, without other shots. The final shot starts with the barrel pointing
+right. Brief pose misreads at 81 and 219–222 must hold the crosshair without supplying shot
+evidence. Smaller movements near frames 26 and 202 are ambiguous and remain unlabeled;
+these fixtures measure the clear gestures, rather than all possible player intentions.

@@ -68,6 +68,12 @@ FIRE_CONFIRM_FRAMES = 2  # +1 frame (~33 ms) of latency; removes one-frame flick
 SWAP_INDEX_DEG = 35.0
 SWAP_INDEX_REACH = 1.15
 
+# A recoil can blur curled fingers for a few observations. Preserve an established gun pose
+# briefly when reach is only marginally above the curl boundary; a clearly extended finger
+# or sustained pose loss still disarms immediately. This never creates a pose from scratch.
+RECOIL_POSE_GRACE_S = 0.15
+RECOIL_UNCERTAIN_REACH = 1.20
+
 # The thumb drop drags the aim in the frames before a shot registers, so a shot reports where
 # the gun pointed this long ago.
 SHOT_AIM_LOOKBACK_S = 0.2
@@ -211,6 +217,7 @@ class GunReading:
 
     shot: bool  # a confirmed recoil (or legacy thumb drop), in finger-gun pose
     gun: bool  # in finger-gun pose (ring and pinky curled)
+    pose_certain: bool  # raw pose; False during a bounded curled-finger tracking misread
     hammer_angle: float  # degrees from straight up, swap-corrected; legacy thumb diagnostic
     thumb_angle: float  # degrees from straight up, as labeled by MediaPipe
     thumb_length: float | None  # fraction of its learned upright length; None when swapped
@@ -230,6 +237,7 @@ class GunTracker:
     def __init__(self, trigger: Trigger = "recoil") -> None:
         self.trigger = trigger
         self.recoil = RecoilTrigger()
+        self._last_good_pose_t: float | None = None
         self._cocked = False
         self._down_frames = 0  # consecutive frames with the hammer down while cocked
         self._upright_length: float | None = None  # learned thumb length, in knuckle spans
@@ -239,6 +247,17 @@ class GunTracker:
         swapped = labels_swapped(pts)
         angle = hammer_angle(pts)
         gun = is_gun(pts)
+        pose_certain = gun
+        if self.trigger == "recoil":
+            if gun:
+                self._last_good_pose_t = t
+            elif (
+                self._last_good_pose_t is not None
+                and 0 < t - self._last_good_pose_t <= RECOIL_POSE_GRACE_S
+                and max(_reach(pts, RING_PIP, RING_TIP), _reach(pts, PINKY_PIP, PINKY_TIP))
+                < RECOIL_UNCERTAIN_REACH
+            ):
+                gun = True
         length = self._relative_length(thumb_length(pts), angle)
 
         shot = False
@@ -255,12 +274,13 @@ class GunTracker:
             self._down_frames = 0
 
         if self.trigger == "recoil":
-            shot = self.recoil.update(pts, t, gun)
+            shot = self.recoil.update(pts, t, gun, pose_certain=pose_certain)
 
         palm = palm_point(pts, width)
         return GunReading(
             shot=shot,
             gun=gun,
+            pose_certain=pose_certain,
             hammer_angle=round(angle, 1),
             thumb_angle=round(thumb_angle(pts), 1),
             thumb_length=None if length is None else round(length, 2),

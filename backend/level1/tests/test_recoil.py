@@ -17,29 +17,34 @@ PULSE = [0.15, 0.36, 0.55, 0.32, 0.10, 0.0]
 
 # Labeled from the JPEGs of 20261010-142709-729104, not from detector output. Includes a
 # sideways/upward wrist pitch, an edge-on fist, and an index misread followed by tracking loss.
-RECORDED_RECOILS = [(20, 26), (57, 61), (175, 181), (221, 226), (268, 273), (319, 324)]
+# The second recording adds brief curled-finger misreads and a barrel turning from right to up.
+RECORDED_RECOILS = {
+    "recoil_1.jsonl": [(20, 26), (57, 61), (175, 181), (221, 226), (268, 273), (319, 324)],
+    "recoil_2.jsonl": [(41, 44), (81, 84), (132, 139), (152, 155), (222, 225), (287, 290)],
+}
 
 
-@pytest.fixture(scope="module")
-def recoil_capture():
+@pytest.fixture(scope="module", params=RECORDED_RECOILS)
+def recoil_capture(request):
     rows = [
         json.loads(line)
-        for line in (FIXTURES / "captures" / "recoil_1.jsonl").read_text().splitlines()
+        for line in (FIXTURES / "captures" / request.param).read_text().splitlines()
     ]
-    return rows, replay("recoil_1.jsonl", trigger="recoil")
+    return rows, replay(request.param, trigger="recoil"), RECORDED_RECOILS[request.param]
 
 
 def test_recorded_recoils_all_fire_once_with_no_shots_during_ordinary_aiming(recoil_capture):
-    _, frames = recoil_capture
+    _, frames, intervals = recoil_capture
     fired = [i for i, frame in enumerate(frames) if frame.fired_at is not None]
-    assert len(fired) == len(RECORDED_RECOILS), fired
-    for first, last in RECORDED_RECOILS:
+    assert len(fired) == len(intervals), fired
+    for first, last in intervals:
         assert sum(first <= i <= last for i in fired) == 1, fired
 
 
-@pytest.mark.parametrize(("first", "last"), RECORDED_RECOILS)
-def test_recorded_recoil_keeps_the_cursor_and_shot_at_the_same_aim(recoil_capture, first, last):
-    rows, frames = recoil_capture
+@pytest.mark.parametrize("recoil", range(6))
+def test_recorded_recoil_keeps_the_cursor_and_shot_at_the_same_aim(recoil_capture, recoil):
+    rows, frames, intervals = recoil_capture
+    first, last = intervals[recoil]
     shot = next(i for i in range(first, last + 1) if frames[i].fired_at is not None)
     pending = next(
         i
@@ -56,12 +61,13 @@ def test_recorded_recoil_keeps_the_cursor_and_shot_at_the_same_aim(recoil_captur
 
 
 def test_recorded_normal_aiming_still_moves_the_cursor(recoil_capture):
-    _, frames = recoil_capture
-    # The player deliberately changes angle and points upward between the second and third
-    # recoils. This must move the crosshair without shooting or keeping it frozen.
-    aims = [frame.aim for frame in frames[128:172] if frame.aim is not None]
+    _, frames, intervals = recoil_capture
+    # These image-labeled aiming intervals must move the crosshair without shooting or
+    # keeping it frozen (between recoils 2/3 in capture 1 and 4/5 in capture 2).
+    first, last = (128, 172) if intervals[0][0] == 20 else (165, 195)
+    aims = [frame.aim for frame in frames[first:last] if frame.aim is not None]
     assert max(aim[1] for aim in aims) - min(aim[1] for aim in aims) > 0.2
-    assert not any(frame.fired_at for frame in frames[128:172])
+    assert not any(frame.fired_at for frame in frames[first:last])
 
 
 def feed(tracker: GunTracker, hands, *, start: float = 0, dt: float = FRAME_S):
@@ -330,3 +336,38 @@ def test_the_shot_uses_aim_at_flick_start_even_when_the_palm_recoils_a_little():
 @pytest.mark.parametrize("name", RECORDINGS)
 def test_old_thumb_recordings_do_not_fire_unintended_recoil_shots(name):
     assert not any(frame.fired_at for frame in replay(name, trigger="recoil"))
+
+
+def test_recorded_blurred_pose_holds_aim_and_waits_for_certain_recoil_observations():
+    frames = replay("recoil_2.jsonl", trigger="recoil")
+    for first, last, shot in ((81, 81, 83), (219, 222, 224)):
+        before = frames[first - 1].aim
+        for frame in frames[first : last + 1]:
+            reading = next(h.reading for h in frame.hands if h.id == frame.player_id)
+            assert reading.gun
+            assert not reading.pose_certain
+            assert not reading.shot
+            assert frame.aim == before
+        assert frames[shot].fired_at == before
+
+
+def test_small_independent_twitches_cannot_accumulate_into_one_recoil():
+    tracker, start = ready()
+    # An incomplete rise, fall and second higher twitch must not borrow the first twitch's
+    # upward observations to qualify as one continuous rise.
+    lifts = [0.15, 0.25, 0.15, 0.36, 0]
+    assert not any(
+        r.shot for r in feed(tracker, [recoil_hand(BASE, x) for x in lifts], start=start)
+    )
+
+
+def test_uncertain_pose_cannot_confirm_a_shot_or_remain_valid_indefinitely():
+    tracker, start = ready()
+    blurred = list(BASE)
+    # A ring tip just beyond its PIP is a marginal pose misread, unlike a clearly open hand.
+    blurred[16] = tuple(w + 1.1 * (p - w) for w, p in zip(BASE[0], BASE[14], strict=True))
+    readings = feed(tracker, [recoil_hand(tuple(blurred), x) for x in PULSE], start=start)
+    assert readings[0].gun
+    assert not any(r.pose_certain or r.shot for r in readings)
+    assert not readings[-1].gun
+    assert readings[-1].recoil_phase == "settling"
