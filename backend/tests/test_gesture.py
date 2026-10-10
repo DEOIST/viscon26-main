@@ -43,6 +43,7 @@ def shots(tracker: GunTracker, hands) -> list[bool]:
 
 
 UP, DOWN = make_hand(thumb_up=True), make_hand(thumb_up=False)
+FOLDED = make_hand(thumb_folded=True)  # dropped forward: short, but barely tilted
 SWAPPED = make_hand(swapped=True)
 
 
@@ -73,6 +74,21 @@ def test_a_drop_held_for_two_frames_fires_once_per_cock():
     assert shots(GunTracker(), frames) == [False, False, True, False, False, False, True, False]
 
 
+def test_a_thumb_folded_toward_the_camera_fires_though_it_barely_tilts():
+    assert COCKED_BELOW_DEG < hammer_angle(points(FOLDED)) < FIRED_ABOVE_DEG
+    shot = shots(GunTracker(), [UP, UP, FOLDED, FOLDED, FOLDED, UP])
+    assert shot == [False, False, False, True, False, False]
+
+
+def test_a_folded_thumb_only_counts_once_the_upright_length_is_known():
+    assert not any(shots(GunTracker(), [FOLDED] * 4))
+
+
+def test_the_hand_moving_closer_or_away_never_fires():
+    near, far = make_hand(size=0.25), make_hand(size=0.08)
+    assert not any(shots(GunTracker(), [UP, far, far, near, near, far, far]))
+
+
 def test_a_one_frame_flicker_never_fires():
     assert not any(shots(GunTracker(), [UP, DOWN, UP, DOWN, UP, DOWN, UP]))
 
@@ -87,6 +103,7 @@ def test_swapped_thumb_and_index_labels_read_as_an_upright_thumb():
     assert labels_swapped(points(SWAPPED)) and not labels_swapped(points(UP))
     assert hammer_angle(points(SWAPPED)) < COCKED_BELOW_DEG
     assert not any(shots(GunTracker(), [UP, SWAPPED, SWAPPED, SWAPPED, UP]))
+    assert not any(shots(GunTracker(), [UP, SWAPPED, SWAPPED, FOLDED, UP]))  # one fold: no shot
     # ...and it re-cocks the gun like any upright thumb.
     assert shots(GunTracker(), [UP, DOWN, DOWN, SWAPPED, DOWN, DOWN]).count(True) == 2
 
@@ -307,17 +324,50 @@ def test_the_cooldown_blocks_an_instant_second_shot_and_can_be_shortened(
 
 
 # Webcam recordings from the game (landmarks of every detected hand, tests/fixtures/README.md)
-# with the frames where the thumb was visibly down, labeled by eye. Unclear moments are neither
-# required nor counted as false shots.
+# with the frames where the thumb was visibly down, labeled by eye by comparing each frame with
+# the ones before it. Unclear moments are neither required nor counted as false shots. 1 and 2
+# mix sideways and forward drops, 3 is mostly forward drops at a steady rhythm, 4 is forward
+# drops that barely tilt the thumb (30–39 deg).
 RECORDINGS = {
     "play_1.jsonl": (
-        [44, 116, 132, 278, 292, 344, 368, 412, 472, 488, 572, 620],
+        [44, 116, 132, 231, 257, 278, 292, 344, 368, 412, 438, 472, 488, 572, 620],
         [range(20, 30), range(180, 192), range(500, 512), range(552, 560)],
     ),
     "play_2.jsonl": (
-        [49, 208, 317, 333, 350, 378, 537, 549, 582],
+        [49, 107, 172, 192, 208, 256, 281, 317, 333, 350, 378, 442, 537, 549, 582],
         [range(60, 70), range(390, 400), range(484, 494)],
     ),
+    "play_3.jsonl": (
+        [
+            24,
+            118,
+            198,
+            214,
+            233,
+            244,
+            258,
+            293,
+            306,
+            333,
+            359,
+            382,
+            405,
+            444,
+            461,
+            494,
+            522,
+            558,
+            588,
+            606,
+            621,
+            646,
+            682,
+            700,
+            723,
+        ],
+        [range(0, 23), range(140, 181), range(650, 663), range(736, 752)],
+    ),
+    "play_4.jsonl": ([28, 62, 84, 102, 116, 132, 148, 165], []),
 }
 
 

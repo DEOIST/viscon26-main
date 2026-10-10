@@ -313,21 +313,37 @@ box does not change the aim.
 
 The thumb starts up (cocked) and drops forward onto the index finger to fire.
 
-- **Signal:** the angle between the thumb (MCP 2 → tip 4) and straight up, in
-  the image. When the labels are swapped (the "index" points straight up in
-  the image, < 35°, and is extended, reach > 1.15; a real index pointing at
-  the camera is foreshortened, reach ~1.0), the angle of that upright digit is
-  used instead: the thumb is up.
-- **Hysteresis (measured):** the gun is *cocked* below **32°**; it fires when
-  the angle stays above **55° for 2 frames in a row**, and must be cocked again
-  before the next shot. On the recordings cocked thumbs read 12–49° (the hand
-  rolls) and real drops 60–150°. Across both recordings (22 labeled drops)
-  this caught 21 with no false shot; the old rule (above 40°, one frame, no
-  swap handling) fired 12+ false shots on the same frames. The second frame
-  costs ~33 ms of latency and removes one-frame flickers.
-- **Trade-off:** a drop that only tilts the thumb toward the camera (40–55°)
-  no longer fires; players have to drop the thumb clearly. The instructions say
-  so.
+Players drop the thumb two ways, and the trigger watches both:
+
+- **Sideways:** the thumb tilts away from straight up. Signal: the angle
+  between the thumb (MCP 2 → tip 4) and straight up, in the image. When the
+  labels are swapped (the "index" points straight up in the image, < 35°, and
+  is extended, reach > 1.15; a real index pointing at the camera is
+  foreshortened, reach ~1.0), the angle of that upright digit is used instead:
+  the thumb is up.
+- **Forward, toward the camera:** the thumb folds over the fist and looks
+  short, while its angle only reaches 30–54° (MediaPipe compresses depth).
+  Signal: the thumb's image length (MCP 2 → tip 4) in knuckle spans (middle to
+  pinky MCP, so the distance to the camera cancels out), as a fraction of its
+  **upright length**. That length is learned while the thumb points up: it
+  follows a longer thumb at once (rate 0.5 per frame) and a shorter one slowly
+  (0.02 per frame, ~1.5 s), so a fold barely moves it but each player's hand
+  and posture are learned within moments. Swapped frames are skipped: that
+  chain is not the thumb.
+- **Hysteresis (measured):** the gun is *cocked* when the thumb points up
+  (below **32°**) and is long again (above **80 %** of its upright length). It
+  fires when the thumb is down, above **55°** or shorter than **70 %**, for **2
+  frames in a row**, and must be cocked again before the next shot.
+- **Measured on four recordings of play** (63 drops labeled by eye, both
+  kinds, `tests/fixtures/captures/`): every drop caught, no false shot. The
+  angle alone at 55° missed 21 forward drops; at 40° it fired on hands that
+  only rolled; with the old label handling it fired on thumb/index swaps.
+  Rolling the hand to point sideways tilts the thumb but keeps its length, so
+  it doesn't fire. The second frame costs ~33 ms and removes one-frame
+  flickers.
+- **Labeling lesson:** a thumb folded toward the camera looks like an upright
+  one in a single small frame. Label drops by comparing each frame with the
+  ones before it.
 - Shots only fire in the finger-gun pose, and not while calibrating.
 - **Cooldown:** at least **250 ms** between the player's shots; the ASVZ-athlete
   perk sends `{"type": "settings", "cooldownMs": 175}` (30 % shorter).
@@ -369,7 +385,8 @@ Docker image):
 - `frames.jsonl`, one line per frame: `size`, `t_ms`, the `reply` the browser
   got (`tracking`, `aim`, `fired_at`, `processing_ms`), every distinct hand
   (`id`, `player`, `shot`, `gun`, `hammer_angle` (what the trigger uses),
-  `thumb_angle` (as labeled), `swapped`, `cocked`, `palm`, `reach` of index,
+  `thumb_angle` (as labeled), `thumb_length` (fraction of the learned upright
+  length), `swapped`, `cocked`, `palm`, `reach` of index,
   ring and pinky, the 21 `landmarks`), and the `duplicates` that were dropped.
 
 The landmarks make a recording replayable through `PlayerGun` without the
@@ -462,9 +479,9 @@ soon as an answer arrived; now the camera is the limit.
 ## Testing without a camera (and without credits)
 
 - **pytest** (`make check`): `test_gesture.py` (synthetic hands from
-  `tests/hands.py` for pose, aim, tracks, duplicates, trigger, cooldown and
-  look-back, plus two replayed webcam recordings that must fire exactly the
-  labeled shots with a smooth aim),
+  `tests/hands.py` for pose, aim, calibration, tracks, duplicates, both drop
+  styles, label swaps, cooldown and look-back, plus four replayed recordings
+  of play that must fire exactly the labeled shots with a smooth aim),
   `test_cv.py` (the HTTP and WebSocket contract with a scripted detector:
   frames, errors, limits, busy, unavailable, idle, settings, recording and its
   refusal in production),

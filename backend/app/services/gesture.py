@@ -36,15 +36,24 @@ PINKY_PIP, PINKY_TIP = 18, 20
 # recordings) and it swings with the fist when the player points.
 PALM = [0, 9, 13, 17]
 
-# The hammer: the angle between the thumb (or, when the labels are swapped, the upright digit
-# MediaPipe calls the index) and straight up. Hysteresis: cocked below COCKED_BELOW_DEG; a shot
-# needs the angle above FIRED_ABOVE_DEG for FIRE_CONFIRM_FRAMES frames in a row, then a re-cock.
-# On our webcam recordings (tests/fixtures/captures/, shots labeled by eye) cocked thumbs read
-# 12–49 deg (the hand rolls) and real drops 60–150 deg: 55 deg and 2 frames caught 21 of 22
-# drops with no false shot, where 40 deg and 1 frame fired 12 false ones. A drop that only
-# tilts the thumb toward the camera (40–55 deg) no longer fires: players have to drop it clearly.
+# The hammer falls two ways, and the trigger watches both:
+# - sideways: the thumb tilts away from straight up. Its angle (or, when the labels are swapped,
+#   that of the upright digit MediaPipe calls the index) passes FIRED_ABOVE_DEG.
+# - forward, toward the camera: the thumb folds over the fist and looks short, while its angle
+#   only reaches 30–54 deg. Its image length falls below THUMB_FOLDED_BELOW of its upright length.
+# The upright length is learned while the thumb points up (fast when it grows, slowly when it
+# shrinks), relative to the middle-to-pinky knuckle span, so it adapts to each player's hand and
+# distance. The gun is cocked when the thumb points up (angle below COCKED_BELOW_DEG) and is
+# long again (above THUMB_UPRIGHT_ABOVE); a shot needs the hammer down for FIRE_CONFIRM_FRAMES
+# frames in a row, then a re-cock. On our recordings of play (tests/fixtures/captures/, 63
+# drops labeled by eye, both kinds) this caught every drop with no false shot; the angle alone
+# missed 21 forward drops, and 40 deg instead of 55 fired on hands that only rolled.
 COCKED_BELOW_DEG = 32.0
 FIRED_ABOVE_DEG = 55.0
+THUMB_UPRIGHT_ABOVE = 0.8
+THUMB_FOLDED_BELOW = 0.7
+THUMB_LENGTH_GROW = 0.5  # per frame, toward a longer upright thumb
+THUMB_LENGTH_SHRINK = 0.02  # per frame, toward a shorter one (~1.5 s): a fold barely moves it
 FIRE_CONFIRM_FRAMES = 2  # +1 frame (~33 ms) of latency; removes one-frame flickers
 
 # A swap shows as an "index" that points straight up in the image and is extended; a real index
@@ -131,6 +140,15 @@ def hammer_angle(pts: np.ndarray) -> float:
     return thumb_angle(pts)
 
 
+def thumb_length(pts: np.ndarray) -> float | None:
+    """The thumb's image length in knuckle spans (middle to pinky MCP); None when the labels
+    are swapped (that chain is not the thumb) or the hand is degenerate."""
+    span = float(np.linalg.norm(pts[9][:2] - pts[17][:2]))
+    if labels_swapped(pts) or span == 0:
+        return None
+    return float(np.linalg.norm(pts[THUMB_TIP][:2] - pts[THUMB_MCP][:2])) / span
+
+
 def is_gun(pts: np.ndarray) -> bool:
     """Ring and pinky curled. The index is not checked: pointing at the camera foreshortens it
     to a reach of ~1.05, the same as a curled finger, which blocked real shots. The middle finger
@@ -184,6 +202,7 @@ class GunReading:
     gun: bool  # in finger-gun pose (ring and pinky curled)
     hammer_angle: float  # degrees from straight up, swap-corrected: what the trigger uses
     thumb_angle: float  # degrees from straight up, as labeled by MediaPipe
+    thumb_length: float | None  # fraction of its learned upright length; None when swapped
     swapped: bool  # MediaPipe swapped the thumb and index labels
     cocked: bool  # after this frame
     palm: tuple[float, float]  # the aim's reference point, frame widths, camera view
@@ -196,17 +215,21 @@ class GunTracker:
     def __init__(self) -> None:
         self._cocked = False
         self._down_frames = 0  # consecutive frames with the hammer down while cocked
+        self._upright_length: float | None = None  # learned thumb length, in knuckle spans
 
     def update(self, hand: Hand, width: int, height: int) -> GunReading:
         pts = to_points(hand, width, height)
         swapped = labels_swapped(pts)
         angle = hammer_angle(pts)
         gun = is_gun(pts)
+        length = self._relative_length(thumb_length(pts), angle)
 
         shot = False
-        if angle < COCKED_BELOW_DEG:
+        upright = angle < COCKED_BELOW_DEG and (length is None or length > THUMB_UPRIGHT_ABOVE)
+        fallen = angle > FIRED_ABOVE_DEG or (length is not None and length < THUMB_FOLDED_BELOW)
+        if upright:
             self._cocked, self._down_frames = True, 0
-        elif angle > FIRED_ABOVE_DEG and self._cocked:
+        elif fallen and self._cocked:
             self._down_frames += 1
             if self._down_frames >= FIRE_CONFIRM_FRAMES:
                 self._cocked, self._down_frames = False, 0
@@ -220,6 +243,7 @@ class GunTracker:
             gun=gun,
             hammer_angle=round(angle, 1),
             thumb_angle=round(thumb_angle(pts), 1),
+            thumb_length=None if length is None else round(length, 2),
             swapped=swapped,
             cocked=self._cocked,
             palm=(round(palm[0], 4), round(palm[1], 4)),
@@ -229,6 +253,21 @@ class GunTracker:
                 round(_reach(pts, PINKY_PIP, PINKY_TIP), 2),
             ),
         )
+
+    def _relative_length(self, length: float | None, angle: float) -> float | None:
+        """Learns the upright thumb length while the thumb points up, and returns this frame's
+        length as a fraction of it (None before anything is learned, or when swapped)."""
+        if length is None:
+            return None
+        if angle < COCKED_BELOW_DEG:
+            if self._upright_length is None:
+                self._upright_length = length
+            else:
+                rate = THUMB_LENGTH_GROW if length > self._upright_length else THUMB_LENGTH_SHRINK
+                self._upright_length += rate * (length - self._upright_length)
+        if not self._upright_length:
+            return None
+        return length / self._upright_length
 
 
 def _box(hand: Hand) -> tuple[np.ndarray, np.ndarray]:

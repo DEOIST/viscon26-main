@@ -11,8 +11,8 @@ export default function App() {
                         Exam questions fly at you for 60 seconds. Make a finger
                         gun: index finger at the screen, thumb up. Hold it still
                         at the centre for a moment, then move your hand to aim
-                        and drop your thumb clearly to shoot. Deadlines are
-                        worth more, coffee buys time. C recentres the aim.
+                        and drop your thumb to shoot. Deadlines are worth more,
+                        coffee buys time. C recentres the aim.
                     </p>
                     <CvStatusNote />
                 </>

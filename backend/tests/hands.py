@@ -48,6 +48,15 @@ def _thumb(degrees: float) -> list[tuple[float, float, float]]:
     return [(-0.03, 0.02, 0.0), (mcp_x, mcp_y, 0.0), ip, tip]
 
 
+def _folded_thumb() -> list[tuple[float, float, float]]:
+    """Dropped forward, toward the camera: the thumb folds over the fist and looks short, while
+    its angle from straight up stays small (MediaPipe compresses depth: ~33°)."""
+    mcp_x, mcp_y = _THUMB_MCP
+    ip = (mcp_x + 0.004, mcp_y + 0.012, -0.006)
+    tip = (mcp_x + 0.008, mcp_y + 0.022, -0.012)
+    return [(-0.03, 0.02, 0.0), (mcp_x, mcp_y, 0.0), ip, tip]
+
+
 def _swapped_thumb_and_index() -> list[tuple[float, float, float]]:
     """MediaPipe's mistake with an upright thumb: the thumb chain laid sideways along the curled
     fingers, and the index chain on the upright thumb (straight up, extended)."""
@@ -63,6 +72,7 @@ def make_hand(
     pinky: bool = False,
     thumb_up: bool = True,
     thumb_degrees: float | None = None,
+    thumb_folded: bool = False,
     swapped: bool = False,
     tip: tuple[float, float] = (0.5, 0.45),
     size: float = 0.15,
@@ -70,12 +80,16 @@ def make_hand(
     """A finger gun whose index fingertip sits at `tip` in image coordinates (camera view, not
     mirrored). `size` is the wrist→middle-MCP distance in the image, i.e. how close it is.
     `thumb_degrees` overrides `thumb_up` with an exact thumb angle from straight up (exact in the
-    image when the frame is square). `swapped` labels an upright thumb the way MediaPipe
-    sometimes does (see app/services/gesture.py)."""
+    image when the frame is square). `thumb_folded` drops it forward instead, toward the camera.
+    `swapped` labels an upright thumb the way MediaPipe sometimes does (see
+    app/services/gesture.py)."""
     if thumb_degrees is None:
         thumb_degrees = THUMB_UP_DEGREES if thumb_up else THUMB_DOWN_DEGREES
     world = [(0.0, 0.0, 0.0)]
-    world += _swapped_thumb_and_index() if swapped else _thumb(thumb_degrees) + _index_at_camera()
+    if swapped:
+        world += _swapped_thumb_and_index()
+    else:
+        world += (_folded_thumb() if thumb_folded else _thumb(thumb_degrees)) + _index_at_camera()
     world += _finger("middle", middle)
     world += _finger("ring", ring)
     world += _finger("pinky", pinky)
