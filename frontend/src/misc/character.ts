@@ -35,8 +35,9 @@ export const GAMES: Record<GameId, { title: string; tagline: string }> = {
         tagline: "Bet your semester stipend at blackjack.",
     },
     shooter: {
-        title: "Basisprüfung",
-        tagline: "Shoot the exam questions with your finger gun.",
+        title: "Bug Bash",
+        tagline:
+            "Throw bugs out of your IDE. Slap to save working code and swat interruptions.",
     },
 };
 

@@ -76,6 +76,7 @@ function fakeVideo(): FakeVideo {
 
 function fakeParent(): HTMLElement {
     const parent = {
+        style: { cursor: "" },
         prepend: vi.fn(),
         addEventListener: vi.fn(),
         removeEventListener: vi.fn(),

@@ -20,7 +20,11 @@ export function createGame(parent: HTMLElement, scene: Scene): Game {
         height: GAME_HEIGHT,
         transparent: true, // the page (or the webcam video) shows through
         banner: false,
-        scale: { mode: Scale.FIT, autoCenter: Scale.CENTER_BOTH },
+        scale: {
+            mode: Scale.FIT,
+            autoCenter: Scale.CENTER_BOTH,
+            fullscreenTarget: parent,
+        },
         scene,
     });
 }

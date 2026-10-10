@@ -23,6 +23,15 @@ Guidance for Claude Code **and for every teammate** working in this repository. 
 
 Stack: **React + TypeScript** outer shell bundled by **esbuild**; a WebGL inner shell for the minigames: **Phaser 4** for both (blackjack, and the shooter, which fakes depth with isometric 2D art); **MediaPipe** hand tracking on the server (level 1, fed over a WebSocket); a **FastAPI** backend with **Redis** (no Redux, no client-side store); and **OpenAI** called only from the backend. FastAPI serves both the JSON API and the built frontend from **one origin**, so there is no CORS, no proxy and no API base URL.
 
+## Current level 1 implementation
+
+Level 1 is now **Bug Bash**: pinch/throw pixel bugs in an IDE, slap burning code fuses,
+and swat side interruptions. Pinching uses thumb/index tips; slaps use whole-hand movement.
+Fast slaps are broad; gentle swipes affect only targets covered by the swept hand.
+The complete current behavior, thresholds, controls, wire additions, file inventory and
+verification status are in [docs/BUG_BASH.md](docs/BUG_BASH.md). Older finger-gun descriptions
+below and in SHOOTER_CV.md are historical reference. Automated verification is recorded there; human camera tuning remains necessary.
+
 ## Architecture: read this first
 
 **This is a multi-page app (MPA), not a single-page app.** Each URL is a separate HTML document with its own JS bundle, and each game scene is its own page: `/`, `/enroll`, `/campus`, `/blackjack`, `/shooter`, `/graduation`. There is no client-side router.

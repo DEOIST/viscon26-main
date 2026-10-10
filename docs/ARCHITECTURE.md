@@ -1,5 +1,11 @@
 # Architecture
 
+> **Current level 1 change:** Bug Bash replaces the finger-gun gameplay. See
+> [BUG_BASH.md](BUG_BASH.md) for the current gestures, scoring, visuals, fullscreen,
+> `/api/cv/stream` field additions and local verification status. Original shooter
+> descriptions below are historical reference.
+
+
 How the pieces fit. What we build: [GAME_DESIGN.md](GAME_DESIGN.md). The
 computer-vision deep dive: [SHOOTER_CV.md](SHOOTER_CV.md). Versions and the
 reasons for each tool: [STACK.md](STACK.md). Conventions and recipes:
