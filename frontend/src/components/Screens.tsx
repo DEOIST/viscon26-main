@@ -6,7 +6,7 @@ import {
     TOTAL_ECTS,
     YEARS,
 } from "../config";
-import type { Character, Player } from "../types";
+import type { Character, Gender, Player } from "../types";
 import { Avatar } from "./Avatar";
 import { Icon } from "./Icon";
 import { PhotoAvatar } from "./PhotoAvatar";
@@ -163,6 +163,13 @@ function Swatches({
     );
 }
 
+const GENDER_OPTIONS: [Gender, string][] = [
+    ["unspecified", "Prefer not to say"],
+    ["female", "Female"],
+    ["male", "Male"],
+    ["nonbinary", "Non-binary"],
+];
+
 export function CharacterBuilder({
     player,
     busy,
@@ -310,6 +317,26 @@ export function CharacterBuilder({
                             onChange={(color) => choose("eyeColor", color)}
                         />
                     </fieldset>
+                    <div className="field">
+                        <label htmlFor="gender">Gender</label>
+                        <select
+                            id="gender"
+                            value={character.gender}
+                            disabled={busy}
+                            onChange={(event) =>
+                                setCharacter((current) => ({
+                                    ...current,
+                                    gender: event.target.value as Gender,
+                                }))
+                            }
+                        >
+                            {GENDER_OPTIONS.map(([value, label]) => (
+                                <option key={value} value={value}>
+                                    {label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                     <div className="field">
                         <label htmlFor="major">Department</label>
                         <select id="major" value={DEPARTMENT} disabled>

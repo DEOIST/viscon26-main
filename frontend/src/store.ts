@@ -12,7 +12,9 @@ import {
     TOTAL_ECTS,
     YEARS,
 } from "./config";
-import type { Player, Progress, Snapshot, Year } from "./types";
+import type { Gender, Player, Progress, Snapshot, Year } from "./types";
+
+const GENDERS: Gender[] = ["unspecified", "female", "male", "nonbinary"];
 
 export const defaultPlayer: Player = {
     name: "",
@@ -22,6 +24,7 @@ export const defaultPlayer: Player = {
         hairColor: COLORS.hair[1].value,
         skinColor: COLORS.skin[1].value,
         eyeColor: COLORS.eyes[0].value,
+        gender: "unspecified",
     },
 };
 export const emptyProgress: Progress = {
@@ -97,6 +100,8 @@ export function readGuest(): Snapshot {
         const saved = JSON.parse(localStorage.getItem(GUEST_KEY) || "null");
         if (!saved || saved.version !== 1) return fallback;
         const player = saved.player as Player;
+        if (player?.character && !GENDERS.includes(player.character.gender))
+            player.character = { ...player.character, gender: "unspecified" };
         if (
             typeof player?.name !== "string" ||
             player.name.trim().length > 24 ||

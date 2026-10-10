@@ -84,6 +84,7 @@ def profile_data(profile: Profile | None) -> ShellProfile | None:
             hair_color=profile.hair_color,
             skin_color=profile.skin_color,
             eye_color=profile.eye_color,
+            gender=profile.gender,
         ),
         major=profile.major,
         onboarding_stage=profile.onboarding_stage,
@@ -152,6 +153,7 @@ def save_profile(db: Session, user: User, body: ProfileInput) -> ShellProfile:
         body.skin_color,
         body.eye_color,
     )
+    profile.gender = body.gender
     profile.onboarding_stage = body.onboarding_stage
     db.add(profile)
     db.commit()

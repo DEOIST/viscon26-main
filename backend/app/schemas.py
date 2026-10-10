@@ -149,12 +149,17 @@ class Credentials(CamelModel):
     password: str = Field(min_length=10, max_length=128)
 
 
+# Chosen by the player in the character builder; the photo only pre-fills female/male.
+CharacterGender = Literal["unspecified", "female", "male", "nonbinary"]
+
+
 class ProfileInput(CamelModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     name: str = Field(min_length=1, max_length=24)
     hair_color: str
     skin_color: str
     eye_color: str
+    gender: CharacterGender = "unspecified"
     major: Literal["Computer Science", "D-INFK", "infk"] = "Computer Science"
     onboarding_stage: Literal["acceptance", "main"]
 
@@ -171,6 +176,7 @@ class ShellCharacter(CamelModel):
     hair_color: str
     skin_color: str
     eye_color: str
+    gender: CharacterGender = "unspecified"
 
 
 class ShellProfile(CamelModel):

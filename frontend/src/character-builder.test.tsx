@@ -43,6 +43,49 @@ describe("simplified character builder", () => {
         );
     });
 
+    it("saves the chosen gender, defaulting to prefer not to say", () => {
+        const onContinue = vi.fn();
+        render(
+            <CharacterBuilder
+                player={{ ...defaultPlayer, name: "Ada" }}
+                busy={false}
+                error=""
+                onBack={vi.fn()}
+                onContinue={onContinue}
+            />,
+        );
+        const gender = screen.getByLabelText("Gender") as HTMLSelectElement;
+        expect(gender.value).toBe("unspecified");
+        fireEvent.change(gender, { target: { value: "nonbinary" } });
+        fireEvent.click(screen.getByRole("button", { name: /Continue/ }));
+        expect(onContinue).toHaveBeenCalledWith(
+            expect.objectContaining({
+                character: expect.objectContaining({ gender: "nonbinary" }),
+            }),
+        );
+    });
+
+    it("keeps guest saves from before the gender field", () => {
+        const { gender: _omitted, ...oldCharacter } = defaultPlayer.character;
+        localStorage.setItem(
+            "eth-simulator.guest.v1",
+            JSON.stringify({
+                version: 1,
+                player: {
+                    ...defaultPlayer,
+                    name: "Ada",
+                    onboardingStage: "main",
+                    character: oldCharacter,
+                },
+                progress: { completedGameIds: [], graduated: false },
+            }),
+        );
+        expect(readGuest().player).toMatchObject({
+            name: "Ada",
+            character: { gender: "unspecified" },
+        });
+    });
+
     it.each([MAJOR, "D-INFK", "infk", "Computer Science (D-INFK)"])(
         "loads an existing %s profile without resetting data",
         (major) => {
