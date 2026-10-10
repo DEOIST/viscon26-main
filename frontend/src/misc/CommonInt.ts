@@ -102,6 +102,24 @@ export interface ShellGame {
     implemented: boolean;
 }
 
+// --- anonymous player persistence ---
+export interface PublicConfig {
+    graduationPreview: boolean;
+}
+
+export interface ShellProgress {
+    completedGameIds: string[];
+    graduated: boolean;
+    graduatedAt: string | null;
+    ects: number;
+}
+
+export interface ShellPlayer {
+    id: string;
+    profile: import("../types").Player | null;
+    progress: ShellProgress;
+}
+
 // --- story (OpenAI-backed) ---
 
 export type AiSource = "ai" | "fallback";

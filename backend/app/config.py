@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     app_name: str = "ETH Life"
     environment: str = "development"
     frontend_dist: Path = REPO_DIR / "frontend" / "dist"
+    # UI-only test access; progression and leaderboard eligibility are never bypassed.
+    graduation_preview: bool = False
 
     # Empty means an in-process fakeredis (development and tests only); required in production.
     redis_url: str = ""
@@ -28,10 +30,6 @@ class Settings(BaseSettings):
     postgres_db: str = "eth_simulator"
     postgres_user: str = "eth_dev"
     postgres_password: SecretStr = SecretStr("local-development-only")
-    session_secret: SecretStr = SecretStr(
-        "local-only-change-this-before-any-shared-use-32-characters"
-    )
-    cookie_secure: bool = False
     allowed_origins: Annotated[list[str], NoDecode] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
@@ -44,13 +42,6 @@ class Settings(BaseSettings):
     def _split_origins(cls, value: object) -> object:
         if isinstance(value, str):
             return [part.strip().rstrip("/") for part in value.split(",") if part.strip()]
-        return value
-
-    @field_validator("session_secret")
-    @classmethod
-    def _session_secret_length(cls, value: SecretStr) -> SecretStr:
-        if len(value.get_secret_value()) < 32:
-            raise ValueError("SESSION_SECRET must contain at least 32 characters")
         return value
 
     # OpenAI, see docs/ARCHITECTURE.md → "OpenAI integration". Only app/ai.py reads these.

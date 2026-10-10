@@ -13,6 +13,7 @@ export function Avatar({
         <svg
             className={`avatar ${className}`}
             viewBox="0 0 180 200"
+            preserveAspectRatio="xMidYMid meet"
             role="img"
             aria-label={label}
         >

@@ -35,7 +35,7 @@ export default function WelcomeScreen(args: WelcomeScreenArgs) {
                         Start your degree <Icon name="arrow" />
                     </button>
                     <p className={shellClass("fine-print")}>
-                        No account needed to start. Coffee not included.
+                        Create your character and play. Coffee not included.
                     </p>
                 </section>
                 <div className={shellClass("letter-scene")} aria-hidden="true">

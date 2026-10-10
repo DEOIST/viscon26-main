@@ -1,4 +1,4 @@
-"""The account shell's sequential years; legacy run rewards remain in game_config.py."""
+"""The shell's sequential years; legacy run rewards remain in game_config.py."""
 
 import json
 from pathlib import Path
