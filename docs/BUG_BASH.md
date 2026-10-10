@@ -47,22 +47,18 @@ interrupter bodies. Neither gesture throws a held bug.
   tests are no longer required.
 - Slide collision uses the swept convex hull of the whole hand between camera frames:
   palm, thumb and fingers, with a small margin. It is independent of pinch targeting.
-- Fast tracked slaps use 35% travel in 0.25 s. Lost/reappearing hands require speed
-  evidence (1.5 camera widths/s) as well as displacement, instead of merely reappearing.
-- Back-facing/blurred hands also use raw frame changes: at least 25% of the watched area
-  changes, plus evidence that the changed region moves at least 0.9 camera widths/s.
-  The image-region center must move at least 2% of frame width between consecutive
-  qualifying frames; lighting changes or a stationary noisy outline alone are insufficient.
-  A visible tracked fast move can provide speed evidence instead.
-- Both share a 0.6-second cooldown. The hand-settling requirement was removed because
-  it blocked detection. Fast slaps clear pending slide samples. Pinching, tracking loss
-  and changing hands clear slide samples.
+- Slaps are the simple original detector: the whole hand travels 35% of the camera width
+  within 0.25 s, or it vanishes while moving at least 1.5 camera widths/s (a fast slap
+  often blurs the hand out of view). The raw image-change and reappearing-hand paths were
+  removed to keep the detector simple and predictable.
+- Slaps and slides each have their own 0.6-second cooldown. They used to share one, so a
+  slide (often just the wind-up) silently swallowed the slap right after it. A slap clears
+  pending slide samples. Pinching, tracking loss and changing hands clear slide samples.
 - Hit text appears only when code is saved or a character is knocked out; empty swipes
   produce no "SWISH" or slap message.
 
-These thresholds need human camera tuning. Returning a hand can still count if it meets
-speed/displacement rules; pose noise or fast body movement can still cause false positives.
-Raw motion is a lightweight image-change estimate, not a full optical-flow model.
+These thresholds need human camera tuning. Pose noise or fast body movement can still
+cause false positives; a back-of-hand slap that MediaPipe never sees is not detected.
 
 ## Scoring and controls
 

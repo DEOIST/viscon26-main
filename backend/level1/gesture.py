@@ -135,30 +135,21 @@ SLAP_MIN_DISTANCE = 0.35  # frame widths
 SLAP_MIN_SPEED = 1.5  # frame widths per second, between the last two frames before vanishing
 SLAP_COOLDOWN_S = 0.6  # one slap per swing
 SLAP_SHOT_BLOCK_S = 0.3
-# A very fast slap blurs the hand away before any frame shows it moving. Two signals that don't
-# need the hand: the share of pixels that changed sharply around where the hand was last seen
-# (CvSession measures it, `motion`), and the hand coming back far from where it vanished.
-SLAP_MIN_MOTION = 0.25  # share of the area around the last hand that changed sharply
-SLAP_REAPPEAR_S = 0.6
-SLAP_REAPPEAR_DISTANCE = 0.3  # frame widths
 # A deliberate open-hand slide can be much slower than a slap. Require lateral travel,
 # mostly one direction, and open fingers to distinguish it from carrying a pinched bug.
 SLIDE_WINDOW_S = 0.9
 SLIDE_MIN_DURATION_S = 0.18
 SLIDE_MIN_DISTANCE = 0.18  # camera widths
 SLIDE_MIN_SPEED = 0.45  # camera widths per second: hovering is not a swipe
-SLAP_RAW_MIN_SPEED = 0.9
 SLIDE_MIN_DIRECTNESS = 0.7  # net travel / total travel
+# Slides keep their own cooldown: sharing the slap's let a slow wind-up swallow the slap after it.
+SLIDE_COOLDOWN_S = 0.6
 Slap = Literal["left", "right"]  # on screen (the camera image is mirrored)
 
 
-@dataclass(frozen=True)
-class Motion:
-    """How much changed around the player's last known hand since the previous frame."""
-
-    share: float  # 0..1 of that area changed sharply
-    dx: float  # direction of moving image changes
-    speed: float = 0.0  # camera widths per second, measured across changed-image regions
+def _direction(dx: float) -> Slap:
+    """On screen: the camera image is mirrored, so moving to the image's right goes left."""
+    return "left" if dx > 0 else "right"
 
 
 # Minimum time between two shots of the player. The ASVZ-athlete perk lowers it per stream
@@ -654,7 +645,7 @@ class PlayerGun:
         self._slide_outlines: deque[list[tuple[float, float]]] = deque()
         self._slides_of: int | None = None
         self._last_slap_s: float | None = None
-        self._vanished: tuple[float, float, float] | None = None  # (t, x, y) when the hand went
+        self._last_slide_s: float | None = None
 
     def update(
         self,
@@ -662,7 +653,6 @@ class PlayerGun:
         width: int,
         height: int,
         timestamp_ms: float,
-        motion: Motion | None = None,
     ) -> GestureFrame:
         hands, duplicates = drop_duplicate_hands(detections)
         readings = self._tracks.update(hands, width, height, timestamp_ms / 1000, self.trigger)
@@ -675,25 +665,6 @@ class PlayerGun:
         if self._player_id not in ids and not recently:
             self._player_id = ids[0] if ids else None  # (re)acquire: the largest hand
         t = timestamp_ms / 1000
-        # Back-of-hand swings can lose landmarks or retain an unreliable pose. Check raw
-        # camera motion on every frame, including continued dropouts, independently of pose.
-        # A visible, slowly moving hand belongs to the localized slide path, even if its
-        # open fingers change many pixels. Keep raw-motion slaps for fast moves and dropouts.
-        raw_is_fast = motion is not None and motion.speed >= SLAP_RAW_MIN_SPEED
-        if self._player_id in ids and self._palms:
-            previous_t, previous_x, previous_y = self._palms[-1]
-            current_pts = to_points(hands[ids.index(self._player_id)], width, height)
-            current = tuple(current_pts[:, :2].mean(axis=0) / width)
-            raw_is_fast = raw_is_fast or (
-                t > previous_t
-                and math.hypot(current[0] - previous_x, current[1] - previous_y) / (t - previous_t)
-                >= SLAP_MIN_SPEED
-            )
-        motion_slap = (
-            self._slap(t, motion.dx)
-            if raw_is_fast and motion is not None and motion.share >= SLAP_MIN_MOTION
-            else None
-        )
         if self._player_id not in ids:
             self._slides.clear()
             self._slide_outlines.clear()
@@ -708,18 +679,14 @@ class PlayerGun:
                 tracked,
                 duplicates,
                 self._player_id,
-                slap=motion_slap or self._slap_on_vanishing(t, motion),
+                slap=self._slap_on_vanishing(t),
             )
 
         player = tracked[ids.index(self._player_id)]
         reading = player.reading
         self._last_seen_ms = timestamp_ms
         whole_hand = tuple(to_points(player.landmarks, width, height)[:, :2].mean(axis=0) / width)
-        slap = (
-            motion_slap
-            or self._slap_on_reappearing(whole_hand, t)
-            or self._slap_on_moving(self._player_id, whole_hand, t)
-        )
+        slap = self._slap_on_moving(self._player_id, whole_hand, t)
         slide = self._slide_on_moving(player, width, height, t) if slap is None else None
         if self._trigger_calibration is not None:
             self._trigger_calibration.add(reading)
@@ -803,8 +770,12 @@ class PlayerGun:
             return None
         path = [to_game_area((p[1], p[2] * width / height), self.box) for p in self._slides]
         outlines = list(self._slide_outlines)
-        direction = self._slap(t, dx)
-        return Slide(direction, path, 0.012, outlines) if direction else None
+        if self._last_slide_s is not None and t - self._last_slide_s < SLIDE_COOLDOWN_S:
+            return None
+        self._last_slide_s = t
+        self._slides.clear()
+        self._slide_outlines.clear()
+        return Slide(_direction(dx), path, 0.012, outlines)
 
     def _slap_on_moving(self, player_id: int, palm: tuple[float, float], t: float) -> Slap | None:
         """A slap when the palm moved SLAP_MIN_DISTANCE within SLAP_WINDOW_S."""
@@ -820,54 +791,24 @@ class PlayerGun:
             return None
         return self._slap(t, x - far[1])
 
-    def _slap_on_vanishing(self, t: float, motion: Motion | None) -> Slap | None:
-        """A slap when the hand blurred out of view: it was moving fast, or the area around it
-        changed sharply (checked on the first frame without it)."""
-        if not self._palms:
+    def _slap_on_vanishing(self, t: float) -> Slap | None:
+        """A slap when the hand blurred out of view while moving fast (checked once per loss)."""
+        if len(self._palms) < 2:
             return None
-        (t1, x1, y1) = self._palms[-1]
-        self._vanished = (t, x1, y1)
-        fast = None
-        if len(self._palms) >= 2:
-            (t0, x0, y0) = self._palms[-2]
-            if t1 > t0 and math.hypot(x1 - x0, y1 - y0) / (t1 - t0) >= SLAP_MIN_SPEED:
-                fast = x1 - x0
+        (t0, x0, y0), (t1, x1, y1) = self._palms[-2], self._palms[-1]
         self._palms.clear()
-        if fast is not None:
-            return self._slap(t, fast)
-        if (
-            motion is not None
-            and motion.share >= SLAP_MIN_MOTION
-            and motion.speed >= SLAP_RAW_MIN_SPEED
-        ):
-            return self._slap(t, motion.dx)
-        return None
-
-    def _slap_on_reappearing(self, palm: tuple[float, float], t: float) -> Slap | None:
-        """A slap when the hand comes back soon, far from where it vanished."""
-        vanished, self._vanished = self._vanished, None
-        if vanished is None or t - vanished[0] > SLAP_REAPPEAR_S:
+        if t1 <= t0 or math.hypot(x1 - x0, y1 - y0) / (t1 - t0) < SLAP_MIN_SPEED:
             return None
-        dx, dy = palm[0] - vanished[1], palm[1] - vanished[2]
-        elapsed = t - vanished[0]
-        if (
-            math.hypot(dx, dy) < SLAP_REAPPEAR_DISTANCE
-            or elapsed <= 0
-            or math.hypot(dx, dy) / elapsed < SLAP_MIN_SPEED
-        ):
-            return None
-        return self._slap(t, dx)
+        return self._slap(t, x1 - x0)
 
     def _slap(self, t: float, dx: float) -> Slap | None:
         if self._last_slap_s is not None and t - self._last_slap_s < SLAP_COOLDOWN_S:
             return None
         self._last_slap_s = t
-        self._slides.clear()
-        self._slide_outlines.clear()
-        self._vanished = None
         self._palms.clear()
-        # The camera image is mirrored on screen: moving to the image's right is a slap left
-        return "left" if dx > 0 else "right"
+        self._slides.clear()  # the swing that slapped isn't also a slide
+        self._slide_outlines.clear()
+        return _direction(dx)
 
     def recenter(self) -> None:
         """Reset smoothing; fingertip aim is mapped directly through the camera box."""
