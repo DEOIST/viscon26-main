@@ -1,6 +1,8 @@
 // Shooter tunables (docs/GAME_DESIGN.md, docs/SHOOTER_CV.md). Tune them after playtests; the
 // finger-gun thresholds themselves live in the backend (app/services/gesture.py).
 
+import { TEXT } from "../src/misc/text";
+
 export type TargetKind = "question" | "deadline" | "coffee";
 
 export const ROUND_SECONDS = 60;
@@ -18,6 +20,7 @@ export const PRACTICE_MAX_SECONDS = 25;
 // Trigger calibration before the warm-up (camera only; docs/SHOOTER_CV.md → Trigger
 // calibration): fingers apart, pinched, apart, pinched, each held this long; then a few test shots. Enter
 // skips it, T runs it again during the warm-up.
+const STEP_TEXT = TEXT.shooter.pinchCheck.steps;
 export const TRIGGER_STEPS: {
     step: "up" | "down";
     ms: number;
@@ -26,22 +29,22 @@ export const TRIGGER_STEPS: {
     {
         step: "up",
         ms: 2000,
-        text: "Palm facing the camera: hold your index finger and thumb APART",
+        text: STEP_TEXT.apart,
     },
     {
         step: "down",
         ms: 1500,
-        text: "PINCH: touch your index finger and thumb tips together, and hold",
+        text: STEP_TEXT.pinch,
     },
     {
         step: "up",
         ms: 1500,
-        text: "OPEN your index finger and thumb again, and hold",
+        text: STEP_TEXT.open,
     },
     {
         step: "down",
         ms: 1500,
-        text: "PINCH again: fingertips together, and hold",
+        text: STEP_TEXT.pinchAgain,
     },
 ];
 export const TRIGGER_TEST_SHOTS = 3;

@@ -13,6 +13,7 @@ import { runHref } from "../../misc/run";
 import type { Epilogue, Run } from "../../misc/CommonInt";
 import { useApi } from "../../misc/useApi";
 import { shellClass } from "../../misc/shellStyles";
+import { fill, TEXT } from "../../misc/text";
 
 interface GraduationArgs {
     initialRun: Run;
@@ -67,18 +68,24 @@ export default function Graduation(args: GraduationArgs) {
             setOpened(true);
             // The stats were loaded before this graduation counted.
             stats.reload();
-        } else setError(saved.error || "Your diploma could not be saved.");
+        } else setError(saved.error || TEXT.legacyGraduation.saveFailed);
         saving.current = false;
         setBusy(false);
     }
     return (
         <section className={shellClass("graduation panel")}>
             <span className={shellClass("eyebrow reward-text")}>
-                {opened ? "DEGREE COMPLETE" : "YOUR NEXT CHAPTER"}
+                {opened
+                    ? TEXT.graduation.eyebrow
+                    : TEXT.legacyGraduation.nextChapter}
             </span>
             {opened && run.ending ? (
                 <>
-                    <h1>You did it, {run.character.name}.</h1>
+                    <h1>
+                        {fill(TEXT.graduation.title, {
+                            name: run.character.name,
+                        })}
+                    </h1>
                     <Diploma
                         run={run}
                         ending={run.ending}
@@ -94,10 +101,10 @@ export default function Graduation(args: GraduationArgs) {
                         }
                     />
                     <p className={shellClass("graduation-copy")}>
-                        You may now close those 47 browser tabs.
+                        {TEXT.legacyGraduation.closing}
                     </p>
                     <a className={shellClass("button primary")} href="/enroll">
-                        Play again
+                        {TEXT.legacyGraduation.playAgain}
                         <Icon name="arrow" />
                     </a>
                 </>
@@ -109,18 +116,18 @@ export default function Graduation(args: GraduationArgs) {
                             <Icon name="cap" size={32} />
                         </span>
                     </div>
-                    <h1>Your diploma is waiting.</h1>
+                    <h1>{TEXT.legacyGraduation.waiting}</h1>
                     <p>
                         {eligible
-                            ? "The rector approaches the podium…"
-                            : "Complete both challenges before claiming your diploma."}
+                            ? TEXT.legacyGraduation.ready
+                            : TEXT.legacyGraduation.incomplete}
                     </p>
                     <button
                         className={shellClass("button primary")}
                         disabled={!eligible || busy}
                         onClick={() => void handleOpen()}
                     >
-                        {busy ? "Saving…" : "Open your diploma"}
+                        {busy ? TEXT.common.saving : TEXT.legacyGraduation.open}
                     </button>
                 </>
             )}
@@ -136,7 +143,7 @@ export default function Graduation(args: GraduationArgs) {
                         href={runHref("/campus", run.id)}
                     >
                         <Icon name="back" />
-                        Return to campus
+                        {TEXT.legacyGraduation.returnToCampus}
                     </a>
                 </p>
             )}

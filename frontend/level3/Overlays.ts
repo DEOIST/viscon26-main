@@ -8,6 +8,9 @@ import type { DefenseState } from "./engine";
 import { CENTER_X, HEIGHT, WIDTH } from "./layout";
 import { FONT, MONO } from "./textures";
 import type { BestRun, Verdict } from "./verdict";
+import { fill, TEXT } from "../src/misc/text";
+
+const T = TEXT.thesisDefense;
 
 const STAMP_MAX_W = 680;
 
@@ -129,24 +132,17 @@ export default class Overlays {
         this.pause = scene.add
             .container(0, 0, [
                 ...panel(scene, 560, 220, 400),
-                label(scene, CENTER_X, 360, "COFFEE BREAK", 48, "#ffd84a"),
+                label(scene, CENTER_X, 360, T.pause.title, 48, "#ffd84a"),
                 label(
                     scene,
                     CENTER_X,
                     420,
-                    "The committee waits. Impatiently.",
+                    T.pause.subtitle,
                     20,
                     "#c9d3ff",
                     "bold",
                 ),
-                label(
-                    scene,
-                    CENTER_X,
-                    466,
-                    "SPACE · CONTINUE      R · RESTART",
-                    22,
-                    "#3ee0ff",
-                ),
+                label(scene, CENTER_X, 466, T.pause.keys, 22, "#3ee0ff"),
             ])
             .setDepth(95)
             .setVisible(false);
@@ -188,7 +184,7 @@ export default class Overlays {
             scene,
             CENTER_X - 160,
             584,
-            "R · DEFEND AGAIN",
+            T.results.retry,
             0x3ee0ff,
             onRetry,
         );
@@ -196,7 +192,7 @@ export default class Overlays {
             scene,
             CENTER_X + 160,
             584,
-            "ENTER · SUBMIT THESIS",
+            T.results.submit,
             0x9dff4a,
             onSubmit,
         );
@@ -208,7 +204,7 @@ export default class Overlays {
                     scene,
                     CENTER_X,
                     140,
-                    "THE COMMITTEE HAS REACHED A VERDICT",
+                    T.results.heading,
                     16,
                     "#8fa2ff",
                     "bold",
@@ -229,8 +225,12 @@ export default class Overlays {
     showTitle(best: BestRun | null) {
         this.titleBest.setText(
             best
-                ? `PERSONAL BEST  ${best.score.toLocaleString("en-US")}  ·  ${best.accuracy.toFixed(1)}%  ·  ${best.maxCombo} COMBO`
-                : "NO PERSONAL BEST YET. MAKE HISTORY.",
+                ? fill(T.titleCard.personalBest, {
+                      score: best.score.toLocaleString("en-US"),
+                      accuracy: best.accuracy.toFixed(1),
+                      combo: best.maxCombo,
+                  })
+                : T.titleCard.noPersonalBest,
         );
         this.title.setVisible(true);
     }
@@ -241,8 +241,9 @@ export default class Overlays {
 
     // `left` is the countdown's remaining ms; returns nothing, just draws the right number.
     updateCountdown(left: number) {
+        const go = T.countdownGo;
         const value =
-            left > 1600 ? "3" : left > 800 ? "2" : left > 0 ? "1" : "DEFEND!";
+            left > 1600 ? "3" : left > 800 ? "2" : left > 0 ? "1" : go;
         if (left < -600) {
             this.countdown.setAlpha(0);
             this.shownCount = "";
@@ -252,8 +253,8 @@ export default class Overlays {
         this.shownCount = value;
         this.countdown
             .setText(value)
-            .setColor(value === "DEFEND!" ? "#ffd84a" : "#ffffff")
-            .setFontSize(value === "DEFEND!" ? 96 : 140)
+            .setColor(value === go ? "#ffd84a" : "#ffffff")
+            .setFontSize(value === go ? 96 : 140)
             .setAlpha(1)
             .setScale(1.8);
         this.scene.tweens.killTweensOf(this.countdown);
@@ -293,22 +294,31 @@ export default class Overlays {
                 Math.floor((58 * STAMP_MAX_W) / this.stamp.width),
             );
         this.verdictLine.setText(verdict.line);
-        this.grade.setText(`ETH GRADE  ${summary.grade.toFixed(2)}`);
+        const text = T.results;
+        this.grade.setText(
+            fill(text.grade, { grade: summary.grade.toFixed(2) }),
+        );
+        // The values are padded to one width so the monospace column lines up.
         this.stats.setText(
             [
-                `SCORE      ${state.score.toLocaleString("en-US").padStart(9)}`,
-                `ACCURACY   ${`${summary.accuracy.toFixed(1)}%`.padStart(9)}`,
-                `MAX COMBO  ${String(state.maxCombo).padStart(9)}`,
+                fill(text.score, {
+                    score: state.score.toLocaleString("en-US").padStart(9),
+                }),
+                fill(text.accuracy, {
+                    accuracy: `${summary.accuracy.toFixed(1)}%`.padStart(9),
+                }),
+                fill(text.maxCombo, {
+                    combo: String(state.maxCombo).padStart(9),
+                }),
             ].join("\n"),
         );
-        const c = state.counts;
-        this.counts.setText(
-            `PERFECT ${c.perfect}   GREAT ${c.great}   GOOD ${c.good}   MISS ${c.miss}`,
-        );
+        this.counts.setText(fill(text.counts, { ...state.counts }));
         this.record.setText(
             summary.isNewBest
-                ? "★ NEW PERSONAL BEST ★"
-                : `PERSONAL BEST  ${summary.best.score.toLocaleString("en-US")}`,
+                ? text.newBest
+                : fill(text.best, {
+                      score: summary.best.score.toLocaleString("en-US"),
+                  }),
         );
         this.failed = summary.failed;
         this.setSubmitted(summary.submitted);
@@ -338,10 +348,10 @@ export default class Overlays {
     setSubmitted(isSubmitted: boolean) {
         this.submit.setLabel(
             isSubmitted
-                ? "THESIS SUBMITTED ✓"
+                ? T.results.submitted
                 : this.failed
-                  ? "ENTER · SUBMIT ANYWAY"
-                  : "ENTER · SUBMIT THESIS",
+                  ? T.results.submitAnyway
+                  : T.results.submit,
             !isSubmitted,
         );
     }
@@ -360,7 +370,7 @@ export default class Overlays {
                 scene,
                 CENTER_X,
                 270,
-                "YEAR 3 · THE FINAL BOSS",
+                T.titleCard.eyebrow,
                 16,
                 "#8fa2ff",
                 "bold",
@@ -369,7 +379,7 @@ export default class Overlays {
                 scene,
                 CENTER_X,
                 316,
-                "THESIS DEFENSE",
+                T.titleCard.heading,
                 64,
                 "#ffffff",
             ).setShadow(0, 0, "#3ee0ff", 18, true, true),
@@ -377,7 +387,7 @@ export default class Overlays {
                 scene,
                 CENTER_X,
                 368,
-                "Questions fly at you. Press the lane's key as each one hits the line.",
+                T.titleCard.instructions,
                 19,
                 "#c9d3ff",
                 "bold",
@@ -413,7 +423,7 @@ export default class Overlays {
             scene,
             CENTER_X,
             522,
-            "★ Golden questions fill EUREKA. Then SPACE doubles your points.",
+            T.titleCard.goldHint,
             18,
             "#ffd84a",
             "bold",
@@ -431,7 +441,7 @@ export default class Overlays {
             scene,
             CENTER_X,
             612,
-            "PRESS SPACE TO BEGIN THE DEFENSE",
+            T.titleCard.start,
             26,
             "#3ee0ff",
         );

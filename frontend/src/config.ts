@@ -1,6 +1,7 @@
 import config from "../../shared/game-config.json";
 import type { Ending, EndingId } from "./misc/CommonInt";
 import type { Game, Year } from "./types";
+import { TEXT } from "./misc/text";
 
 export const YEARS: Year[] = config.years;
 export const GAMES: Game[] = YEARS.flatMap((year) => year.games);
@@ -10,7 +11,8 @@ const ENDINGS = [...config.endings].sort((a, b) => b.minPercent - a.minPercent);
 export function endingFor(ects: number): Ending {
     const percent = Math.floor((100 * ects) / TOTAL_ECTS);
     const tier = ENDINGS.find((ending) => percent >= ending.minPercent)!;
-    return { id: tier.id as EndingId, title: tier.title };
+    const id = tier.id as EndingId;
+    return { id, title: TEXT.endings[id].title };
 }
 export const MAJOR = config.major;
 export const DEPARTMENT = "D-INFK";

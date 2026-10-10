@@ -1,14 +1,11 @@
 // Tunables for level 3, "Thesis defense" (docs/GAME_DESIGN.md). A four-lane rhythm game with
 // no audio, so the timing windows are a little wider than a music game's and the note lead is
-// long enough to read the highway like sheet music.
+// long enough to read the highway like sheet music. Its text is in shared/text.json.
+
+import { TEXT } from "../src/misc/text";
 
 export const LANE_KEYS = ["D", "F", "J", "K"] as const;
-export const LANE_NAMES = [
-    "Theory",
-    "Proofs",
-    "Experiments",
-    "Critique",
-] as const;
+export const LANE_NAMES = TEXT.thesisDefense.lanes;
 export const LANE_GLYPHS = ["∀", "∫", "χ²", "?!"] as const;
 export const LANE_COLORS = [0x3ee0ff, 0xff4fd8, 0x9dff4a, 0xffb43c] as const;
 export const LANE_CSS = ["#3ee0ff", "#ff4fd8", "#9dff4a", "#ffb43c"] as const;
@@ -50,16 +47,17 @@ export const EUREKA_PER_GOLD = 25; // four golden notes fill the meter
 export const EUREKA_DURATION_MS = 8000;
 
 // Combo milestones (cumulative combo) and the flawless streak callout.
+const MILESTONE_TITLES = TEXT.thesisDefense.milestones;
 export const MILESTONES: readonly [number, string][] = [
-    [10, "PROMISING RESEARCH"],
-    [25, "PEER REVIEW SURVIVED"],
-    [50, "ACADEMIC WEAPON"],
-    [75, "CITED BY EVERYONE"],
-    [100, "TENURE TRACK UNLOCKED"],
-    [150, "FIELDS MEDAL SPEEDRUN"],
+    [10, MILESTONE_TITLES.combo10],
+    [25, MILESTONE_TITLES.combo25],
+    [50, MILESTONE_TITLES.combo50],
+    [75, MILESTONE_TITLES.combo75],
+    [100, MILESTONE_TITLES.combo100],
+    [150, MILESTONE_TITLES.combo150],
 ];
 export const PERFECT_STREAK = 25;
-export const PERFECT_STREAK_TITLE = "NOBEL PRIZE INCOMING";
+export const PERFECT_STREAK_TITLE = MILESTONE_TITLES.perfectStreak;
 
 // Personal best survives page loads in this browser only (no server state for a practice
 // score; the year's credit is what the shell saves).

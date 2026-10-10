@@ -26,14 +26,16 @@ import {
     screenY,
 } from "./layout";
 import { COLORS, FONT, NOTE_H, NOTE_W } from "./textures";
+import { TEXT } from "../src/misc/text";
 
 const BEAT_MS = BAR_MS / 4;
 const TOP_SCALE = 1 / FAR;
+const JUDGMENT = TEXT.thesisDefense.judgments;
 const JUDGMENT_STYLE: Record<Hit | "miss", { text: string; color: string }> = {
-    perfect: { text: "PERFECT", color: "#ffffff" },
-    great: { text: "GREAT", color: "#9dff4a" },
-    good: { text: "GOOD", color: "#3ee0ff" },
-    miss: { text: "MISS", color: "#ff4f6d" },
+    perfect: { text: JUDGMENT.perfect, color: "#ffffff" },
+    great: { text: JUDGMENT.great, color: "#9dff4a" },
+    good: { text: JUDGMENT.good, color: "#3ee0ff" },
+    miss: { text: JUDGMENT.miss, color: "#ff4f6d" },
 };
 const TIMING_TICKS = 14;
 
@@ -138,7 +140,11 @@ export default class Highway {
             onComplete: () => ring.destroy(),
         });
         const timing =
-            judgment === "perfect" ? "" : delta < 0 ? "EARLY" : "LATE";
+            judgment === "perfect"
+                ? ""
+                : delta < 0
+                  ? TEXT.thesisDefense.timing.early
+                  : TEXT.thesisDefense.timing.late;
         this.showJudgment(lane, judgment, timing);
         this.addTick(delta);
     }

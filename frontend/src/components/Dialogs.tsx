@@ -3,6 +3,9 @@ import { api, errorMessage, type ScoreRow } from "../api";
 import { departmentLabel, TOTAL_ECTS } from "../config";
 import { Icon } from "./Icon";
 import { PresentationTimeline } from "../misc/motion";
+import { TEXT } from "../misc/text";
+
+const T = TEXT.scoreboard;
 
 export function Dialog({
     title,
@@ -11,7 +14,7 @@ export function Dialog({
     busy = false,
     wide = false,
     className = "",
-    closeLabel = "Close dialog",
+    closeLabel = TEXT.common.closeDialog,
 }: {
     title: string;
     children: ReactNode;
@@ -98,11 +101,11 @@ export function ScoreboardDialog({ onClose }: { onClose: () => void }) {
         };
     }, [attempt]);
     return (
-        <Dialog title="The student scoreboard" onClose={onClose} wide>
-            <p>Big effort. Small bragging rights. Anonymous player runs.</p>
+        <Dialog title={T.title} onClose={onClose} wide>
+            <p>{T.intro}</p>
             {loading ? (
                 <p className="empty-state" role="status">
-                    Checking the student records…
+                    {T.loading}
                 </p>
             ) : error ? (
                 <div className="empty-state">
@@ -113,31 +116,25 @@ export function ScoreboardDialog({ onClose }: { onClose: () => void }) {
                         className="button secondary"
                         onClick={() => setAttempt((value) => value + 1)}
                     >
-                        Try again
+                        {TEXT.common.tryAgain}
                     </button>
                 </div>
             ) : rows.length === 0 ? (
                 <div className="empty-state">
                     <Icon name="trophy" size={36} />
-                    <h3>A very exclusive club of zero.</h3>
-                    <p>
-                        No student records yet. Create your character and play
-                        to get listed.
-                    </p>
+                    <h3>{T.emptyTitle}</h3>
+                    <p>{T.emptyBody}</p>
                 </div>
             ) : (
                 <div className="table-scroll">
                     <table>
-                        <caption className="sr-only">
-                            Top 100 students, ordered by ECTS, then run creation
-                            order
-                        </caption>
+                        <caption className="sr-only">{T.caption}</caption>
                         <thead>
                             <tr>
-                                <th scope="col">Rank</th>
-                                <th scope="col">Student / major</th>
-                                <th scope="col">ECTS</th>
-                                <th scope="col">Status</th>
+                                <th scope="col">{T.columns.rank}</th>
+                                <th scope="col">{T.columns.student}</th>
+                                <th scope="col">{T.columns.ects}</th>
+                                <th scope="col">{T.columns.status}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -166,8 +163,8 @@ export function ScoreboardDialog({ onClose }: { onClose: () => void }) {
                                                 <Icon name="check" size={14} />
                                             )}
                                             {row.graduated
-                                                ? "Graduated"
-                                                : "Studying"}
+                                                ? T.status.graduated
+                                                : T.status.studying}
                                         </span>
                                     </td>
                                 </tr>
@@ -176,11 +173,7 @@ export function ScoreboardDialog({ onClose }: { onClose: () => void }) {
                     </table>
                 </div>
             )}
-            <p className="scoreboard-footnote">
-                ECTS come from completed minigames. Placeholder previews award
-                none. Ties follow run creation order. Names are chosen by
-                players; they do not verify identity.
-            </p>
+            <p className="scoreboard-footnote">{T.footnote}</p>
         </Dialog>
     );
 }

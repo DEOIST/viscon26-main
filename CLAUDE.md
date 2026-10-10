@@ -325,6 +325,7 @@ Inside the image the paths mirror the repo (`/app/backend`, `/app/frontend/dist`
 
 ### General
 - **English** for all identifiers, comments, commits and UI copy (unless the product needs otherwise).
+- **Player-facing text lives in `shared/text.json`**, grouped by screen and minigame, so copy can be edited without touching code. Code reads it through `TEXT` and `fill()` from `frontend/src/misc/text.ts` (`fill(TEXT.graduation.title, { name })` fills `{name}`); `\n` is a line break (`<MultiLine>` in React). The backend reads the same file through `backend/app/text.py` for its fallback story lines, career endings and player errors. Never hard-code new copy. Year and game titles stay in `shared/game-config.json`, and `index.html`'s title and meta description stay in the HTML.
 - Comments explain **why**, not what. Keep a one-line module docstring/comment at the top of non-obvious files.
 - Don't commit `dist/`, `.venv/`, `.env`, `node_modules/`, or `frontend/public/models/`.
 
@@ -348,7 +349,7 @@ Inside the image the paths mirror the repo (`/app/backend`, `/app/frontend/dist`
 - **One folder per minigame, one engine for all: Phaser 4.** Blackjack is plain 2D; the shooter fakes depth with isometric art (see [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md)). No 3D engine. `index.ts` exports only the mount function (`mountBlackjack`, `mountShooter`).
 - **Scenes are classes**, one per file, filename = class name (`BlackjackScene.ts`, `ShooterScene.ts`, both extend `Phaser.Scene`). This is the one place where classes are the norm.
 - **Pure logic is separate.** Rules, scoring and gesture math live in plain `.ts` files without engine imports, so they can be unit-tested. Scenes render and route input.
-- **Tunables** (thresholds, timings, sizes, perk values, quality settings) are `UPPER_SNAKE_CASE` constants in the game's `config.ts`.
+- **Tunables** (thresholds, timings, sizes, perk values, quality settings) are `UPPER_SNAKE_CASE` constants in the game's `config.ts`. Their wording (labels, callouts, dialogue, verdicts) goes in the game's section of `shared/text.json`.
 - **Boundaries:** no React, no `fetch`/`apiClient`, no navigation inside `games/`. Talk to the outside only through `MinigameOptions` (`character`, `dialogue`, `onFinish`). Only `components/common/MinigameHost.tsx` calls a mount function; only `games/shared/createGame.ts` creates a `Phaser.Game`.
 - **Fake-depth budget (shooter):** fixed view, isometric sprites in one texture atlas, at most ~50 active sprites pooled in a `Group`, depth = scale + draw order + haze, no real-time lighting, glow only on `sharp`. Gameplay must also work in Phaser's Canvas fallback. See [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md).
 - **Assets:** import them (hashed URLs) and pass the URLs to Phaser's loader. The MediaPipe runtime files are the exception: they are served from `/static/mediapipe/` and `/static/models/`.

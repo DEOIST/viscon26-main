@@ -1,6 +1,10 @@
 import { lazy, Suspense, type ComponentType } from "react";
 import type { MinigameProps } from "../types";
 import { Icon } from "../components/Icon";
+import { MultiLine } from "../components/MultiLine";
+import { TEXT } from "../misc/text";
+
+const T = TEXT.minigameHost;
 
 const DestinationGame = lazy(() => import("./DestinationGame"));
 function DestinationPreview(args: MinigameProps) {
@@ -8,7 +12,7 @@ function DestinationPreview(args: MinigameProps) {
         <Suspense
             fallback={
                 <p className="host-notice" role="status">
-                    Opening minigame…
+                    {T.opening}
                 </p>
             }
         >
@@ -23,15 +27,13 @@ export function Placeholder({ onExit }: MinigameProps) {
             <span className="placeholder-icon">
                 <Icon name="slot" size={42} />
             </span>
-            <span className="eyebrow">A LITTLE ROOM FOR WHAT’S NEXT</span>
-            <h2>Minigame component will be connected here</h2>
+            <span className="eyebrow">{T.placeholder.eyebrow}</span>
+            <h2>{T.placeholder.title}</h2>
             <p>
-                This is a preview slot. There’s nothing to play yet,
-                <br />
-                and no ECTS are awarded here.
+                <MultiLine text={T.placeholder.body} />
             </p>
             <button className="button secondary" onClick={onExit}>
-                <Icon name="back" /> Return to overview
+                <Icon name="back" /> {TEXT.common.returnToOverview}
             </button>
         </div>
     );

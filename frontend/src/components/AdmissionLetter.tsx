@@ -1,21 +1,32 @@
 import { departmentLabel } from "../config";
+import { fill, TEXT } from "../misc/text";
 import type { Player } from "../types";
 
-export function admissionBlocks(player: Player) {
+type LetterPart = string | { strong: string };
+
+// "**text**" in text.json marks bold parts. Split before filling, so a name can't add bold.
+function letterParts(
+    template: string,
+    values: Record<string, string> = {},
+): LetterPart[] {
+    return template.split("**").flatMap((part, index) => {
+        if (part === "") return [];
+        const filled = fill(part, values);
+        return [index % 2 === 1 ? { strong: filled } : filled];
+    });
+}
+
+export function admissionBlocks(player: Player): LetterPart[][] {
+    const letter = TEXT.admission.letter;
     return [
-        [`DEAR ${player.name.toUpperCase()},`],
-        ["Welcome to the\nnext three years."],
-        [
-            "Congratulations, ",
-            { strong: player.name },
-            "! You have been accepted into ",
-            { strong: departmentLabel(player.major) },
-            ".",
-        ],
-        [
-            "Your potential is impressive. Your free time has been successfully unenrolled.",
-        ],
-        ["Warm regards,\n", { strong: "The unofficial admissions team" }],
+        letterParts(letter.greeting, { name: player.name.toUpperCase() }),
+        letterParts(letter.headline),
+        letterParts(letter.acceptance, {
+            name: player.name,
+            department: departmentLabel(player.major),
+        }),
+        letterParts(letter.body),
+        letterParts(letter.signoff),
     ];
 }
 

@@ -9,6 +9,9 @@ import {
     TRIGGER_TEST_SHOTS,
 } from "./config";
 import type { CvTriggerReply, TriggerStep } from "./input/cvStream";
+import { fill, TEXT } from "../src/misc/text";
+
+const T = TEXT.shooter.pinchCheck;
 
 type State =
     | { kind: "waiting" } // for the hand to be in view
@@ -67,7 +70,7 @@ export class TriggerCalibration {
                 ? { kind: "finished", usedDefault: true }
                 : {
                       kind: "failed",
-                      detail: reply.detail ?? "Let's try that again",
+                      detail: reply.detail ?? T.retryReason,
                       msLeft: TRIGGER_RETRY_MS,
                   };
     }
@@ -93,15 +96,20 @@ export class TriggerCalibration {
         const state = this.state;
         switch (state.kind) {
             case "waiting":
-                return "Pinch check: show your palm to the camera, fingers apart";
+                return T.waiting;
             case "step":
                 return TRIGGER_STEPS[state.index].text;
             case "computing":
-                return "Measuring your pinch…";
+                return T.measuring;
             case "failed":
-                return `${state.detail}. Again in a moment…`;
+                return fill(T.failed, { detail: state.detail });
             case "testing":
-                return `Calibrated! Open then pinch to grab ${TRIGGER_TEST_SHOTS - state.shots} more time${TRIGGER_TEST_SHOTS - state.shots === 1 ? "" : "s"}`;
+                return fill(
+                    TRIGGER_TEST_SHOTS - state.shots === 1
+                        ? T.testing.one
+                        : T.testing.other,
+                    { count: TRIGGER_TEST_SHOTS - state.shots },
+                );
             case "finished":
                 return "";
         }

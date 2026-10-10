@@ -59,7 +59,10 @@ import {
     wait,
 } from "./ui";
 import { pickLine } from "../src/games/shared/minigame";
+import { fill, TEXT } from "../src/misc/text";
 import type { MinigameResult } from "../src/games/shared/minigame";
+
+const T = TEXT.blackjack;
 
 interface BlackjackSceneArgs {
     playerName: string;
@@ -139,7 +142,7 @@ export default class BlackjackScene extends Scene {
         this.loading = [
             track,
             bar,
-            label(this, CENTER.x, CENTER.y - 50, "SHUFFLING THE DECK…", 34),
+            label(this, CENTER.x, CENTER.y - 50, T.loading, 34),
         ];
         this.load.on("progress", (value: number) => bar.setScale(value, 1));
         loadAssets(this);
@@ -169,8 +172,8 @@ export default class BlackjackScene extends Scene {
         this.boards.dealer.onLand = (landing) =>
             this.onLand(landing.decisive, landing.at);
 
-        this.drawSeat("dealer", "DEALER", "avatar-dealer");
-        this.drawSeat("player", "YOU", "avatar-player");
+        this.drawSeat("dealer", T.seats.dealer, "avatar-dealer");
+        this.drawSeat("player", T.seats.player, "avatar-player");
         this.drawDeck();
 
         this.handText = label(
@@ -187,7 +190,7 @@ export default class BlackjackScene extends Scene {
             this,
             avatar.x,
             avatar.y + 128,
-            `CHIPS ${this.shownChips}`,
+            fill(T.chips, { chips: this.shownChips }),
             32,
             "#f5c451",
         ).setDepth(50);
@@ -198,25 +201,25 @@ export default class BlackjackScene extends Scene {
                 this,
                 DEAL_BUTTON.x,
                 DEAL_BUTTON.y,
-                "DEAL",
+                T.buttons.deal,
                 "gold",
                 () => this.deal(),
                 200,
             ),
-            hit: new Button(this, x - dx, y, "HIT", "green", () =>
+            hit: new Button(this, x - dx, y, T.buttons.hit, "green", () =>
                 this.act({ type: "hit", random: Math.random }),
             ),
-            stand: new Button(this, x, y, "STAND", "red", () =>
+            stand: new Button(this, x, y, T.buttons.stand, "red", () =>
                 this.act({ type: "stand", random: Math.random }),
             ),
-            double: new Button(this, x + dx, y, "DOUBLE", "blue", () =>
+            double: new Button(this, x + dx, y, T.buttons.double, "blue", () =>
                 this.act({ type: "double", random: Math.random }),
             ),
             next: new Button(
                 this,
                 x,
                 y,
-                "NEXT HAND",
+                T.buttons.nextHand,
                 "gold",
                 () => this.act({ type: "next" }),
                 230,
@@ -315,12 +318,12 @@ export default class BlackjackScene extends Scene {
         const onTable = this.pile.length ? bet : 0;
         this.betText.setText(
             onTable
-                ? `BET ${onTable}`
+                ? fill(T.bet, { amount: onTable })
                 : s.phase === "betting"
-                  ? `PLACE YOUR BET · MIN ${MIN_BET}`
+                  ? fill(T.placeBet, { min: MIN_BET })
                   : "",
         );
-        this.handText.setText(`HAND ${s.hand} / ${HANDS}`);
+        this.handText.setText(fill(T.hand, { hand: s.hand, hands: HANDS }));
         this.tray.forEach((chip, i) => {
             const affordable =
                 s.phase === "betting" && bet + CHIP_VALUES[i] <= s.chips;
@@ -342,12 +345,19 @@ export default class BlackjackScene extends Scene {
         const s = this.state;
         const mine = s.player.board.balls;
         const theirs = s.dealer.board.balls;
+        const said = T.announcements;
         const text = {
-            betting: `Hand ${s.hand} of ${HANDS}. Place your bet: ${betOf(s)} on the table, ${s.chips} chips in total.`,
-            player: `Your turn: ${mine} balls against the dealer's ${theirs}. Hit, stand or double.`,
-            settled: isOver(s)
-                ? `${this.outcome} Game over. You finished with ${s.chips} chips.`
-                : `${this.outcome} You have ${s.chips} chips. Next hand when you're ready.`,
+            betting: fill(said.betting, {
+                hand: s.hand,
+                hands: HANDS,
+                bet: betOf(s),
+                chips: s.chips,
+            }),
+            player: fill(said.player, { mine, theirs }),
+            settled: fill(isOver(s) ? said.gameOver : said.settled, {
+                outcome: this.outcome,
+                chips: s.chips,
+            }),
         }[s.phase];
         if (text === this.announced) return;
         this.announced = text;
@@ -365,7 +375,7 @@ export default class BlackjackScene extends Scene {
             ease: "Cubic.easeOut",
             onUpdate: (t) =>
                 this.chipsText.setText(
-                    `CHIPS ${Math.round(t.getValue() ?? to)}`,
+                    fill(T.chips, { chips: Math.round(t.getValue() ?? to) }),
                 ),
         });
     }
@@ -578,7 +588,7 @@ export default class BlackjackScene extends Scene {
 
     private async doubleChips() {
         const { avatar } = SEATS.player;
-        floatText(this, BET.x, BET.y - 80, "DOUBLE!", "#6fa8ee");
+        floatText(this, BET.x, BET.y - 80, T.callouts.double, "#6fa8ee");
         this.rebuildPile();
         const half = this.pile.length / 2;
         await Promise.all(
@@ -782,12 +792,12 @@ export default class BlackjackScene extends Scene {
         if (decisive === "bust") {
             this.cameras.main.shake(260, 0.008);
             this.cameras.main.flash(180, 238, 90, 120, false);
-            floatText(this, at.x, at.y - 30, "RED!", "#ee5a78");
+            floatText(this, at.x, at.y - 30, T.callouts.red, "#ee5a78");
         } else if (decisive === "blackjack") {
             this.cameras.main.flash(220, 255, 214, 120, false);
             this.sparks.setParticleTint(COLORS.gold);
             this.sparks.explode(30, at.x, at.y);
-            floatText(this, at.x, at.y - 30, "3 YELLOW!", "#ffc94d");
+            floatText(this, at.x, at.y - 30, T.callouts.threeYellow, "#ffc94d");
         }
     }
 
@@ -804,39 +814,18 @@ export default class BlackjackScene extends Scene {
         const mine = this.state.player.board.balls;
         const theirs = this.state.dealer.board.balls;
         const amount = Math.abs(event.payout);
-        const [title, subtitle, color] = {
-            bust: ["BUST!", `A red ball. You lose ${amount}`, "#ee5a78"],
-            blackjack: [
-                "BLACKJACK!",
-                `Three yellow balls pay 3:2  +${amount}`,
-                "#ffc94d",
-            ],
-            "dealer-bust": [
-                "DEALER BUSTS!",
-                `A red ball on the dealer's board  +${amount}`,
-                "#6ccfa6",
-            ],
-            "dealer-blackjack": [
-                "DEALER BLACKJACK",
-                `Three yellow balls for the house  −${amount}`,
-                "#ee5a78",
-            ],
-            more: [
-                "YOU WIN!",
-                `${mine} balls beat ${theirs}  +${amount}`,
-                "#6ccfa6",
-            ],
-            fewer: [
-                "DEALER WINS",
-                `${mine} balls against ${theirs}  −${amount}`,
-                "#ee5a78",
-            ],
-            equal: [
-                "PUSH",
-                `${mine} balls each. Your bet comes back`,
-                "#ffffff",
-            ],
+        const color = {
+            bust: "#ee5a78",
+            blackjack: "#ffc94d",
+            "dealer-bust": "#6ccfa6",
+            "dealer-blackjack": "#ee5a78",
+            more: "#6ccfa6",
+            fewer: "#ee5a78",
+            equal: "#ffffff",
         }[event.reason];
+        const result = T.outcomes[event.reason];
+        const title = result.title;
+        const subtitle = fill(result.detail, { amount, mine, theirs });
 
         this.outcome = `${title} ${subtitle}.`;
         this.say(LINE_FOR_REASON[event.reason]);
@@ -894,17 +883,24 @@ export default class BlackjackScene extends Scene {
         const diff = chips - START_CHIPS;
         panel.add([
             box,
-            label(this, 0, -130, "GAME OVER", 64, "#f5c451"),
-            label(this, 0, -44, `You finished with ${chips} chips`, 34),
+            label(this, 0, -130, T.gameOver.title, 64, "#f5c451"),
+            label(this, 0, -44, fill(T.gameOver.chips, { chips }), 34),
             label(
                 this,
                 0,
                 6,
-                diff >= 0 ? `+${diff} on the night` : `${diff} on the night`,
+                fill(diff >= 0 ? T.gameOver.gain : T.gameOver.loss, { diff }),
                 28,
                 diff > 0 ? "#6ccfa6" : "#ee5a78",
             ),
-            label(this, 0, 52, `SCORE ${final.score} / 100`, 26, "#f5c451"),
+            label(
+                this,
+                0,
+                52,
+                fill(T.gameOver.score, { score: final.score }),
+                26,
+                "#f5c451",
+            ),
         ]);
         this.tweens.add({ targets: shade, fillAlpha: 0.55, duration: 400 });
         this.tweens.add({
@@ -925,7 +921,7 @@ export default class BlackjackScene extends Scene {
             this,
             CONTINUE_BUTTON.x,
             CONTINUE_BUTTON.y,
-            "CONTINUE",
+            T.buttons.continue,
             "gold",
             () => {
                 done.setEnabled(false);

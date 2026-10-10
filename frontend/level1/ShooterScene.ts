@@ -36,8 +36,11 @@ import { pickTargetKind, spawnIntervalMs } from "./spawn";
 import { TriggerCalibration } from "./triggerCalibration";
 import type { GameObjects, Time } from "phaser";
 import type { MinigameResult } from "../src/games/shared/minigame";
+import { fill, TEXT } from "../src/misc/text";
 import type { AimPoint } from "./input/InputSource";
 import type SwitchableInput from "./input/SwitchableInput";
+
+const T = TEXT.shooter;
 
 interface ShooterSceneArgs {
     playerName: string;
@@ -157,7 +160,7 @@ export default class ShooterScene extends Scene {
             .setAlign("center")
             .setWordWrapWidth(GAME_WIDTH * 0.8)
             .setDepth(2002);
-        this.subtitle.setText(`Bug Bash — ship it, ${this.args.playerName}!`);
+        this.subtitle.setText(fill(T.intro, { name: this.args.playerName }));
         // Mouse/keyboard fallback for the same slap action.
         this.input.keyboard?.on("keydown-SPACE", () => {
             if (this.phase === "playing") this.handleSlap("right");
@@ -175,7 +178,7 @@ export default class ShooterScene extends Scene {
             .text(
                 GAME_WIDTH - 18,
                 65,
-                "F  ⛶ Fullscreen",
+                T.fullscreen.enter,
                 textStyle(15, "#c5d8ef"),
             )
             .setOrigin(1, 0)
@@ -188,15 +191,15 @@ export default class ShooterScene extends Scene {
         const updateLabel = () =>
             button.setText(
                 this.scale.isFullscreen
-                    ? "F  ⛶ Exit fullscreen"
-                    : "F  ⛶ Fullscreen",
+                    ? T.fullscreen.exit
+                    : T.fullscreen.enter,
             );
         const failed = () =>
             floatText(
                 this,
                 GAME_WIDTH / 2,
                 130,
-                "Fullscreen unavailable in this browser",
+                T.fullscreen.unavailable,
                 "#ffc1a1",
             );
         const key = (event: KeyboardEvent) => {
@@ -293,7 +296,7 @@ export default class ShooterScene extends Scene {
             const x = shot.x * GAME_WIDTH;
             const y = shot.y * GAME_HEIGHT;
             muzzleFlash(this, x, y);
-            floatText(this, x, y, "GRAB!", "#f2c14e");
+            floatText(this, x, y, T.callouts.grab, "#f2c14e");
             this.backdrop.pulse(x, y, HIT_FLASH, 0.6);
         }
         this.instruction.setText(trigger.instruction());
@@ -307,7 +310,7 @@ export default class ShooterScene extends Scene {
                 this,
                 GAME_WIDTH / 2,
                 GAME_HEIGHT * 0.3,
-                "Standard pinch (T to try again)",
+                T.defaultPinch,
                 "#ffffff",
             );
         this.trigger = null;
@@ -340,7 +343,10 @@ export default class ShooterScene extends Scene {
             .setPosition(point.x * GAME_WIDTH, point.y * GAME_HEIGHT)
             .setDepth(1000);
         this.instruction.setText(
-            `Practice: grab and throw bug ${this.practiceIndex + 1} / ${PRACTICE_POINTS.length}`,
+            fill(T.practiceTarget, {
+                current: this.practiceIndex + 1,
+                total: PRACTICE_POINTS.length,
+            }),
         );
         this.tweens.add({
             targets: this.practiceTarget,
@@ -368,9 +374,7 @@ export default class ShooterScene extends Scene {
     }
 
     private startCountdown() {
-        this.subtitle.setText(
-            "Throw bugs. Slap or slide an open hand to save the code!",
-        );
+        this.subtitle.setText(T.roundStart);
         let remaining = COUNTDOWN_SECONDS;
         this.banner.setText(String(remaining));
         this.time.addEvent({
@@ -403,18 +407,18 @@ export default class ShooterScene extends Scene {
         if (this.phase !== "playing") return;
         this.secondsLeft -= 1;
         if (this.secondsLeft === Math.floor(ROUND_SECONDS / 2))
-            this.subtitle.setText("Halfway to shipping. Keep the bugs out!");
+            this.subtitle.setText(T.halfway);
         if (this.secondsLeft === FINAL_STRETCH_SECONDS)
-            this.subtitle.setText("Last push before the release!");
+            this.subtitle.setText(T.finalStretch);
         if (this.secondsLeft <= 0) this.endRound();
     }
 
     private endRound() {
         this.held = null;
         this.phase = "over";
-        this.banner.setText("Build complete!");
+        this.banner.setText(T.buildComplete);
         this.backdrop.pulse(GAME_WIDTH / 2, GAME_HEIGHT / 2, HIT_FLASH, 1);
-        this.subtitle.setText("Debugging shift complete.");
+        this.subtitle.setText(T.shiftComplete);
         this.time.delayedCall(1400, () =>
             this.args.finish({
                 score: shooterScore(this.points),
@@ -478,7 +482,7 @@ export default class ShooterScene extends Scene {
                 this,
                 target.view.x,
                 target.view.y - 70,
-                `Code saved! +${gained}`,
+                fill(T.callouts.codeSaved, { points: gained }),
                 "#9ff3c6",
             );
             this.tweens.add({
@@ -507,9 +511,10 @@ export default class ShooterScene extends Scene {
                     this,
                     target.view.x,
                     target.view.y,
-                    isCode
-                        ? `Code exploded! −${penalty}`
-                        : `Bug escaped! −${penalty}`,
+                    fill(
+                        isCode ? T.callouts.codeCrashed : T.callouts.bugEscaped,
+                        { points: penalty },
+                    ),
                     "#ff8a8a",
                 );
                 if (isCode) {
@@ -580,7 +585,7 @@ export default class ShooterScene extends Scene {
             const gained = shotPoints(null, this.streak);
             this.points += gained;
             this.streak = 0;
-            floatText(this, x, y, "Nothing grabbed", "#ff8a8a");
+            floatText(this, x, y, T.callouts.nothingGrabbed, "#ff8a8a");
             return;
         }
         this.hold(target.view, target, x, y);
@@ -602,7 +607,7 @@ export default class ShooterScene extends Scene {
             lostMs: 0,
             mode: this.args.input.mode,
         };
-        floatText(this, x, y - 80, "Grabbed! Move and release", "#f2c14e");
+        floatText(this, x, y - 80, T.callouts.grabbed, "#f2c14e");
     }
 
     private handPoint(): AimPoint | null {
@@ -695,11 +700,11 @@ export default class ShooterScene extends Scene {
                 this,
                 held.view.x,
                 held.view.y,
-                `Bug squashed! +${gained}`,
+                fill(T.callouts.bugSquashed, { points: gained }),
                 "#f2c14e",
             );
             if (this.streak === 3 || this.streak % 6 === 0)
-                this.subtitle.setText("Clean code. Great streak!");
+                this.subtitle.setText(T.streak);
         } else {
             this.practiceTarget = null;
             this.practiceIndex += 1;
@@ -741,27 +746,32 @@ export default class ShooterScene extends Scene {
         const { input } = this.args;
         if (input.mode === "mouse" && input.notice) return input.notice;
         if (input.mode === "camera" && input.tracking === "calibrating")
-            return "Show your palm to the camera, index finger and thumb apart";
+            return T.hints.calibrating;
         if (input.mode === "camera" && input.tracking === "noPose")
-            return "Face your palm toward the camera; pinch your index finger and thumb";
+            return T.hints.noPose;
         if (input.mode === "camera" && input.tracking === "lost")
-            return "Show your hand to the camera";
-        if (this.phase === "trigger") return "Enter skips the pinch check";
-        if (this.held)
-            return "Move your hand, then open your fingers to throw the bug";
-        if (this.phase === "practice")
-            return "Pinch a bug, move your hand and release to throw (Enter skips, T calibrates)";
+            return T.hints.lost;
+        if (this.phase === "trigger") return T.hints.skipPinchCheck;
+        if (this.held) return T.hints.holding;
+        if (this.phase === "practice") return T.hints.practice;
         if (this.phase === "playing")
             return input.mode === "mouse"
-                ? "Drag bugs and release • SPACE saves code and swats interruptions"
-                : "Pinch + throw bugs • Slap or slide an open hand to save code";
+                ? T.hints.playingMouse
+                : T.hints.playingCamera;
         return "";
     }
 
     private updateHud() {
         const { input } = this.args;
         this.hud.setText(
-            `Score ${this.points}   Bugs ${this.hits}   Code saved ${this.savedCode}   KO ${this.slapWalkers.knockedOut}   ${Math.max(0, this.secondsLeft)}s   ${input.mode === "mouse" ? "SPACE = slap" : "✋"}`,
+            fill(T.hud.status, {
+                points: this.points,
+                bugs: this.hits,
+                saved: this.savedCode,
+                dodged: this.slapWalkers.knockedOut,
+                seconds: Math.max(0, this.secondsLeft),
+                device: input.mode === "mouse" ? T.hud.mouse : T.hud.camera,
+            }),
         );
     }
 }
