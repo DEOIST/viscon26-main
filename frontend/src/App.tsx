@@ -203,6 +203,9 @@ export function App() {
             delta:
                 calculateEcts(ids, current.scores) -
                 calculateEcts(previous.completedGameIds, previous.scores),
+            gameId: selectedGame.id,
+            gameTitle: selectedGame.title,
+            score,
             unlockedYears: YEARS.flatMap((_, index) =>
                 !isYearUnlocked(index, previous.completedGameIds) &&
                 isYearUnlocked(index, ids)
@@ -211,12 +214,21 @@ export function App() {
             ),
         });
         setSelectedGame(null);
+        // The last game decides the degree: go straight to the career it earned, no revisit
+        // screen in between.
+        if (canGraduate(ids) && !current.graduated) {
+            graduate();
+            return;
+        }
         setNotice(TEXT.app.gameCompleted);
         void synchronize();
     }
     function graduate() {
         if (saving.current) return;
-        if (!eligible) {
+        const eligibleNow = canGraduate(
+            store.getState().progress.completedGameIds,
+        );
+        if (!eligibleNow) {
             if (graduationPreview) setPreviewingGraduation(true);
             return;
         }
@@ -342,6 +354,7 @@ export function App() {
                             player={player}
                             ects={ects}
                             completedGameIds={progress.completedGameIds}
+                            scores={progress.scores}
                             graduatedAt={progress.graduatedAt || null}
                             celebrate={celebrateGraduation}
                             preview={previewingGraduation}

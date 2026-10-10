@@ -48,9 +48,17 @@ vi.mock("./components/GameWorkspace", () => ({
         graduationPreview: boolean;
         onGraduate: () => void;
         onEditCharacter: () => void;
+        onOpen: (game: (typeof GAMES)[number]) => void;
+        onComplete: (score?: number) => void;
     }) {
         return (
             <>
+                <button onClick={() => args.onOpen(GAMES[GAMES.length - 1])}>
+                    Open last game
+                </button>
+                <button onClick={() => args.onComplete(80)}>
+                    Finish game with 80
+                </button>
                 <button
                     disabled={!args.eligible && !args.graduationPreview}
                     onClick={args.onGraduate}
@@ -316,6 +324,42 @@ it("restores an existing local graduation on refresh and reopens its diploma wit
     fireEvent.click(screen.getByRole("button", { name: "View diploma" }));
     expect(api.synchronize).toHaveBeenCalledOnce();
     expect(store.getState().progress).toEqual(graduated);
+});
+
+it("assigns the career straight after the last game, without a revisit screen", async () => {
+    // Years 1 and 2 done; the thesis defense is the last game left.
+    localStorage.setItem(
+        "eth-simulator.guest.v1",
+        JSON.stringify({
+            version: 1,
+            player: { ...defaultPlayer, name: "Ada", onboardingStage: "main" },
+            progress: {
+                completedGameIds: GAMES.slice(0, -1).map((game) => game.id),
+                scores: {},
+                graduated: false,
+            },
+        }),
+    );
+    const saved = readGuest();
+    store.dispatch(replacePlayer(saved.player));
+    store.dispatch(replaceProgress(saved.progress));
+    vi.mocked(api.synchronize).mockImplementation(
+        async (snapshot) => snapshot.progress,
+    );
+    renderApp();
+    fireEvent.click(screen.getByRole("button", { name: "Open last game" }));
+    fireEvent.click(
+        screen.getByRole("button", { name: "Finish game with 80" }),
+    );
+    const diploma = within(await screen.findByRole("dialog"));
+    expect(
+        diploma.getByRole("heading", { name: "Congratulations, Ada!" }),
+    ).toBeTruthy();
+    const progress = store.getState().progress;
+    expect(progress.graduated).toBe(true);
+    // 60 + 60 + 80 % of 60 = 168 ECTS.
+    expect(diploma.getByText("168 ECTS")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Open last game" })).toBeNull();
 });
 
 function renderAcceptance() {

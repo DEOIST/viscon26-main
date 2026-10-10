@@ -293,6 +293,21 @@ does not change its credits. The tiers live in one place,
 boundary has a test on both sides. The legacy `/graduation` page picks the tier
 from its run's average score the same way.
 
+**Submitting the last game graduates you straight away:** the year shell skips the
+"Ready for another visit?" overview and opens the graduation screen with the
+diploma, so the run ends on the career it earned.
+
+**The credits are always visible** (`components/common/CreditTranscript.tsx`, the
+arithmetic in `misc/credits.ts`):
+- one row per year: its game, your score and the ECTS it paid (`48 / 60`);
+- the sum out of 180 on a progress bar marked with the ECTS each career starts at;
+- "On track for" the career your total buys now and how many ECTS the next one
+  needs, and on the graduation screen and diploma "Your future" plus the career
+  scale with your tier highlighted.
+
+It sits in the student record during the degree, and the popup after each game
+names the game, its score and the ECTS it added.
+
 | Share of ECTS | Ending id | Career | Epilogue tone |
 |---|---|---|---|
 | 85–100 | `quant` | Quant researcher in Zug | Card counting was a transferable skill, unexplainable bonus |

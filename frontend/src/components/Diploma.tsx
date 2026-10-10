@@ -9,6 +9,8 @@ import { Icon } from "./Icon";
 import { fill, TEXT } from "../misc/text";
 import EndingPhoto from "./common/EndingPhoto";
 import { ENDING_ART } from "../misc/endingArt";
+import CreditTranscript from "./common/CreditTranscript";
+import { creditSummary } from "../misc/credits";
 import styles from "./Diploma.module.css";
 
 const T = TEXT.diploma;
@@ -17,6 +19,7 @@ interface DiplomaArgs {
     player: Player;
     ects: number;
     completedGameIds: string[];
+    scores?: Record<string, number>;
     graduatedAt: string | null;
     preview?: boolean;
     submissionError?: string;
@@ -92,6 +95,15 @@ export default function Diploma(args: DiplomaArgs) {
                 <strong className={styles.result}>
                     {fill(TEXT.common.ectsAmount, { ects: args.ects })}
                 </strong>
+                <div className={styles.credits}>
+                    <CreditTranscript
+                        final={!args.preview}
+                        summary={creditSummary(
+                            args.completedGameIds,
+                            args.scores ?? {},
+                        )}
+                    />
+                </div>
                 <dl className={styles.records}>
                     <div>
                         <dt>{T.records.salary}</dt>

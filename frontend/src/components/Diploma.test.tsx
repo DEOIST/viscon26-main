@@ -201,15 +201,16 @@ it("names the career that the earned ECTS buy, with its photo and jokes", () => 
     render(<GraduationScreen {...args} />);
     const diploma = within(screen.getByRole("dialog"));
     const phd = TEXT.endings.phd;
-    expect(diploma.getByText(phd.title)).toBeTruthy();
+    // The career line comes first; the credit transcript's legend names every career too.
+    expect(diploma.getAllByText(phd.title)[0]).toBeTruthy();
     expect(diploma.getByText(phd.stamp)).toBeTruthy();
     expect(diploma.getByText(phd.housing)).toBeTruthy();
     expect(diploma.getByRole("img", { name: phd.alt })).toBeTruthy();
     cleanup();
     render(<GraduationScreen {...args} ects={30} />); // 16 %: the lowest tier
     expect(
-        within(screen.getByRole("dialog")).getByText(
+        within(screen.getByRole("dialog")).getAllByText(
             TEXT.endings.homeless.title,
-        ),
+        )[0],
     ).toBeTruthy();
 });
