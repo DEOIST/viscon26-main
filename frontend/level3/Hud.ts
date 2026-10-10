@@ -53,7 +53,7 @@ export default class Hud {
     constructor(scene: Scene) {
         this.scene = scene;
         const x = HUD_LEFT_X;
-        text(scene, x, 262, "SCORE", 16, "#8fa2ff");
+        text(scene, x, 262, T.score, 16, "#8fa2ff");
         this.score = text(scene, x, 296, "0", 40, "#ffffff", MONO);
         this.combo = text(scene, x - 20, 392, "", 72);
         this.comboLabel = text(scene, x - 20, 444, T.combo, 18, "#8fa2ff");

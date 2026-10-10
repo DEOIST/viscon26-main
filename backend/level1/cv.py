@@ -15,15 +15,15 @@ import time
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Protocol
+from typing import Literal, Protocol
 
 import numpy as np
 from PIL import Image, UnidentifiedImageError
 
 from app.config import BACKEND_DIR, settings
 from level1.config import cv_settings
-from level1.gesture import Box, GestureFrame, Hand, PlayerGun, to_game_area
-from level1.schemas import CvFrame, CvStatus
+from level1.gesture import Box, GestureFrame, Hand, Motion, PlayerGun, to_game_area
+from level1.schemas import CvFrame, CvStatus, CvTriggerReply, CvTriggerThresholds
 
 log = logging.getLogger(__name__)
 
@@ -144,24 +144,46 @@ class Recorder:
         log.info("Saved %d camera frames to %s", self._count, self.dir)
 
 
+# Slap motion (gesture.Motion): frames are compared at 1/MOTION_STEP resolution, in grey; a pixel
+# counts as changed when its brightness moved more than this (0–255).
+MOTION_STEP = 4
+MOTION_MIN_CHANGE = 40.0
+
+
 class CvSession:
     def __init__(self, detector: HandDetector) -> None:
         self._detector = detector
         self._gun = PlayerGun()
         self.box = DEFAULT_BOX
+        self._gun.box = self.box
         self._recorder: Recorder | None = None
         self._started = time.monotonic()
         self._last_timestamp_ms = -1
         self._closed = False
+        # For slaps that blur the hand away (gesture.Motion): a small grey copy of the last frame,
+        # and the player's hand box (x0, y0, x1, y1 in 0..1) when it was last seen
+        self._motion_centre: tuple[float, float, float] | None = None
+        self._previous_grey: np.ndarray | None = None
+        self._hand_box: tuple[float, float, float, float] | None = None
 
     def set_box(self, box: Box) -> None:
         self.box = box
+        self._gun.box = box
 
     def set_cooldown(self, cooldown_ms: float) -> None:
         self._gun.cooldown_ms = cooldown_ms
 
     def recenter(self) -> None:
         self._gun.recenter()
+
+    def calibrate_trigger(self, step: Literal["up", "down", "done", "reset"]) -> CvTriggerReply:
+        trigger, problem = self._gun.calibrate_trigger(step)
+        return CvTriggerReply(
+            step=step,
+            ok=problem is None,
+            detail=problem,
+            thresholds=CvTriggerThresholds(**asdict(trigger)),
+        )
 
     def set_recording(self, on: bool) -> Path | None:
         """Starts or stops a Recorder; returns its folder while recording. Development only:
@@ -187,7 +209,11 @@ class CvSession:
         self._last_timestamp_ms = timestamp_ms
         height, width = rgb.shape[:2]
         hands = self._detector.detect(rgb, timestamp_ms)
-        gesture = self._gun.update(hands, width, height, timestamp_ms)
+        motion = self._motion(rgb)
+        gesture = self._gun.update(hands, width, height, timestamp_ms, motion)
+        if gesture.hand:
+            xs, ys = [p[0] for p in gesture.hand], [p[1] for p in gesture.hand]
+            self._hand_box = (min(xs), min(ys), max(xs), max(ys))
         reply = CvFrame(
             tracking=gesture.tracking,
             aim=gesture.aim,
@@ -197,10 +223,47 @@ class CvSession:
             ),
             thumb_angle=gesture.thumb_angle,
             processing_ms=round((time.perf_counter() - started) * 1000, 1),
+            slap=gesture.slap,
+            pinching=gesture.pinching,
+            slide=asdict(gesture.slide) if gesture.slide else None,
         )
         if self._recorder:
             self._recorder.write(jpeg, (width, height), timestamp_ms, gesture, reply)
         return reply
+
+    def _motion(self, rgb: np.ndarray) -> Motion | None:
+        """Share of the area around the last hand that changed sharply since the last frame."""
+        grey = rgb[::MOTION_STEP, ::MOTION_STEP].mean(axis=2)
+        previous, self._previous_grey = self._previous_grey, grey
+        if previous is None or previous.shape != grey.shape:
+            self._motion_centre = None
+            return None
+        height, width = grey.shape
+        # Even before a back-facing hand has been recognized, watch the central camera area.
+        x0, y0, x1, y1 = self._hand_box or (0.3, 0.25, 0.7, 0.75)
+        # The hand's box, widened by its own size each way: a slap leaves it within a frame
+        w, h = x1 - x0, y1 - y0
+        left, right = max(0, int((x0 - w) * width)), min(width, int((x1 + w) * width) + 1)
+        top, bottom = max(0, int((y0 - h) * height)), min(height, int((y1 + h) * height) + 1)
+        if right - left < 2 or bottom - top < 2:
+            return None
+        changed = np.abs(grey[top:bottom, left:right] - previous[top:bottom, left:right])
+        changed = changed > MOTION_MIN_CHANGE
+        if not changed.any() or float(changed.mean()) < 0.1:
+            self._motion_centre = None
+            return Motion(share=float(changed.mean()), dx=0.0)
+        rows, columns = np.nonzero(changed)
+        x, y = float((columns + left).mean()) / width, float((rows + top).mean()) / width
+        now = time.monotonic()
+        last = self._motion_centre
+        self._motion_centre = (now, x, y)
+        speed, dx = 0.0, 0.0
+        if last is not None and 0 < now - last[0] <= 0.15:
+            dx, dy = x - last[1], y - last[2]
+            distance = float(np.hypot(dx, dy))
+            if distance >= 0.02:
+                speed = distance / (now - last[0])
+        return Motion(share=float(changed.mean()), dx=dx, speed=speed)
 
     def close(self) -> None:
         global _active_sessions

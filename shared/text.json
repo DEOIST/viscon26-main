@@ -274,30 +274,75 @@
         "backToGraduation": "Back to graduation"
     },
     "shooter": {
-        "intro": "Basisprüfung time, {name}!",
-        "practiceTarget": "Practice\n{current} / {total}",
-        "halfway": "Halfway there.",
-        "finalStretch": "Final stretch!",
-        "pensDown": "Pens down!",
-        "timeUp": "Time's up!",
-        "miss": "Missed!",
-        "streak": "What a streak!",
-        "questions": ["Prove it.", "Is P = NP?", "Integrate this.", "Why?"],
-        "deadlineTarget": "DEADLINE\n23:59",
-        "coffeeTarget": "☕ +{seconds}s",
+        "intro": "Bug Bash — ship it, {name}!",
+        "fullscreen": {
+            "enter": "F  ⛶ Fullscreen",
+            "exit": "F  ⛶ Exit fullscreen",
+            "unavailable": "Fullscreen unavailable in this browser"
+        },
+        "defaultPinch": "Standard pinch (T to try again)",
+        "practiceTarget": "Practice: grab and throw bug {current} / {total}",
+        "roundStart": "Throw bugs. Swipe or slide an open hand to save the code!",
+        "halfway": "Halfway to shipping. Keep the bugs out!",
+        "finalStretch": "Last push before the release!",
+        "buildComplete": "Build complete!",
+        "shiftComplete": "Debugging shift complete.",
+        "streak": "Clean code. Great streak!",
+        "dodged": "Dodged! ★",
+        "callouts": {
+            "grab": "GRAB!",
+            "grabbed": "Grabbed! Move and release",
+            "nothingGrabbed": "Nothing grabbed",
+            "codeSaved": "Code saved! +{points}",
+            "codeCrashed": "Code crashed! −{points}",
+            "bugEscaped": "Bug escaped! −{points}",
+            "bugSquashed": "Bug squashed! +{points}"
+        },
+        "bugLabel": "BUG",
+        "workingCode": "✓ WORKING CODE",
+        "codeSnippet": "if (ready) {\n  ship();\n}",
+        "interruptions": [
+            "Quick call?",
+            "Works on my machine!",
+            "Can you fix my printer?",
+            "Just one tiny change…",
+            "Have you tried AI?",
+            "Let's circle back!",
+            "Why isn't it done yet?",
+            "Can you hop on a call?",
+            "Make the logo bigger!",
+            "Deadline was yesterday!"
+        ],
         "hints": {
-            "calibrating": "Hold your hand still and point at the centre",
-            "noPose": "Point your index finger 👉  thumb up, lower your thumb to click",
+            "calibrating": "Show your palm to the camera, index finger and thumb apart",
+            "noPose": "Face your palm toward the camera; pinch your index finger and thumb",
             "lost": "Show your hand to the camera",
-            "practice": "Warm-up: hit the practice paper (Enter skips)"
+            "skipPinchCheck": "Enter skips the pinch check",
+            "holding": "Move your hand, then open your fingers to throw the bug",
+            "practice": "Pinch a bug, move your hand and release to throw (Enter skips, T calibrates)",
+            "playingMouse": "Drag bugs and release • SPACE saves code and waves off interruptions",
+            "playingCamera": "Pinch + throw bugs • Swipe or slide an open hand to save code"
         },
         "hud": {
-            "status": "Points {points}   Hits {hits}/{shots}   {seconds} s   {device}",
-            "camera": "✋ {latency}",
-            "latencyPending": "…",
-            "latency": "{ms} ms",
-            "recording": "   ● REC (R to stop)",
-            "mouse": "🖱 mouse"
+            "status": "Score {points}   Bugs {bugs}   Code saved {saved}   Dodged {dodged}   {seconds}s   {device}",
+            "mouse": "SPACE = swipe",
+            "camera": "✋"
+        },
+        "pinchCheck": {
+            "waiting": "Pinch check: show your palm to the camera, fingers apart",
+            "steps": {
+                "apart": "Palm facing the camera: hold your index finger and thumb APART",
+                "pinch": "PINCH: touch your index finger and thumb tips together, and hold",
+                "open": "OPEN your index finger and thumb again, and hold",
+                "pinchAgain": "PINCH again: fingertips together, and hold"
+            },
+            "measuring": "Measuring your pinch…",
+            "retryReason": "Let's try that again",
+            "failed": "{detail}. Again in a moment…",
+            "testing": {
+                "one": "Calibrated! Open then pinch to grab {count} more time",
+                "other": "Calibrated! Open then pinch to grab {count} more times"
+            }
         },
         "camera": {
             "mouseMode": "Mouse mode: {reason}",
@@ -471,6 +516,7 @@
             "keys": "SPACE · CONTINUE      R · RESTART"
         },
         "hud": {
+            "score": "SCORE",
             "combo": "COMBO",
             "confidence": "THESIS CONFIDENCE",
             "eureka": "EUREKA",
