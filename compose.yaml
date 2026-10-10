@@ -46,8 +46,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-eth_simulator}
       POSTGRES_USER: ${POSTGRES_USER:-eth_dev}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-development-only}
-      SESSION_SECRET: ${SESSION_SECRET:-local-only-change-this-before-any-shared-use-32-characters}
-      COOKIE_SECURE: ${COOKIE_SECURE:-false}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:${FRONTEND_PORT:-5173},http://127.0.0.1:${FRONTEND_PORT:-5173},http://localhost:${BACKEND_PORT:-8000},http://127.0.0.1:${BACKEND_PORT:-8000}}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8000}:8000"

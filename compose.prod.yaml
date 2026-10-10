@@ -16,8 +16,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-eth_simulator}
       POSTGRES_USER: ${POSTGRES_USER:-eth_app}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
-      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET to a unique value of at least 32 characters}
-      COOKIE_SECURE: ${COOKIE_SECURE:-true}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?set ALLOWED_ORIGINS to the public application origin}
     depends_on:
       db:

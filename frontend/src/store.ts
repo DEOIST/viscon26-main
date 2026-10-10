@@ -89,7 +89,10 @@ const progressSlice = createSlice({
             }
         },
         markGraduated: (state) => {
-            if (canGraduate(state.completedGameIds)) state.graduated = true;
+            if (canGraduate(state.completedGameIds) && !state.graduated) {
+                state.graduated = true;
+                state.graduatedAt = new Date().toISOString();
+            }
         },
     },
 });
@@ -161,6 +164,10 @@ export function readGuest(): Snapshot {
                 completedGameIds: ids,
                 graduated:
                     saved.progress?.graduated === true && canGraduate(ids),
+                ...(saved.progress?.graduatedAt &&
+                Number.isFinite(Date.parse(saved.progress.graduatedAt))
+                    ? { graduatedAt: saved.progress.graduatedAt }
+                    : {}),
             },
         };
     } catch {
@@ -168,20 +175,14 @@ export function readGuest(): Snapshot {
     }
 }
 export const store = createAppStore(readGuest());
-let guestPersistence = false;
-export const setGuestPersistence = (enabled: boolean) => {
-    guestPersistence = enabled;
-};
 store.subscribe(() => {
-    if (guestPersistence) {
-        try {
-            localStorage.setItem(
-                GUEST_KEY,
-                JSON.stringify({ version: 1, ...store.getState() }),
-            );
-        } catch {
-            /* Guest play still works when browser storage is disabled. */
-        }
+    try {
+        localStorage.setItem(
+            GUEST_KEY,
+            JSON.stringify({ version: 1, ...store.getState() }),
+        );
+    } catch {
+        /* Play still works when browser storage is disabled. */
     }
 });
 export type RootState = ReturnType<typeof store.getState>;

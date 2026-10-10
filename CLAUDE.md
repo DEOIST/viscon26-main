@@ -8,9 +8,9 @@ Guidance for Claude Code **and for every teammate** working in this repository. 
 
 ## What this is
 
-**ETH Life** (working title), our VIScon 2026 game. You create an ETH student (name, pronouns, department, archetype, avatar), play two minigames, and your scores decide your career at graduation: C-level executive, big-tech engineer, eternal PhD, McDonald's or unemployed. The minigames are **Blackjack** ("Casino night") and a **webcam finger-gun shooter** ("Basisprüfung"): you aim with your index finger and drop your thumb to shoot, tracked live by our server (MediaPipe, level 1). The shooter is the feature we win with. OpenAI writes the story around your character: advisor and dealer lines, a personal epilogue, and a narrator voice.
+**ETH Life** (working title), our VIScon 2026 game. You create an ETH student (name, pronouns, department, archetype, avatar), play a minigame per year, and your scores decide your career at graduation: C-level executive, big-tech engineer, eternal PhD, McDonald's or unemployed. The minigames are **Blackjack** ("Casino night") and a **webcam finger-gun shooter** ("Basisprüfung"): you aim with your index finger and drop your thumb to shoot, tracked live by our server (MediaPipe, level 1). The shooter is the feature we win with. OpenAI writes the story around your character: advisor and dealer lines, a personal epilogue, and a narrator voice.
 
-**The demo flow that must work on judging day:** enroll → Year 1: the shooter with the camera (level 1) → Year 2: casino night (blackjack) → graduation reveal, read aloud. The years and their games are set in `shared/game-config.json`; `src/minigames/DestinationGame.tsx` maps each year's slot to its game.
+**The demo flow that must work on judging day:** enroll → Year 1: the shooter with the camera (level 1) → Year 2: casino night (blackjack) → Year 3: the thesis defense (keyboard rhythm game, level 3) → graduation reveal, read aloud. The years and their games are set in `shared/game-config.json`; `src/minigames/DestinationGame.tsx` maps each year's slot to its game.
 
 | Read | For |
 |---|---|
@@ -19,7 +19,7 @@ Guidance for Claude Code **and for every teammate** working in this repository. 
 | [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md) | The finger-gun computer vision |
 | [docs/STACK.md](docs/STACK.md) | Versions, what to add, what we rejected and why |
 
-> **Status:** the foundation is built (#12): API contract, Redis, OpenAI plumbing, Phaser and MediaPipe in the build, and every page as a working skeleton. The **shooter** is built as level 1 (`frontend/level1/`, `backend/level1/`); **blackjack** is built as level 2 (Galton Blackjack: `frontend/level2/`, `backend/level2/`, see GAME_DESIGN.md). Anything marked *(planned)* below does not exist until its PR lands ([build status](docs/ARCHITECTURE.md#build-status)).
+> **Status:** the foundation is built (#12): API contract, Redis, OpenAI plumbing, Phaser and MediaPipe in the build, and every page as a working skeleton. The **shooter** is built as level 1 (`frontend/level1/`, `backend/level1/`); **blackjack** is built as level 2 (Galton Blackjack: `frontend/level2/`, `backend/level2/`, see GAME_DESIGN.md); the Year 3 **thesis defense** is level 3 (`frontend/level3/`, frontend only). The shell has also moved on: the account shell under `frontend/src/` (`App.tsx`, `main.tsx`, `store.ts`) is built by **Vite** and keeps its state in **Redux**; the esbuild multi-page description below still holds for the legacy pages. Anything marked *(planned)* below does not exist until its PR lands ([build status](docs/ARCHITECTURE.md#build-status)).
 
 Stack: **React + TypeScript** outer shell bundled by **esbuild**; a WebGL inner shell for the minigames: **Phaser 4** for both (blackjack, and the shooter, which fakes depth with isometric 2D art); **MediaPipe** hand tracking on the server (level 1, fed over a WebSocket); a **FastAPI** backend with **Redis** (no Redux, no client-side store); and **OpenAI** called only from the backend. FastAPI serves both the JSON API and the built frontend from **one origin**, so there is no CORS, no proxy and no API base URL.
 
@@ -141,6 +141,10 @@ The tree shows the target. *(planned)* marks parts that don't exist yet.
 │   │                             BlackjackScene.ts, BoardView.ts, CardView.ts, layout.ts, textures.ts,
 │   │                             ui.ts, avatar.ts + avatar.test.ts and PlayerAvatar.ts (the player's
 │   │                             animated character), assets/ (sprite sheets)
+│   ├── level3/                   Level 3, Thesis defense (Phaser 4, keyboard rhythm game, no backend):
+│   │                             index.ts (mountThesisDefense), chart.ts, engine.ts, verdict.ts,
+│   │                             layout.ts (+ tests), config.ts, ThesisScene.ts, Highway.ts, Hud.ts,
+│   │                             Committee.ts, Student.ts, Overlays.ts, lines.ts, textures.ts
 │   ├── template.html             HTML shell for every page ({{page}}, {{css}} placeholders)
 │   ├── package.json  tsconfig.json  .prettierrc  .nvmrc
 │   ├── public/                   copied verbatim to dist/static/ → served at /static/<file>

@@ -119,9 +119,9 @@
             "games": [
                 {
                     "id": "year-3-slot",
-                    "title": "Year 3 minigame slot",
+                    "title": "Thesis defense",
                     "ects": 60,
-                    "implemented": false
+                    "implemented": true
                 }
             ]
         }
