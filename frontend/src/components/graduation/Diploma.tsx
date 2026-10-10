@@ -1,104 +1,79 @@
-// The ending reveal. SKELETON for the "Screen Graduation" work (issue #10): ending art, the
-// typewriter and the pre-generated fallback narration come later; the data flow is complete.
+// The ending reveal: one certificate per career tier. The server decides the ending from the
+// minigame average (services/endings.py); this file only dresses it up.
 
-import { useEffect, useState } from "react";
 import Avatar from "../common/Avatar";
-import {
-    apiGenerateEpilogue,
-    apiGenerateEpilogueSpeech,
-    apiGetEndingStats,
-} from "../../misc/apiClient";
-import { DEPARTMENTS, GAME_IDS, GAMES } from "../../misc/character";
-import { useApi } from "../../misc/useApi";
-import type { Run } from "../../misc/CommonInt";
-import styles from "./Graduation.module.css";
+import EndingPhoto from "../common/EndingPhoto";
+import { DEPARTMENTS } from "../../misc/character";
+import { GAMES } from "../../misc/shellConfig";
+import { ENDING_ART } from "../../misc/endingArt";
+import type { Ending, Run } from "../../misc/CommonInt";
+import styles from "./Diploma.module.css";
 
 interface DiplomaArgs {
     run: Run;
+    ending: Ending;
+    epilogue: string | null;
+    audioUrl: string | null;
+    sameFatePercent: number | null;
 }
 
 export default function Diploma(args: DiplomaArgs) {
-    const epilogue = useApi(
-        () => apiGenerateEpilogue(args.run.id),
-        [args.run.id],
-    );
-    const stats = useApi(apiGetEndingStats);
-    const [isOpen, setIsOpen] = useState(false);
-    const [audioUrl, setAudioUrl] = useState<string | null>(null);
-    const [isNarratorMissing, setIsNarratorMissing] = useState(false);
-
-    useEffect(() => {
-        return () => {
-            if (audioUrl) URL.revokeObjectURL(audioUrl);
-        };
-    }, [audioUrl]);
-
-    // The click is what lets the browser play the narration (autoplay policy).
-    async function handleOpen() {
-        setIsOpen(true);
-        const res = await apiGenerateEpilogueSpeech(args.run.id);
-        if (res.data !== null) setAudioUrl(res.data);
-        else setIsNarratorMissing(true);
-    }
-
-    const ending = args.run.ending;
-    if (ending === null) return null;
+    const art = ENDING_ART[args.ending.id];
     const character = args.run.character;
-    const sameFate =
-        stats.data && stats.data.total > 0
-            ? Math.round(
-                  (100 * stats.data.counts[ending.id]) / stats.data.total,
-              )
-            : null;
-
-    if (!isOpen)
-        return (
-            <div className={styles.closed}>
-                <p>The rector approaches the podium…</p>
-                <button
-                    className={styles.primary}
-                    onClick={handleOpen}
-                    disabled={epilogue.data === null}
-                >
-                    {epilogue.data === null
-                        ? "Printing your diploma…"
-                        : "Open your diploma"}
-                </button>
-            </div>
-        );
-
     return (
-        <article className={styles.diploma}>
-            <Avatar character={character} />
-            <h1 className={styles.career}>{ending.title}</h1>
-            <p className={styles.muted}>
-                {character.name} · {DEPARTMENTS[character.department]}
+        <article className={styles.diploma} aria-label="Your diploma">
+            <p className={styles.brand}>
+                ETH Life · Diploma of determined survival
             </p>
-            <ul className={styles.scores}>
-                {GAME_IDS.map((game) => (
-                    <li key={game}>
-                        {GAMES[game].title}: {args.run.scores[game] ?? "–"}
-                    </li>
+            <p className={styles.certifies}>
+                This certifies that <strong>{character.name}</strong> of{" "}
+                {DEPARTMENTS[character.department]} survived{" "}
+                {args.run.ectsPoints} ECTS and is hereby sentenced to a career
+                as
+            </p>
+            <h2 className={styles.career}>{args.ending.title}</h2>
+            <EndingPhoto
+                ending={args.ending.id}
+                avatar={
+                    <Avatar
+                        character={character}
+                        label={`Graduate ${character.name}`}
+                    />
+                }
+            />
+            <dl className={styles.records}>
+                <div>
+                    <dt>Starting salary</dt>
+                    <dd>{art.salary}</dd>
+                </div>
+                <div>
+                    <dt>Housing</dt>
+                    <dd>{art.housing}</dd>
+                </div>
+                {GAMES.map((game) => (
+                    <div key={game.id}>
+                        <dt>{game.title}</dt>
+                        <dd>{args.run.scores[game.id]} / 100</dd>
+                    </div>
                 ))}
-                <li>
-                    <strong>Total: {args.run.totalScore}</strong>
-                </li>
-            </ul>
-            <p className={styles.epilogue}>{epilogue.data?.text}</p>
-            {audioUrl && <audio src={audioUrl} autoPlay controls />}
-            {isNarratorMissing && (
-                <p className={styles.muted}>
-                    The rector lost their voice today.
+                <div className={styles.total}>
+                    <dt>Final average</dt>
+                    <dd>{args.run.totalScore} / 100</dd>
+                </div>
+            </dl>
+            {args.epilogue && (
+                <p className={styles.epilogue}>{args.epilogue}</p>
+            )}
+            {args.audioUrl && <audio src={args.audioUrl} autoPlay controls />}
+            {args.sameFatePercent !== null && (
+                <p className={styles.fate}>
+                    {args.sameFatePercent} % of graduates share your fate.
                 </p>
             )}
-            {sameFate !== null && (
-                <p className={styles.muted}>
-                    {sameFate} % of students share your fate.
-                </p>
-            )}
-            <a href="/enroll" className={styles.primary}>
-                Play again
-            </a>
+            <p className={styles.unofficial}>
+                Unofficial game diploma. Not affiliated with ETH Zürich, not an
+                academic qualification, not accepted by your landlord.
+            </p>
         </article>
     );
 }

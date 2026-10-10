@@ -30,6 +30,7 @@ it("reconciles a lost graduation response without repeating completion rewards o
         player: { ...defaultPlayer, name: "Ada", onboardingStage: "main" },
         progress: {
             completedGameIds: GAMES.map((game) => game.id),
+            scores: {},
             graduated: true,
         },
     };

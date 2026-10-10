@@ -2,6 +2,33 @@
     "version": 1,
     "major": "Computer Science",
     "totalEcts": 180,
+    "endings": [
+        {
+            "id": "quant",
+            "minPercent": 85,
+            "title": "Quant researcher in Zug"
+        },
+        {
+            "id": "phd",
+            "minPercent": 65,
+            "title": "PhD student at ETH, year 7"
+        },
+        {
+            "id": "masters",
+            "minPercent": 45,
+            "title": "Master's student at ETH (again)"
+        },
+        {
+            "id": "mcdonalds",
+            "minPercent": 25,
+            "title": "McDonald's at Zürich HB"
+        },
+        {
+            "id": "homeless",
+            "minPercent": 0,
+            "title": "Homeless in Zürich"
+        }
+    ],
     "colors": {
         "hair": [
             {
