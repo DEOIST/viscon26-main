@@ -31,6 +31,14 @@ Everything else in the game frames that moment.
 | 5 | `/shooter` | Basisprüfung: shoot exam questions with your finger gun | `POST …/scores` |
 | 6 | `/graduation` | Click **Open your diploma**: career reveal, ending art, your epilogue typed out and read aloud by the rector, your rank, **Play again** | `POST …/graduate`, `…/epilogue`, `…/epilogue/speech` |
 
+- **First-day intro:** after **Begin Year 1** on the acceptance letter, the
+  avatar slides to the centre of a darkening screen under a soft spotlight,
+  blinking and beaming about getting into ETH. Two seconds later "Lectures",
+  "Practice Classes" and "Lernphase" strike it one after another, Minecraft
+  style (red flash, knockback, a row of pixel hearts emptying, a hurt face),
+  until a huge "Emotional Damage" lands the last blow and leaves it crying on
+  half a heart. Then it takes its seat in the sidebar portrait. Skippable, and
+  skipped entirely with reduced motion (`frontend/src/components/YearOneIntro.tsx`).
 - The player picks the order of the two minigames.
 - Replaying a minigame before graduation overwrites its score, so a crashed
   demo round can simply be played again.
@@ -125,6 +133,13 @@ new "over 21"; landing on it three times without going over is the new blackjack
   five hands a flat bet of 50 ends between half and one and a half stipends
   (score 25–75) about two times in three; a flat bet of 100 doubles the
   stipend 14 % of the time and goes broke 22 % of the time.
+- **Your seat:** the character you built sits in the bottom-right portrait,
+  animated. Idle, it breathes, sways, blinks and glances around; when a hand goes
+  wrong (a red ball on your board, a blackjack on the dealer's, or fewer balls)
+  it cries, and when it goes right it throws its arms up, jumps and sprays
+  confetti, with a spin for a blackjack. The mood settles at the next hand. The
+  shapes are shared with the builder's portrait (`frontend/src/avatarArt.ts`);
+  the moods live in `frontend/level2/PlayerAvatar.ts`.
 - **Dealer lines** (AI dialogue event keys): `intro`, `deal`, `playerBlackjack`,
   `playerBust`, `dealerBust`, `win`, `lose`, `push`, `broke`, and `cashOut`
   (said when you finish the last hand ahead). Without a dialogue pack the game

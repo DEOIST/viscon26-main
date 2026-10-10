@@ -12,6 +12,7 @@ import GameWorkspace, {
     type CompletionFeedback,
 } from "./components/GameWorkspace";
 import AdmissionFlow from "./components/AdmissionFlow";
+import YearOneIntro from "./components/YearOneIntro";
 import { fill, TEXT } from "./misc/text";
 import {
     completeGame,
@@ -60,6 +61,10 @@ export function App() {
     const [completionFeedback, setCompletionFeedback] =
         useState<CompletionFeedback | null>(null);
     const [celebrateGraduation, setCelebrateGraduation] = useState(false);
+    // The first-day intro after "Begin Year 1", starting from the letter's avatar.
+    const [intro, setIntro] = useState<{ from: SVGElement | null } | null>(
+        null,
+    );
     const completionId = useRef(0);
     const syncVersion = useRef(0);
     const mounted = useRef(true);
@@ -271,7 +276,7 @@ export function App() {
                     </button>
                 </nav>
             </header>
-            <main id="main-content" ref={mainRef} tabIndex={-1}>
+            <main id="main-content" ref={mainRef} tabIndex={-1} inert={!!intro}>
                 {notice && !showGraduation && (
                     <div className="notice" role="status">
                         <span>{notice}</span>
@@ -320,12 +325,15 @@ export function App() {
                             setError("");
                         }}
                         onEdit={() => setError("")}
-                        onBegin={() =>
-                            void savePlayer({
-                                ...player,
-                                onboardingStage: "main",
-                            })
-                        }
+                        onBegin={() => {
+                            if (intro || saving.current) return;
+                            setIntro({
+                                from:
+                                    mainRef.current?.querySelector<SVGElement>(
+                                        "[data-admission-avatar] .avatar",
+                                    ) ?? null,
+                            });
+                        }}
                     />
                 )}
                 {inDegree &&
@@ -407,6 +415,24 @@ export function App() {
             </footer>
             {scoreboard && (
                 <ScoreboardDialog onClose={() => setScoreboard(false)} />
+            )}
+            {intro && (
+                <YearOneIntro
+                    character={player.character}
+                    from={intro.from}
+                    onEnter={() =>
+                        void savePlayer({
+                            ...player,
+                            onboardingStage: "main",
+                        }).then((saved) => {
+                            if (!saved) setIntro(null);
+                        })
+                    }
+                    onDone={() => {
+                        setIntro(null);
+                        mainRef.current?.focus({ preventScroll: true });
+                    }}
+                />
             )}
         </div>
     );
