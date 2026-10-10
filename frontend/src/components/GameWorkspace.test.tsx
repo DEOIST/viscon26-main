@@ -14,16 +14,26 @@ afterEach(() => {
     GAMES[0].implemented = originalFlag;
 });
 
-function setup(selected = false, graduationPreview = false) {
+function setup(
+    selected = false,
+    graduationPreview = false,
+    completedGameIds: string[] = [],
+) {
     const onOpen = vi.fn();
     const onEditCharacter = vi.fn();
     const onGraduate = vi.fn();
     const view = render(
         <GameWorkspace
             player={{ ...defaultPlayer, name: "Ada" }}
-            progress={{ completedGameIds: [], scores: {}, graduated: false }}
+            progress={{
+                completedGameIds,
+                scores: Object.fromEntries(
+                    completedGameIds.map((id) => [id, 0]),
+                ),
+                graduated: false,
+            }}
             ects={0}
-            eligible={false}
+            eligible={GAMES.every((game) => completedGameIds.includes(game.id))}
             graduationPreview={graduationPreview}
             busy={false}
             error=""
@@ -38,6 +48,31 @@ function setup(selected = false, graduationPreview = false) {
     );
     return { view, onOpen, onEditCharacter, onGraduate };
 }
+
+it("counts remaining minigames even when completed games earn no ECTS", () => {
+    const { view } = setup(false, false, [GAMES[0].id]);
+    expect(screen.getByText("Minigames to graduation: 2")).toBeTruthy();
+    expect(
+        screen
+            .getByRole("button", { name: "Graduate" })
+            .hasAttribute("disabled"),
+    ).toBe(true);
+
+    view.unmount();
+    setup(
+        false,
+        false,
+        GAMES.map((game) => game.id),
+    );
+    expect(
+        screen.getByText("All years complete. Your diploma is ready."),
+    ).toBeTruthy();
+    expect(
+        screen
+            .getByRole("button", { name: "Graduate" })
+            .hasAttribute("disabled"),
+    ).toBe(false);
+});
 
 it("allows a flagged graduation preview while keeping the button unavailable during a game", () => {
     const { view, onGraduate } = setup(false, true);

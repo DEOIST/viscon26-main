@@ -16,6 +16,7 @@ export const BOARD = {
     pinRadius: 8,
     ballRadius: 15, // the 9-column ball sprites are 30 px across
     floor: 619,
+    barTop: 355, // the bars between the columns start just under the last pin row
     slotPitch: 27, // balls overlap slightly, as in the designer's mock-up
     left: 62, // outer walls
     right: 437,
@@ -27,8 +28,15 @@ export const pinAt = (row: number, index: number) => ({
 });
 export const columnX = (column: number) =>
     BOARD.pinX + (column - 4) * BOARD.pinDx;
-export const slotY = (slot: number) =>
-    BOARD.floor - BOARD.ballRadius - slot * BOARD.slotPitch;
+
+// Where ball `slot` rests in a column that holds `count` balls. Nine balls fit under the top
+// of the bars; a taller stack (only on a bust board, when one card sends many balls down the
+// same column) is packed tighter instead, so it never rises above the bars into the pins.
+export function restY(slot: number, count: number): number {
+    const room = BOARD.floor - BOARD.barTop - 2 * BOARD.ballRadius;
+    const pitch = Math.min(BOARD.slotPitch, room / Math.max(1, count - 1));
+    return BOARD.floor - BOARD.ballRadius - slot * pitch;
+}
 
 const SIGMA = Math.SQRT2 * BOARD.pinDx * CURVE.spread;
 

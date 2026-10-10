@@ -3,34 +3,20 @@
 import betUrl from "../assets/howto/blackjack-bet.webp";
 import curveUrl from "../assets/howto/blackjack-curve.webp";
 import dropUrl from "../assets/howto/blackjack-drop.webp";
+import { TEXT } from "../misc/text";
 import styles from "./BlackjackHowTo.module.css";
 
-const STEPS = [
-    {
-        title: "Bet",
-        text: "Stack chips from your 1 000 stipend and press Deal, ten hands to grow it.",
-        image: betUrl,
-        alt: "Chips on the bet pile next to the Deal button",
-    },
-    {
-        title: "Drop",
-        text: "Every card turns its suit symbols into balls that bounce down your Galton board.",
-        image: dropUrl,
-        alt: "Balls bouncing through the pins of a Galton board",
-    },
-    {
-        title: "Beat the curve",
-        text: "Hit or stand to end with more balls than the dealer, but a red ball above the curve busts and three yellow on it is blackjack.",
-        image: curveUrl,
-        alt: "A board with green, yellow and red balls stacked under a bell curve",
-    },
-];
+const T = TEXT.workspace.blackjackHowTo;
+
+// Wording: workspace.blackjackHowTo in shared/text.json, one entry per screenshot.
+const IMAGES = [betUrl, dropUrl, curveUrl];
+const STEPS = T.steps.map((step, i) => ({ ...step, image: IMAGES[i] }));
 
 export default function BlackjackHowTo() {
     return (
         <section className={styles.howTo} aria-labelledby="blackjack-how-to">
             <h3 id="blackjack-how-to" className={styles.title}>
-                How to play
+                {T.title}
             </h3>
             <ol className={styles.steps}>
                 {STEPS.map((step, index) => (

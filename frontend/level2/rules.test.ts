@@ -150,26 +150,28 @@ describe("the board", () => {
             "green",
             "yellow",
         ]);
-        expect(board).toMatchObject({ yellow: 3, event: "blackjack" });
+        expect(board).toMatchObject({ yellow: 3, red: 0, event: "blackjack" });
     });
 
-    it("keeps the first decisive ball: a bust is not undone by later yellows", () => {
+    it("stays bust when yellow balls follow a red one", () => {
         // yellow, red (bust), yellow, green, yellow
         const { board } = dropCard(
             emptyBoard(),
             card("5"),
             into(0, 0, 8, 1, 1),
         );
-        expect(board).toMatchObject({ yellow: 3, event: "bust" });
+        expect(board).toMatchObject({ yellow: 3, red: 1, event: "bust" });
     });
 
-    it("keeps the first decisive ball: a blackjack is not undone by a later red", () => {
-        const { board } = dropCard(
+    it("is a bust, not a blackjack, when a red ball follows three yellow ones", () => {
+        // yellow, yellow, green, yellow (three), then red in column 8
+        const { board, balls } = dropCard(
             emptyBoard(),
             card("5"),
             into(0, 8, 1, 1, 8),
         );
-        expect(board.event).toBe("blackjack");
+        expect(balls.at(-1)?.color).toBe("red");
+        expect(board).toMatchObject({ yellow: 3, red: 1, event: "bust" });
     });
 });
 
@@ -184,8 +186,10 @@ describe("betting", () => {
     });
 
     it("refuses chips the player can't cover", () => {
-        const state = bet(newGame(), 500, 500);
+        const state = bet(newGame(), 100, 100, 100);
+        expect(betOf(state)).toBe(300);
         expect(play(state, { type: "chip", value: 1 })).toBe(state);
+        expect(play(newGame(), { type: "chip", value: 500 }).bet).toEqual([]);
         expect(play(newGame(), { type: "chip", value: 7 }).bet).toEqual([]);
     });
 
@@ -216,20 +220,40 @@ describe("the opening deal", () => {
         expect(state.secret).toEqual(card("5"));
     });
 
-    it("ends the hand at once when the opening cards bust the player", () => {
-        // both player cards drop into column 0: yellow, then red
-        const random = into(0);
-        const state = dealt(["A", "4", "A", "5"], random, [100]);
+    it("ends the hand on the card that busts the player", () => {
+        // the player's first card drops both balls into column 0: yellow, then red
+        const state = dealt(["2", "4", "A", "5"], into(0), [100]);
         expect(state).toMatchObject({
             phase: "settled",
             outcome: "lose",
-            chips: 900,
+            chips: 200,
+            secret: null,
         });
+        expect(state.events.map((e) => e.type)).toEqual(["draw", "settle"]);
         expect(state.events.at(-1)).toMatchObject({
             type: "settle",
             reason: "bust",
             payout: -100,
         });
+        expect(state.dealer.plays).toHaveLength(0);
+    });
+
+    it("busts the dealer on its open card and pays at once", () => {
+        // the player's ace lands in the middle; the dealer's 2 drops into column 0: yellow, red
+        const state = dealt(["A", "2", "K", "5"], into(4, 0, 0));
+        expect(state).toMatchObject({
+            phase: "settled",
+            outcome: "win",
+            chips: 310,
+            secret: null,
+        });
+        expect(state.events.map((e) => e.type)).toEqual([
+            "draw",
+            "draw",
+            "settle",
+        ]);
+        expect(state.events.at(-1)).toMatchObject({ reason: "dealer-bust" });
+        expect(state.player.plays).toHaveLength(1);
     });
 });
 
@@ -257,7 +281,7 @@ describe("the player's turn", () => {
         expect(state).toMatchObject({
             phase: "settled",
             outcome: "lose",
-            chips: 990,
+            chips: 290,
         });
     });
 
@@ -267,13 +291,28 @@ describe("the player's turn", () => {
         expect(state).toMatchObject({
             phase: "settled",
             outcome: "blackjack",
-            chips: 1030,
+            chips: 330,
         });
         expect(state.events.at(-1)).toMatchObject({
             type: "settle",
             reason: "blackjack",
             payout: 30,
         });
+    });
+
+    it("loses the bet when the card with the third yellow ball also drops a red one", () => {
+        const opening = dealt(["A", "4", "A", "5", "5"], into(4), [10, 10]);
+        const state = play(opening, {
+            type: "hit",
+            random: into(0, 8, 1, 1, 8),
+        });
+        expect(state.player.board).toMatchObject({ yellow: 3, red: 1 });
+        expect(state).toMatchObject({
+            phase: "settled",
+            outcome: "lose",
+            chips: 280,
+        });
+        expect(state.events.at(-1)).toMatchObject({ reason: "bust" });
     });
 });
 
@@ -309,7 +348,7 @@ describe("the dealer's turn", () => {
         // dealer's balls all fall into column 0 after the opening: red at once
         const opening = dealt(["2", "4", "3", "5"], MIDDLE);
         const state = play(opening, { type: "stand", random: into(0) });
-        expect(state).toMatchObject({ outcome: "win", chips: 1010 });
+        expect(state).toMatchObject({ outcome: "win", chips: 310 });
         expect(state.events.at(-1)).toMatchObject({ reason: "dealer-bust" });
     });
 
@@ -320,10 +359,22 @@ describe("the dealer's turn", () => {
             type: "stand",
             random: into(0, 8, 1, 1),
         });
-        expect(state).toMatchObject({ outcome: "lose", chips: 990 });
+        expect(state).toMatchObject({ outcome: "lose", chips: 290 });
         expect(state.events.at(-1)).toMatchObject({
             reason: "dealer-blackjack",
         });
+    });
+
+    it("busts the dealer when a red ball follows its three yellow ones", () => {
+        // secret A: yellow; the dealer then draws a 4: yellow, green, yellow, red
+        const opening = dealt(["2", "4", "3", "A", "4"], MIDDLE);
+        const state = play(opening, {
+            type: "stand",
+            random: into(0, 8, 1, 1, 0),
+        });
+        expect(state.dealer.board).toMatchObject({ yellow: 3, red: 1 });
+        expect(state).toMatchObject({ outcome: "win", chips: 310 });
+        expect(state.events.at(-1)).toMatchObject({ reason: "dealer-bust" });
     });
 
     it("compares ball counts when nobody is decided", () => {
@@ -333,15 +384,15 @@ describe("the dealer's turn", () => {
             return play(dealt(ranks, random), { type: "stand", random });
         };
         const lose = standOn(["2", "4", "10", "9"]);
-        expect(lose).toMatchObject({ outcome: "lose", chips: 990 });
+        expect(lose).toMatchObject({ outcome: "lose", chips: 290 });
         expect(lose.events.at(-1)).toMatchObject({ reason: "fewer" });
         expect(standOn(["5", "4", "10", "9"])).toMatchObject({
             outcome: "win",
-            chips: 1010,
+            chips: 310,
         });
         expect(standOn(["3", "4", "10", "9"])).toMatchObject({
             outcome: "push",
-            chips: 1000,
+            chips: 300,
         });
     });
 });
@@ -356,17 +407,17 @@ describe("doubling down", () => {
         expect(state).toMatchObject({
             phase: "settled",
             outcome: "win",
-            chips: 1050,
+            chips: 350,
         });
     });
 
     it("is only allowed right after the opening deal with chips to cover it", () => {
-        expect(canDouble(dealt(["2", "4", "3", "5"], MIDDLE, [500]))).toBe(
+        expect(canDouble(dealt(["2", "4", "3", "5"], MIDDLE, [100, 50]))).toBe(
             true,
         );
-        expect(canDouble(dealt(["2", "4", "3", "5"], MIDDLE, [500, 5]))).toBe(
-            false,
-        );
+        expect(
+            canDouble(dealt(["2", "4", "3", "5"], MIDDLE, [100, 50, 5])),
+        ).toBe(false);
         const hit = play(dealt(["2", "4", "3", "5", "A"]), {
             type: "hit",
             random: MIDDLE,
@@ -375,7 +426,7 @@ describe("doubling down", () => {
     });
 });
 
-describe("a game of ten hands", () => {
+describe("a game of five hands", () => {
     const winHand = (state: State) => {
         const random = spread();
         const opening = play(state, {
@@ -391,7 +442,7 @@ describe("a game of ten hands", () => {
         expect(next).toMatchObject({
             phase: "betting",
             hand: 2,
-            chips: 1050,
+            chips: 350,
             bet: [50],
             events: [],
         });
@@ -407,45 +458,51 @@ describe("a game of ten hands", () => {
         expect(next.bet).toEqual([25]);
     });
 
-    it("ends after the tenth hand with the chips as the score", () => {
+    it("starts with 300 chips", () => {
+        expect(newGame()).toMatchObject({ chips: 300, hand: 1 });
+    });
+
+    it("ends after the fifth hand with the chips as the score", () => {
         let state = bet(newGame(), 100);
-        for (let hand = 1; hand <= 10; hand++) {
+        for (let hand = 1; hand <= 5; hand++) {
             if (hand > 1) state = play(state, { type: "next" });
             state = winHand(state);
-            expect(isOver(state)).toBe(hand === 10);
+            expect(isOver(state)).toBe(hand === 5);
         }
         expect(result(state)).toEqual({
             score: 100,
-            stats: { bankroll: 2000, hands: 10 },
+            stats: { bankroll: 800, hands: 5 },
         });
         expect(play(state, { type: "next" })).toBe(state);
     });
 
     it("scores finishing level as 50", () => {
-        const state = { ...newGame(), phase: "settled" as const, hand: 10 };
+        const state = { ...newGame(), phase: "settled" as const, hand: 5 };
         expect(result(state)).toEqual({
             score: 50,
-            stats: { bankroll: 1000, hands: 10 },
+            stats: { bankroll: 300, hands: 5 },
         });
     });
 
-    // The shell only accepts integer scores from 0 to 100.
+    // Keeping the 300 chips is 50, doubling them is 100. The shell only accepts integer scores
+    // from 0 to 100.
     it.each<[number, number]>([
         [0, 0],
-        [9, 0],
-        [500, 25],
-        [1000, 50],
-        [1240, 62],
-        [2000, 100],
-        [9000, 100],
+        [2, 0],
+        [150, 25],
+        [300, 50],
+        [372, 62],
+        [450, 75],
+        [600, 100],
+        [2700, 100],
     ])("turns %i chips into a score of %i", (chips, score) => {
         expect(scoreOf(chips)).toBe(score);
     });
 
     it("ends early when the player can't cover the minimum bet", () => {
-        const busted = play(bet(newGame(), 500, 500), {
+        const busted = play(bet(newGame(), 100, 100, 100), {
             type: "deal",
-            deck: deck("A", "4", "A", "5"),
+            deck: deck("2", "4", "A", "5"),
             random: into(0),
         });
         expect(busted.chips).toBe(0);

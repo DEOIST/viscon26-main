@@ -29,6 +29,7 @@ import { PORTRAIT } from "./layout";
 import type { Point } from "./layout";
 import { COLORS } from "./textures";
 import { floatText } from "./ui";
+import { TEXT } from "../src/misc/text";
 
 type Mood = "idle" | "cry" | "celebrate";
 
@@ -89,7 +90,7 @@ const EXPRESSIONS = new Set<AvatarPart>([
         ...f.extras,
     ]),
 ]);
-const CHEERS = ["YES!", "WOO!", "LET'S GO!", "EZ!", "YEAH!"];
+const CHEERS = TEXT.blackjack.avatarCheers;
 const CHEER_COLORS = ["#f5c451", "#6ccfa6", "#ffffff"];
 
 export default class PlayerAvatar extends GameObjects.Container {

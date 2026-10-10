@@ -1,9 +1,11 @@
 // Tunables for Galton Blackjack (docs/GAME_DESIGN.md). The curve, DEALER_STANDS_AT and
 // BLACKJACK_YELLOWS were searched together by simulation for odds close to classic blackjack:
 // change one and the house edge moves, so re-run a simulation through rules.ts afterwards.
+// (Since a red ball also spoils three yellow ones, blackjacks are rarer than in that search
+// and the house edge is about 2.3 %; the odds are in GAME_DESIGN.md.)
 
-export const START_CHIPS = 1000; // the semester stipend
-export const HANDS = 10;
+export const START_CHIPS = 300; // the semester stipend
+export const HANDS = 5;
 export const MIN_BET = 10;
 export const CHIP_VALUES = [1, 5, 10, 25, 50, 100, 500, 1000];
 export const DEALER_STANDS_AT = 10; // balls

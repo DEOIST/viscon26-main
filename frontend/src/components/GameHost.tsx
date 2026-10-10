@@ -7,6 +7,9 @@ import {
 import { minigameRegistry, Placeholder } from "../minigames/registry";
 import type { Game, MinigameProps, Player } from "../types";
 import { Icon } from "./Icon";
+import { TEXT } from "../misc/text";
+
+const T = TEXT.minigameHost;
 
 class GameBoundary extends Component<
     { children: ReactNode; onExit: () => void },
@@ -22,16 +25,13 @@ class GameBoundary extends Component<
     render() {
         return this.state.failed ? (
             <div className="placeholder" role="alert">
-                <h2>This minigame could not open.</h2>
-                <p>
-                    Your saved progress is safe. Return to the overview and try
-                    again.
-                </p>
+                <h2>{T.failedTitle}</h2>
+                <p>{T.failedHelp}</p>
                 <button
                     className="button secondary"
                     onClick={this.props.onExit}
                 >
-                    Return to overview
+                    {TEXT.common.returnToOverview}
                 </button>
             </div>
         ) : (
@@ -73,8 +73,8 @@ export function GameHost({
                     <div>
                         <span className="eyebrow">
                             {game.implemented
-                                ? "MINIGAME"
-                                : "PLACEHOLDER PREVIEW"}
+                                ? T.eyebrow
+                                : T.placeholderEyebrow}
                         </span>
                         <h2 id="host-title">{game.title}</h2>
                     </div>
@@ -83,13 +83,13 @@ export function GameHost({
                         onClick={onExit}
                         disabled={busy}
                     >
-                        <Icon name="back" size={16} /> Overview
+                        <Icon name="back" size={16} /> {TEXT.common.overview}
                     </button>
                 </div>
             )}
             {busy && (
                 <p className="host-notice" role="status">
-                    Saving completion…
+                    {T.savingCompletion}
                 </p>
             )}
             {error && (
@@ -101,7 +101,7 @@ export function GameHost({
                             disabled={busy}
                             onClick={() => onComplete()}
                         >
-                            Retry saving
+                            {T.retrySaving}
                         </button>
                     )}
                 </div>

@@ -6,6 +6,7 @@ import {
     AVATAR_PATHS,
 } from "../avatarArt";
 import type { Character } from "../types";
+import { TEXT } from "../misc/text";
 
 // "calm" is the builder's portrait; the others are for moments that react (the Year 1 intro).
 export type AvatarExpression = "calm" | "happy" | "hurt" | "crying";
@@ -20,7 +21,7 @@ const line = {
 export function Avatar({
     character,
     className = "",
-    label = "Your character",
+    label = TEXT.common.avatarLabel,
     expression = "calm",
     blinking = false,
 }: {

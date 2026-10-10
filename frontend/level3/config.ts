@@ -1,17 +1,20 @@
-// Tunables for level 3, "Thesis defense" (docs/GAME_DESIGN.md). A four-lane rhythm game with
-// no audio, so the timing windows are a little wider than a music game's and the note lead is
-// long enough to read the highway like sheet music.
+// Tunables for level 3, "Thesis defense" (docs/GAME_DESIGN.md). A four-lane rhythm game that
+// must stay playable muted, so the timing windows are a little wider than a music game's and
+// the note lead is long enough to read the highway like sheet music.
+
+import { TEXT } from "../src/misc/text";
+
+const COPY = TEXT.thesisDefense;
 
 export const LANE_KEYS = ["D", "F", "J", "K"] as const;
-export const LANE_NAMES = [
-    "Theory",
-    "Proofs",
-    "Experiments",
-    "Critique",
-] as const;
+export const LANE_NAMES = COPY.lanes;
 export const LANE_GLYPHS = ["∀", "∫", "χ²", "?!"] as const;
-export const LANE_COLORS = [0x3ee0ff, 0xff4fd8, 0x9dff4a, 0xffb43c] as const;
-export const LANE_CSS = ["#3ee0ff", "#ff4fd8", "#9dff4a", "#ffb43c"] as const;
+// Highlighter inks, one per lane. Yellow is reserved for golden notes and Eureka.
+export const LANE_COLORS = [0x5ec8ff, 0xff7ad9, 0x8cf27a, 0xffa94d] as const;
+export const LANE_CSS = ["#5ec8ff", "#ff7ad9", "#8cf27a", "#ffa94d"] as const;
+export const GOLD_INK = 0xfff23a;
+// What each lane's questions look like on the page: references a thesis is made of.
+export const LANE_TOKENS = COPY.laneTokens;
 export const ACTIVATE_KEY = " "; // Space spends a full Eureka meter
 
 // The chart is written on a sixteenth-note grid at this tempo (chart.ts).
@@ -51,15 +54,15 @@ export const EUREKA_DURATION_MS = 8000;
 
 // Combo milestones (cumulative combo) and the flawless streak callout.
 export const MILESTONES: readonly [number, string][] = [
-    [10, "PROMISING RESEARCH"],
-    [25, "PEER REVIEW SURVIVED"],
-    [50, "ACADEMIC WEAPON"],
-    [75, "CITED BY EVERYONE"],
-    [100, "TENURE TRACK UNLOCKED"],
-    [150, "FIELDS MEDAL SPEEDRUN"],
+    [10, COPY.milestones.combo10],
+    [25, COPY.milestones.combo25],
+    [50, COPY.milestones.combo50],
+    [75, COPY.milestones.combo75],
+    [100, COPY.milestones.combo100],
+    [150, COPY.milestones.combo150],
 ];
 export const PERFECT_STREAK = 25;
-export const PERFECT_STREAK_TITLE = "NOBEL PRIZE INCOMING";
+export const PERFECT_STREAK_TITLE = COPY.milestones.perfectStreak;
 
 // Personal best survives page loads in this browser only (no server state for a practice
 // score; the year's credit is what the shell saves).

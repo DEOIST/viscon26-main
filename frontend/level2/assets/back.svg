@@ -1,0 +1,1966 @@
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='508' height='708' viewBox='0 0 508 708'>
+<svg x='4' y='4' width='500' height='700' viewBox='-72 -215.999 179.999 251.999'>
+<defs>
+<path id='card_back-g0-70' d='m12.986-23.178c-.132 0-.23 .132-.263 .362c-.362 1.808-2.17 4.767-4.373 7.036c-1.742 1.841-4.011 3.123-6.805 3.945c-.263 .066-.395 .164-.395 .296s.132 .23 .362 .296c1.677 .329 5.26 2.466 7.036 4.208c2.005 1.907 3.616 4.734 4.044 7.101c.033 .263 .099 .362 .23 .362s.197-.099 .263-.329c.395-1.94 2.071-4.734 4.11-6.904c2.137-2.268 4.636-3.715 7.364-4.307c.263-.033 .395-.132 .395-.296c0-.132-.132-.23-.362-.263c-5.03-1.249-9.863-5.819-11.211-10.521c-.197-.921-.23-.986-.395-.986z'/>
+<path id='card_back-g0-168' d='m20.712 0v-.658c-3.025-.559-4.044-1.052-5.49-2.597c-1.479-1.71-1.841-2.86-2.005-6.378c.559 1.052 .822 1.512 1.282 2.038c1.184 1.479 3.09 2.433 4.734 2.433c2.827 0 5.129-2.4 5.129-5.326c0-2.86-2.071-5.162-4.668-5.162c-.789 0-1.249 .132-2.334 .658c-.23 .132-.395 .197-.69 .329c.921-1.315 1.282-2.301 1.282-3.485c0-2.762-2.334-5.03-5.195-5.03s-5.195 2.268-5.195 5.03c0 1.184 .362 2.17 1.282 3.485c-.263-.099-.592-.263-.69-.329c-1.085-.526-1.545-.658-2.334-.658c-2.597 0-4.668 2.301-4.668 5.162c0 2.926 2.301 5.326 5.129 5.326c1.644 0 3.551-.953 4.734-2.433c.46-.526 .723-.986 1.282-2.038c-.164 3.518-.526 4.668-2.005 6.378c-1.447 1.545-2.466 2.038-5.49 2.597v.658h15.912z'/>
+<path id='card_back-g0-169' d='m9.732-23.178c-1.677 3.058-4.044 6.279-8.614 11.803c3.879 4.701 6.937 8.844 8.614 11.836c1.414-2.597 5.556-8.285 8.679-11.836c-2.499-2.729-7.627-9.732-8.679-11.803z'/>
+<path id='card_back-g0-170' d='m11.441 .46c.69-2.86 2.532-6.016 6.181-10.521c3.025-3.814 4.044-5.918 4.044-8.384c0-2.564-2.203-4.701-4.866-4.701c-1.479 0-2.893 .658-3.945 1.841c-.658 .789-1.019 1.447-1.414 2.893c-.362-1.118-.625-1.677-1.019-2.268c-1.052-1.578-2.663-2.466-4.438-2.466c-2.729 0-4.833 2.137-4.833 4.899c0 2.038 .723 3.584 3.386 7.068c4.8 6.247 6.049 8.384 6.904 11.638z'/>
+<path id='card_back-g0-171' d='m2.367 0h15.814v-.658c-3.025-.559-4.044-1.019-5.49-2.597c-1.216-1.414-1.677-2.532-1.874-4.57c1.085 1.677 2.663 2.63 4.405 2.63c2.334 0 4.208-1.841 4.208-4.175c0-2.071-.822-3.353-4.11-6.312c-3.189-2.893-4.208-4.373-5.03-7.496c-.888 3.156-1.841 4.57-5.063 7.496c-3.288 2.959-4.11 4.241-4.11 6.312c0 2.334 1.874 4.175 4.208 4.175c1.742 0 3.321-.953 4.405-2.63c-.197 2.038-.658 3.156-1.874 4.57c-1.447 1.578-2.466 2.038-5.49 2.597v.658z'/>
+<use id='card_back-g20-168' xlink:href='#card_back-g0-168' transform='scale(.273)'/>
+<use id='card_back-g20-169' xlink:href='#card_back-g0-169' transform='scale(.273)'/>
+<use id='card_back-g20-170' xlink:href='#card_back-g0-170' transform='scale(.273)'/>
+<use id='card_back-g20-171' xlink:href='#card_back-g0-171' transform='scale(.273)'/>
+<use id='card_back-g22-70' xlink:href='#card_back-g0-70' transform='scale(.242)'/>
+<use id='card_back-g28-168' xlink:href='#card_back-g0-168' transform='scale(.303)'/>
+<use id='card_back-g28-169' xlink:href='#card_back-g0-169' transform='scale(.303)'/>
+<use id='card_back-g28-170' xlink:href='#card_back-g0-170' transform='scale(.303)'/>
+<use id='card_back-g28-171' xlink:href='#card_back-g0-171' transform='scale(.303)'/>
+</defs>
+<g id='card_back-page86'>
+<g stroke-miterlimit='10' transform='translate(18,-90)scale(0.996264,-0.996264)'>
+<g fill='#000' stroke='#000'>
+<g stroke-width='0.4'>
+<g fill='#215caf'>
+<path d='m-89.91-115.802v231.604c0 5.657 4.586 10.243 10.243 10.243h159.335c5.657 0 10.243-4.586 10.243-10.243v-231.604c0-5.657-4.586-10.243-10.243-10.243h-159.335c-5.657 0-10.243 4.586-10.243 10.243zm179.821 241.847' stroke='none'/>
+</g>
+<clipPath id='card_back-pgfcp19'>
+<path d='m-82.655-111.392v222.784c0 4.086 3.312 7.398 7.398 7.398h150.514c4.086 0 7.398-3.312 7.398-7.398v-222.784c0-4.086-3.312-7.398-7.398-7.398h-150.514c-4.086 0-7.398 3.312-7.398 7.398zm165.31 230.182'/> </clipPath>
+<g clip-path='url(#card_back-pgfcp19)'>
+<g transform='translate(-82.5127,-127.02423)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-91.67303,-109.31363)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-83.2627,-91.74303)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-91.17802,-74.03242)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-82.5127,-56.4618)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-91.67303,-38.7512)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-83.2627,-21.18059)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-91.17802,-3.47)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-82.5127,14.1006)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-91.67303,31.8112)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-83.2627,49.38182)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-91.17802,67.09242)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-82.5127,84.66304)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-91.67303,102.37363)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-83.2627,119.94424)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-65.2121,-126.95424)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-74.44241,-109.38362)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-64.71709,-91.67303)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-73.69241,-74.10242)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-65.2121,-56.39182)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-74.44241,-38.8212)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-64.71709,-21.1106)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-73.69241,-3.54)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-65.2121,14.1706)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-74.44241,31.74121)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-64.71709,49.45181)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-73.69241,67.02243)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-65.2121,84.73303)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-74.44241,102.30363)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-64.71709,120.01424)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-47.98148,-127.02423)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-55.8968,-109.31363)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-47.23148,-91.74303)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-56.39182,-74.03242)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-47.98148,-56.4618)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-55.8968,-38.7512)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-47.23148,-21.18059)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-56.39182,-3.47)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-47.98148,14.1006)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-55.8968,31.8112)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-47.23148,49.38182)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-56.39182,67.09242)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-47.98148,84.66304)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-55.8968,102.37363)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-47.23148,119.94424)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-29.43587,-126.95424)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-38.4112,-109.38362)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-29.93088,-91.67303)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-39.1612,-74.10242)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-29.43587,-56.39182)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-38.4112,-38.8212)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-29.93088,-21.1106)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-39.1612,-3.54)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-29.43587,14.1706)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-38.4112,31.74121)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-29.93088,49.45181)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-39.1612,67.02243)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-29.43587,84.73303)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-38.4112,102.30363)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-29.93088,120.01424)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-11.95026,-127.02423)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-21.1106,-109.31363)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-12.70026,-91.74303)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-20.61559,-74.03242)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-11.95026,-56.4618)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-21.1106,-38.7512)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-12.70026,-21.18059)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-20.61559,-3.47)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-11.95026,14.1006)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-21.1106,31.8112)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-12.70026,49.38182)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-20.61559,67.09242)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-11.95026,84.66304)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-21.1106,102.37363)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-12.70026,119.94424)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(5.35031,-126.95424)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-3.87999,-109.38362)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(5.84532,-91.67303)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-3.12999,-74.10242)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(5.35031,-56.39182)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-3.87999,-38.8212)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(5.84532,-21.1106)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-3.12999,-3.54)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(5.35031,14.1706)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-3.87999,31.74121)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(5.84532,49.45181)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-3.12999,67.02243)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(5.35031,84.73303)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-3.87999,102.30363)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(5.84532,120.01424)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(22.58093,-127.02423)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(14.6656,-109.31363)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(23.33093,-91.74303)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(14.1706,-74.03242)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(22.58093,-56.4618)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(14.6656,-38.7512)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(23.33093,-21.18059)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(14.1706,-3.47)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(22.58093,14.1006)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(14.6656,31.8112)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(23.33093,49.38182)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(14.1706,67.09242)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(22.58093,84.66304)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(14.6656,102.37363)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(23.33093,119.94424)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(41.12654,-126.95424)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(32.15121,-109.38362)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(40.63153,-91.67303)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(31.40121,-74.10242)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(41.12654,-56.39182)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(32.15121,-38.8212)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(40.63153,-21.1106)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(31.40121,-3.54)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(41.12654,14.1706)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(32.15121,31.74121)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(40.63153,49.45181)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(31.40121,67.02243)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(41.12654,84.73303)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(32.15121,102.30363)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(40.63153,120.01424)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(58.61215,-127.02423)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(49.45181,-109.31363)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(57.86215,-91.74303)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(49.94682,-74.03242)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(58.61215,-56.4618)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(49.45181,-38.7512)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(57.86215,-21.18059)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(49.94682,-3.47)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(58.61215,14.1006)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(49.45181,31.8112)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(57.86215,49.38182)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(49.94682,67.09242)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(58.61215,84.66304)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(49.45181,102.37363)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(57.86215,119.94424)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(75.91275,-126.95424)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(66.68243,-109.38362)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(76.40776,-91.67303)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(67.43243,-74.10242)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(75.91275,-56.39182)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(66.68243,-38.8212)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(76.40776,-21.1106)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(67.43243,-3.54)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(75.91275,14.1706)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(66.68243,31.74121)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(76.40776,49.45181)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(67.43243,67.02243)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(75.91275,84.73303)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(66.68243,102.30363)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(76.40776,120.01424)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(93.14336,-127.02423)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(85.22804,-109.31363)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(93.89336,-91.74303)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(84.73303,-74.03242)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(93.14336,-56.4618)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(85.22804,-38.7512)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(93.89336,-21.18059)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(84.73303,-3.47)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(93.14336,14.1006)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(85.22804,31.8112)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(93.89336,49.38182)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(84.73303,67.09242)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(93.14336,84.66304)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(85.22804,102.37363)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(93.89336,119.94424)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#3d74c2'>
+<g stroke='none'>
+<g fill='#3d74c2'>
+<use x='18' y='-90' xlink:href='#card_back-g28-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g stroke='#a9c4ec'>
+<g stroke-width='0.65'>
+<g stroke-dasharray='4.2679,3.1298' stroke-dashoffset='0.0'>
+<g stroke-linecap='round'>
+<path d='m-82.655-111.392v222.784c0 4.086 3.312 7.398 7.398 7.398h150.514c4.086 0 7.398-3.312 7.398-7.398v-222.784c0-4.086-3.312-7.398-7.398-7.398h-150.514c-4.086 0-7.398 3.312-7.398 7.398zm165.31 230.182' fill='none'/>
+</g>
+</g>
+</g>
+</g>
+<g fill='#fff8ef'>
+<g stroke='#a9c4ec'>
+<g stroke-width='0.8'>
+<path d='m-61.173-19.917v39.833c0 12.571 10.191 22.762 22.762 22.762h76.822c12.571 0 22.762-10.191 22.762-22.762v-39.833c0-12.571-10.191-22.762-22.762-22.762h-76.822c-12.571 0-22.762 10.191-22.762 22.762zm122.346 62.596'/>
+</g>
+</g>
+</g>
+<g stroke='#9bb2d3'>
+<g stroke-width='0.65'>
+<g stroke-dasharray='4.2679,3.1298' stroke-dashoffset='0.0'>
+<g stroke-linecap='round'>
+<path d='m-56.336-19.063v38.126c0 10.371 8.407 18.779 18.779 18.779h75.115c10.371 0 18.779-8.407 18.779-18.779v-38.126c0-10.371-8.407-18.779-18.779-18.779h-75.115c-10.371 0-18.779 8.407-18.779 18.779zm112.672 56.905' fill='none'/>
+</g>
+</g>
+</g>
+</g>
+<g fill='#215caf'>
+<path d='m29.435 10.373h-7.128l2.503 12.341h-60.31l-6.37-31.881h24.043l1.635 8.227h-14.208l.812 4.114h14.217l1.443 7.199h-14.184l.81 4.114h22.576l-4.726-23.653h9.804l4.724 23.653h8.23l-4.723-23.653h9.879l2.445 12.341h7.126l-2.442-12.341h9.832l6.374 31.881h-9.858z' stroke='none'/>
+</g>
+<g transform='translate(-20.74214,-26.5171)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#215caf'>
+<g stroke='none'>
+<g fill='#215caf'>
+<use x='18' y='-90' xlink:href='#card_back-g20-171'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-9.09805,-26.45412)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#215caf'>
+<g stroke='none'>
+<g fill='#215caf'>
+<use x='18' y='-90' xlink:href='#card_back-g20-170'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(2.48306,-26.5171)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#215caf'>
+<g stroke='none'>
+<g fill='#215caf'>
+<use x='18' y='-90' xlink:href='#card_back-g20-168'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(15.24765,-26.45412)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#215caf'>
+<g stroke='none'>
+<g fill='#215caf'>
+<use x='18' y='-90' xlink:href='#card_back-g20-169'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-50.11879,25.67259)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#ffc94d'>
+<g stroke='none'>
+<g fill='#ffc94d'>
+<use x='18' y='-90' xlink:href='#card_back-g22-70'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(43.7748,25.67259)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#ffc94d'>
+<g stroke='none'>
+<g fill='#ffc94d'>
+<use x='18' y='-90' xlink:href='#card_back-g22-70'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(-50.11879,-31.23262)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#ffc94d'>
+<g stroke='none'>
+<g fill='#ffc94d'>
+<use x='18' y='-90' xlink:href='#card_back-g22-70'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<g transform='translate(43.7748,-31.23262)'>
+<g stroke='none' transform='scale(-1.00375,1.00375)translate(18,-90)scale(-1,-1)'>
+<g fill='#ffc94d'>
+<g stroke='none'>
+<g fill='#ffc94d'>
+<use x='18' y='-90' xlink:href='#card_back-g22-70'/>
+</g>
+</g>
+</g>
+</g>
+</g>
+</g>
+</g>
+</g>
+</g>
+</svg>
+</svg>

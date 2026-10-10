@@ -4,13 +4,27 @@
 
 import { Math as PhaserMath } from "phaser";
 import type { GameObjects, Scene } from "phaser";
-import { BOARD, PIN_ROWS, columnX, curveHeight, pinAt, slotY } from "./board";
+import {
+    BOARD,
+    COLUMNS,
+    PIN_ROWS,
+    columnX,
+    curveHeight,
+    pinAt,
+    restY,
+} from "./board";
 import { BLACKJACK_YELLOWS, FUNNEL_MS, HOP_MS } from "./config";
 import { BOARD_SCALE, CARD } from "./layout";
 import type { Point } from "./layout";
 import type { Ball, BallColor } from "./rules";
 import { BALL_FRAMES, COLORS } from "./textures";
 import { FONT } from "./ui";
+import { fill, TEXT } from "../src/misc/text";
+
+function ballCount(count: number): string {
+    const balls = TEXT.blackjack.balls;
+    return fill(count === 1 ? balls.one : balls.other, { count });
+}
 
 type Landing = {
     color: BallColor;
@@ -27,9 +41,13 @@ export default class BoardView {
     private readonly countText: GameObjects.Text;
     private readonly dots: GameObjects.Arc[] = [];
     private readonly burst: GameObjects.Particles.ParticleEmitter;
+    private readonly stacks: GameObjects.Image[][] = Array.from(
+        { length: COLUMNS },
+        () => [],
+    ); // landed balls per column, bottom first
     private landed = 0;
     private yellow = 0;
-    private decided = false;
+    private red = 0;
     private pending: Promise<void>[] = [];
     onLand: (landing: Landing) => void = () => {};
 
@@ -78,7 +96,7 @@ export default class BoardView {
         this.burst.setDepth(45);
 
         this.countText = scene.add
-            .text(counter.x, counter.y, "0 BALLS", {
+            .text(counter.x, counter.y, ballCount(0), {
                 fontFamily: FONT,
                 fontSize: "30px",
                 fontStyle: "bold",
@@ -197,7 +215,7 @@ export default class BoardView {
         };
         const rest = this.local({
             x: columnX(ball.column),
-            y: slotY(ball.slot),
+            y: restY(ball.slot, ball.slot + 1),
         });
         const fallMs = 120 + (rest.y - above.y) * 0.75;
 
@@ -301,17 +319,18 @@ export default class BoardView {
             ease: "Back.easeOut",
         });
 
+        const stack = this.stacks[ball.column];
+        stack[ball.slot] = sprite;
+        this.pack(stack);
         const world = this.toWorld({
             x: columnX(ball.column),
-            y: slotY(ball.slot),
+            y: restY(ball.slot, stack.length),
         });
         this.burst.setParticleTint(COLORS[ball.color]);
         this.burst.explode(ball.color === "green" ? 6 : 12, world.x, world.y);
 
         this.landed++;
-        this.countText.setText(
-            `${this.landed} BALL${this.landed === 1 ? "" : "S"}`,
-        );
+        this.countText.setText(ballCount(this.landed));
         this.scene.tweens.add({
             targets: this.countText,
             scale: { from: 1.25, to: 1 },
@@ -333,15 +352,31 @@ export default class BoardView {
             }
             this.yellow++;
             this.ring(world, COLORS.yellow);
-            if (!this.decided && this.yellow === BLACKJACK_YELLOWS)
+            if (!this.red && this.yellow === BLACKJACK_YELLOWS)
                 decisive = "blackjack";
         }
+        // A red ball busts the board even after three yellow ones (rules.ts).
         if (ball.color === "red") {
             this.ring(world, COLORS.red);
-            if (!this.decided) decisive = "bust";
+            if (!this.red) decisive = "bust";
+            this.red++;
         }
-        if (decisive) this.decided = true;
         this.onLand({ color: ball.color, decisive, at: world });
+    }
+
+    // Slide a column's balls to where they rest now that it holds one more: nothing moves
+    // until the stack is taller than the bars, then it packs tighter (restY in board.ts).
+    private pack(stack: GameObjects.Image[]) {
+        stack.forEach((sprite, slot) => {
+            const y = this.local({ x: 0, y: restY(slot, stack.length) }).y;
+            if (Math.abs(sprite.y - y) < 0.5) return;
+            this.scene.tweens.add({
+                targets: sprite,
+                y,
+                duration: 140,
+                ease: "Quad.easeOut",
+            });
+        });
     }
 
     private ring(at: Point, color: number) {
@@ -368,8 +403,9 @@ export default class BoardView {
         this.pending = [];
         this.landed = 0;
         this.yellow = 0;
-        this.decided = false;
-        this.countText.setText("0 BALLS");
+        this.red = 0;
+        this.stacks.forEach((stack) => (stack.length = 0));
+        this.countText.setText(ballCount(0));
         this.dots.forEach((dot) => dot.setFillStyle(0x0b3d24, 0.55));
         const balls = [...this.ballLayer.list];
         return new Promise((resolve) => {

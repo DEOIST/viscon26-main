@@ -7,6 +7,7 @@ import { DEPARTMENTS } from "../../misc/character";
 import { GAMES } from "../../misc/shellConfig";
 import { ENDING_ART } from "../../misc/endingArt";
 import type { Ending, Run } from "../../misc/CommonInt";
+import { fill, TEXT } from "../../misc/text";
 import styles from "./Diploma.module.css";
 
 interface DiplomaArgs {
@@ -21,15 +22,18 @@ export default function Diploma(args: DiplomaArgs) {
     const art = ENDING_ART[args.ending.id];
     const character = args.run.character;
     return (
-        <article className={styles.diploma} aria-label="Your diploma">
-            <p className={styles.brand}>
-                ETH Life · Diploma of determined survival
-            </p>
+        <article
+            className={styles.diploma}
+            aria-label={TEXT.legacyGraduation.label}
+        >
+            <p className={styles.brand}>{TEXT.legacyGraduation.brand}</p>
             <p className={styles.certifies}>
-                This certifies that <strong>{character.name}</strong> of{" "}
-                {DEPARTMENTS[character.department]} survived{" "}
-                {args.run.ectsPoints} ECTS and is hereby sentenced to a career
-                as
+                {TEXT.legacyGraduation.certifies}{" "}
+                <strong>{character.name}</strong>{" "}
+                {fill(TEXT.legacyGraduation.citation, {
+                    department: DEPARTMENTS[character.department],
+                    ects: args.run.ectsPoints,
+                })}
             </p>
             <h2 className={styles.career}>{args.ending.title}</h2>
             <EndingPhoto
@@ -37,17 +41,19 @@ export default function Diploma(args: DiplomaArgs) {
                 avatar={
                     <Avatar
                         character={character}
-                        label={`Graduate ${character.name}`}
+                        label={fill(TEXT.common.graduateAvatarLabel, {
+                            name: character.name,
+                        })}
                     />
                 }
             />
             <dl className={styles.records}>
                 <div>
-                    <dt>Starting salary</dt>
+                    <dt>{TEXT.diploma.records.salary}</dt>
                     <dd>{art.salary}</dd>
                 </div>
                 <div>
-                    <dt>Housing</dt>
+                    <dt>{TEXT.diploma.records.housing}</dt>
                     <dd>{art.housing}</dd>
                 </div>
                 {GAMES.map((game) => (
@@ -57,7 +63,7 @@ export default function Diploma(args: DiplomaArgs) {
                     </div>
                 ))}
                 <div className={styles.total}>
-                    <dt>Final average</dt>
+                    <dt>{TEXT.diploma.records.finalAverage}</dt>
                     <dd>{args.run.totalScore} / 100</dd>
                 </div>
             </dl>
@@ -67,12 +73,13 @@ export default function Diploma(args: DiplomaArgs) {
             {args.audioUrl && <audio src={args.audioUrl} autoPlay controls />}
             {args.sameFatePercent !== null && (
                 <p className={styles.fate}>
-                    {args.sameFatePercent} % of graduates share your fate.
+                    {fill(TEXT.legacyGraduation.sameFate, {
+                        percent: args.sameFatePercent,
+                    })}
                 </p>
             )}
             <p className={styles.unofficial}>
-                Unofficial game diploma. Not affiliated with ETH Zürich, not an
-                academic qualification, not accepted by your landlord.
+                {TEXT.legacyGraduation.disclaimer}
             </p>
         </article>
     );

@@ -9,15 +9,22 @@ import type { Character } from "../types";
 import { Avatar } from "./Avatar";
 import type { AvatarExpression } from "./Avatar";
 import PixelHeart from "./PixelHeart";
+import { fill, TEXT } from "../misc/text";
 import styles from "./YearOneIntro.module.css";
 
 // Where each phrase winds up before it strikes, in vw / vh from the avatar.
-const ATTACKS = [
-    { text: "Lectures", x: -34, y: -12, damage: 2 },
-    { text: "Practice Classes", x: 32, y: -20, damage: 2 },
-    { text: "Lernphase", x: -28, y: 22, damage: 2 },
+// The wording is yearOneIntro in shared/text.json; the phrases strike in that order.
+const T = TEXT.yearOneIntro;
+const WIND_UPS = [
+    { x: -34, y: -12, damage: 2 },
+    { x: 32, y: -20, damage: 2 },
+    { x: -28, y: 22, damage: 2 },
 ];
-const FINALE = { text: "Emotional Damage", damage: 3 };
+const ATTACKS = T.attacks.map((text, i) => ({
+    text,
+    ...WIND_UPS[i % WIND_UPS.length],
+}));
+const FINALE = { text: T.finale, damage: 3 };
 const HEARTS = 10; // in half hearts; the finale leaves one
 
 const ENTER_MS = 900; // the slide to centre stage
@@ -240,7 +247,7 @@ export default function YearOneIntro(args: YearOneIntroArgs) {
             data-quake={step === "finale" && hits > ATTACKS.length}
             role="dialog"
             aria-modal="true"
-            aria-label="Your first day at ETH"
+            aria-label={T.label}
         >
             <div className={styles.backdrop} />
             <div className={styles.glow} aria-hidden="true" />
@@ -277,7 +284,7 @@ export default function YearOneIntro(args: YearOneIntroArgs) {
                 )}
             </div>
             <p className={styles.caption} aria-hidden="true">
-                You got into ETH!
+                {T.caption}
             </p>
             {attack && (
                 <span
@@ -302,7 +309,10 @@ export default function YearOneIntro(args: YearOneIntroArgs) {
                 key={`hearts-${hits}`}
                 className={styles.hearts}
                 data-hit={hits > 0}
-                aria-label={`${hearts / 2} of ${HEARTS / 2} hearts left`}
+                aria-label={fill(T.hearts, {
+                    left: hearts / 2,
+                    total: HEARTS / 2,
+                })}
                 role="img"
             >
                 {Array.from({ length: HEARTS / 2 }, (_, i) => (
@@ -323,7 +333,7 @@ export default function YearOneIntro(args: YearOneIntroArgs) {
                 className={`button ghost compact ${styles.skip}`}
                 onClick={() => timeline.current?.skip()}
             >
-                Skip intro
+                {T.skip}
             </button>
         </div>
     );
