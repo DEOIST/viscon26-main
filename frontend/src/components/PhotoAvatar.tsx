@@ -13,9 +13,9 @@ type Detected = Pick<AvatarSuggestion, "glasses" | "gender"> & {
 };
 
 /**
- * "Use a photo": one webcam still pre-fills the appearance swatches. Skin is measured on this
- * device; a small copy of the photo goes to the server (and OpenAI) for hair and eye color.
- * Everything stays editable with the swatches below.
+ * "Use a photo": one webcam still pre-fills the appearance swatches. A small copy goes to the
+ * server, which measures skin tone on the face it finds and asks OpenAI for the rest; the oval
+ * guide's own measurement is only the fallback. Everything stays editable below.
  */
 export function PhotoAvatar({
     disabled,
@@ -89,7 +89,8 @@ export function PhotoAvatar({
                 small.toDataURL("image/jpeg", 0.85),
             );
             onApply({
-                skinColor: skin.value,
+                // The server measures on the face it finds; the oval guess is the fallback
+                skinColor: suggestion.skinColor ?? skin.value,
                 ...(suggestion.hairColor && {
                     hairColor: suggestion.hairColor,
                 }),
@@ -141,10 +142,10 @@ export function PhotoAvatar({
                         <div className="photo-oval" aria-hidden="true" />
                     </div>
                     <small>
-                        Fit your face in the oval, facing a light. Skin tone is
-                        measured on your device; a small copy of the photo is
-                        sent to OpenAI to read hair and eye color. Nothing is
-                        stored.
+                        Fit your face in the oval, facing a light. A small copy
+                        of the photo goes to our server, which measures your
+                        skin tone, and to OpenAI to read hair, eyes and glasses.
+                        Nothing is stored.
                     </small>
                     <div className="form-actions">
                         <button

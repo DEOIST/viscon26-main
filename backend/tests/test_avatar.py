@@ -62,6 +62,7 @@ def test_ai_off_returns_an_empty_fallback_without_calling_openai(client, monkeyp
     assert response.status_code == 200
     assert response.json() == {
         "hairColor": None,
+        "skinColor": None,  # the test image has no face
         "hairLength": None,
         "eyeColor": None,
         "glasses": None,
@@ -86,6 +87,7 @@ def test_live_answer_is_mapped_to_preset_hex_values(client, monkeypatch):
     assert response.status_code == 200
     assert response.json() == {
         "hairColor": HAIR["Copper red"],
+        "skinColor": None,
         "hairLength": "long",
         "eyeColor": EYES["Forest green"],
         "glasses": "sunglasses",

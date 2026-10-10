@@ -36,9 +36,22 @@ const MEDIAPIPE_WASM_FILES = [
     "vision_wasm_nosimd_internal.js",
     "vision_wasm_nosimd_internal.wasm",
 ];
-const HAND_MODEL_URL =
-    "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
-const HAND_MODEL_PATH = path.join(PUBLIC_DIR, "models", "hand_landmarker.task");
+// Models the backend runs with MediaPipe: hands for the shooter, the face for the avatar's skin
+// tone (app/services/avatar.py).
+const MODELS = [
+    {
+        name: "hand",
+        url: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+        file: path.join(PUBLIC_DIR, "models", "hand_landmarker.task"),
+        fallback: "the shooter falls back to the mouse",
+    },
+    {
+        name: "face",
+        url: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+        file: path.join(PUBLIC_DIR, "models", "face_landmarker.task"),
+        fallback: "the avatar photo measures skin from the oval guide instead",
+    },
+];
 
 const flags = process.argv.slice(2);
 const watch = flags.includes("-w") || flags.includes("--watch");
@@ -92,22 +105,24 @@ function copyMediaPipe() {
     }
 }
 
-// The hand model (7.8 MB) is above CI's 5 MB file limit, so it is downloaded once into the
-// git-ignored public/models/ instead of being committed. Without it the shooter uses the mouse.
-async function ensureHandModel() {
-    if (fs.existsSync(HAND_MODEL_PATH)) return;
-    try {
-        const res = await fetch(HAND_MODEL_URL, {
-            signal: AbortSignal.timeout(60_000),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        fs.mkdirSync(path.dirname(HAND_MODEL_PATH), { recursive: true });
-        fs.writeFileSync(HAND_MODEL_PATH, Buffer.from(await res.arrayBuffer()));
-        console.log("[build] downloaded the MediaPipe hand model");
-    } catch (err) {
-        console.warn(
-            `[build] could not download the hand model (${err.message}); the shooter falls back to the mouse`,
-        );
+// The models (7.8 MB and 3.7 MB) are downloaded once into the git-ignored public/models/
+// instead of being committed: CI rejects files over 5 MB. A failed download never fails the build.
+async function ensureModels() {
+    for (const model of MODELS) {
+        if (fs.existsSync(model.file)) continue;
+        try {
+            const res = await fetch(model.url, {
+                signal: AbortSignal.timeout(60_000),
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            fs.mkdirSync(path.dirname(model.file), { recursive: true });
+            fs.writeFileSync(model.file, Buffer.from(await res.arrayBuffer()));
+            console.log(`[build] downloaded the MediaPipe ${model.name} model`);
+        } catch (err) {
+            console.warn(
+                `[build] could not download the ${model.name} model (${err.message}); ${model.fallback}`,
+            );
+        }
     }
 }
 
@@ -176,7 +191,7 @@ function buildOptions(pages) {
 
 async function main() {
     fs.rmSync(OUT_DIR, { recursive: true, force: true });
-    await ensureHandModel();
+    await ensureModels();
     copyMediaPipe();
     let pages = findPages();
 

@@ -28,7 +28,7 @@ describe("photo avatar", () => {
         );
         expect(getUserMedia).toHaveBeenCalledOnce();
         expect(screen.getByRole("button", { name: "Take photo" })).toBeTruthy();
-        expect(screen.getByText(/sent to OpenAI/)).toBeTruthy();
+        expect(screen.getByText(/goes to our server.*OpenAI/s)).toBeTruthy();
 
         fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
         expect(screen.queryByRole("button", { name: "Take photo" })).toBeNull();

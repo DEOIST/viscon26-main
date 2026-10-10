@@ -232,10 +232,13 @@ class AvatarPhoto(CamelModel):
 
 
 class AvatarSuggestion(CamelModel):
-    """Suggested character colors (preset hex values) read from a photo. Skin is measured in the
-    browser, not here. Every field is None when the AI is unavailable (source="fallback")."""
+    """Suggested character colors (preset hex values) read from a photo. The AI fields are None
+    when the AI is unavailable (source="fallback"); skin_color is measured, never asked of it."""
 
     hair_color: str | None = None
+    # Measured from the photo's pixels (app/services/skin.py), also when the AI is unavailable;
+    # None when no face was found
+    skin_color: str | None = None
     hair_length: HairLength | None = None
     eye_color: str | None = None
     glasses: Glasses | None = None
