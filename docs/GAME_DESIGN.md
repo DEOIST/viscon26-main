@@ -1,5 +1,11 @@
 # Game design: ETH Life (working title)
 
+> **Current level 1 change:** Bug Bash replaces the finger-gun gameplay. See
+> [BUG_BASH.md](BUG_BASH.md) for the current gestures, scoring, visuals, fullscreen,
+> `/api/cv/stream` field additions and local verification status. Original shooter
+> descriptions below are historical reference.
+
+
 What we are building, for everyone on the team: code, art and pitch. How it is
 built is in [ARCHITECTURE.md](ARCHITECTURE.md), the finger-gun computer vision
 in [SHOOTER_CV.md](SHOOTER_CV.md), the tools in [STACK.md](STACK.md).
@@ -182,19 +188,69 @@ index finger, drop your thumb to shoot. The technical design is in
   muzzle flash at your fingertip, camera shake, hit-stop, particles, sound,
   combo counter, and the neon hand skeleton over your hand.
 
+## Minigame 3: Thesis defense (Year 3, level 3)
+
+Guitar Hero meets your thesis defense. A three-professor examination committee
+fires questions down a four-lane neon highway; you answer each one by pressing
+its lane's key as it crosses the hit line. Keyboard only, no audio, no server
+side: the code is in `frontend/level3/`.
+
+- **Controls:** `D` Theory (∀), `F` Proofs (∫), `J` Experiments (χ²),
+  `K` Critique (?!). `Space` starts and spends Eureka, `Esc`/`P` pauses (also
+  automatic when the tab loses focus), `R` restarts from the pause or the verdict,
+  `Enter` submits the thesis.
+- **Chart:** one deterministic 31-bar chart at 128 BPM (about 58 s), written in
+  `chart.ts`, so practice pays off. Four phases, each opened by an empty bar
+  for its banner: *Opening questions* (quarters and eighths), *Cross-examination*
+  (chords), *Professor meltdown* (Prof. Gradient's sixteenth-note bursts) and
+  *Final defense* (the densest bars, ending on a golden four-key "QED" chord).
+  Beat lines on the highway and a hall that pulses on every beat replace the
+  music's timing cues; chord notes are linked by a bar.
+- **Judgment:** by the key event's own timestamp, ±45 ms PERFECT, ±90 GREAT,
+  ±135 GOOD, later is a MISS. A press with no note in its window is a stray: it
+  breaks the combo and costs a little confidence, so mashing never pays. A
+  timing meter under the receptors shows where recent presses landed.
+- **Score:** 100/70/40 points × multiplier (+1 every 10 combo, max 4×; Eureka
+  doubles it); golden notes add 50. Golden notes fill the Eureka meter (four
+  fill it); `Space` then gives 8 s of double points and halves miss damage.
+- **Thesis confidence:** starts at 70/100, +2/+1.5/+1 per hit, −4 per miss,
+  −2 per stray. At 0 the defense fails. Simulated players who hit about two
+  thirds of the notes survive; a flawless run scores 100.
+- **Milestones:** 10 combo "PROMISING RESEARCH", 25 "PEER REVIEW SURVIVED",
+  50 "ACADEMIC WEAPON", 75 "CITED BY EVERYONE", 100 "TENURE TRACK UNLOCKED",
+  150 "FIELDS MEDAL SPEEDRUN"; 25 PERFECTs in a row "NOBEL PRIZE INCOMING".
+- **Verdict:** SUMMA CUM LAUDE (≥ 93 % accuracy), THESIS DEFENDED (≥ 80),
+  CONDITIONAL PASS (≥ 65), MAJOR REVISIONS REQUIRED, or ACADEMICALLY DESTROYED
+  when confidence ran out, plus an ETH grade (1–6 in quarter steps, never a pass
+  for a failed defense). The personal best lives in `localStorage` only.
+- **Contract score:** the weighted share of all notes (1 / 0.8 / 0.5 / 0),
+  unplayed notes of a failed defense count as misses; the best attempt of the
+  visit is sent once, when the player submits.
+
 ## Endings
 
-The average of the two minigame scores picks the career. The server computes it
-(`backend/app/services/endings.py`): thresholds are constants in one place, and
-every boundary has a pytest case.
+Each year pays its 60 ECTS in proportion to its minigame score (0–100), rounded
+half up: 72 points in a year earn 43 ECTS. Finishing all three years graduates
+you, and your share of the 180 ECTS picks the career. Replaying a finished year
+does not change its credits. The tiers live in one place,
+`shared/game-config.json` (`endings`), read by the year shell
+(`frontend/src/config.ts` `endingFor`) and the backend
+(`backend/app/services/endings.py`, `shell_config.py` `earned_ects`). Every
+boundary has a test on both sides. The legacy `/graduation` page picks the tier
+from its run's average score the same way.
 
-| Average | Ending id | Career | Epilogue tone |
+| Share of ECTS | Ending id | Career | Epilogue tone |
 |---|---|---|---|
-| 85–100 | `c_level` | C-level executive | Absurd success, private jet to Davos |
-| 65–84 | `big_tech` | Big-tech engineer in Zürich | Free lunch, endless reorgs |
-| 45–64 | `phd` | Eternal PhD student | Year 7, "one more paper" |
+| 85–100 | `quant` | Quant researcher in Zug | Card counting was a transferable skill, unexplainable bonus |
+| 65–84 | `phd` | PhD student at ETH, year 7 | Pizza-box doctoral hat, "one more paper" |
+| 45–64 | `masters` | Master's student at ETH (again) | Left the main building for 4 minutes, enrolled again |
 | 25–44 | `mcdonalds` | McDonald's at Zürich HB | Best fries throughput in the canton |
-| 0–24 | `unemployed` | Unemployed in a 6-person WG | Still looking for a flat |
+| 0–24 | `homeless` | Homeless in Zürich | Lost the housing lottery, cardboard CV |
+
+The diploma (`components/Diploma.tsx` in the year shell, `components/graduation/Diploma.tsx`
+on the legacy page) shows the career, its photo from `frontend/src/assets/endings/`
+with a fake Latin grade stamp and your avatar (`components/common/EndingPhoto.tsx`),
+and salary and housing jokes (`misc/endingArt.ts`).
 
 All of this is parody: no real company logos anywhere (UI or generated art),
 and no official ETH logo.

@@ -11,6 +11,9 @@ after the previous answer arrived, so slow networks lower the frame rate instead
                                          saves frames to backend/captures/ (development only)
     client → {"type": "recenter"}                        server → the same message; the aim
                                          calibrates again (frames say tracking "calibrating")
+    client → {"type": "trigger", "step": "up"|"down"|"done"|"reset"}
+                                         server → {"type": "trigger", "step", "ok", "detail",
+                                         "thresholds"}; calibrates the player's trigger
     server → {"type": "error", "detail": "..."}          bad frame or message; the stream goes on
 
 Close codes: 1013 = engine busy (try again later), 1011 = engine unavailable, 4000 = no frames
@@ -34,6 +37,7 @@ from level1.schemas import (
     CvRecordMessage,
     CvSettingsMessage,
     CvStatus,
+    CvTriggerMessage,
 )
 
 router = APIRouter(prefix="/cv", tags=["cv"])
@@ -116,6 +120,8 @@ def _control_reply(session: cv_service.CvSession, text: str | None) -> dict:
     if isinstance(message, CvRecenterMessage):
         session.recenter()
         return {"type": "recenter"}
+    if isinstance(message, CvTriggerMessage):
+        return session.calibrate_trigger(message.step).model_dump(by_alias=True)
     if isinstance(message, CvRecordMessage):
         folder = session.set_recording(message.on)
         return {"type": "record", "on": folder is not None, "dir": folder and str(folder)}
@@ -141,6 +147,8 @@ def _control_error(error: ValidationError) -> str:
         return f"cooldownMs must be a number from 0 to {CV_MAX_COOLDOWN_MS}"
     if message_type == "record":
         return "on must be true or false"
+    if message_type == "trigger":
+        return 'step must be "up", "down", "done" or "reset"'
     return "Unknown message"
 
 

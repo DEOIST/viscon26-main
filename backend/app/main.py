@@ -15,7 +15,7 @@ from app import database
 from app.config import settings
 from app.frontend import mount_frontend
 from app.routers import api_router
-from app.services.accounts import AccountError
+from app.services.players import PlayerError
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger(__name__)
@@ -24,7 +24,8 @@ log = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     database.Base.metadata.create_all(database.engine)
-    database.add_missing_columns()
+    database.add_completion_scores()
+    database.migrate_legacy_players()
     yield
 
 
@@ -48,10 +49,9 @@ async def private_responses(request: Request, call_next: RequestResponseEndpoint
     return response
 
 
-@app.exception_handler(AccountError)
-def account_error(_request: Request, error: AccountError) -> JSONResponse:
+@app.exception_handler(PlayerError)
+def player_error(_request: Request, error: PlayerError) -> JSONResponse:
     code = {
-        "unauthorized": status.HTTP_401_UNAUTHORIZED,
         "not_found": status.HTTP_404_NOT_FOUND,
     }.get(error.kind, status.HTTP_409_CONFLICT)
     return JSONResponse(status_code=code, content={"detail": str(error)})
@@ -59,10 +59,10 @@ def account_error(_request: Request, error: AccountError) -> JSONResponse:
 
 @app.exception_handler(SQLAlchemyError)
 def database_unavailable(_request: Request, _error: SQLAlchemyError) -> JSONResponse:
-    log.error("Account database unavailable")
+    log.error("Player database unavailable")
     return JSONResponse(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        content={"detail": "Account storage is unavailable, try again in a moment"},
+        content={"detail": "Player storage is unavailable, try again in a moment"},
     )
 
 

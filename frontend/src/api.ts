@@ -1,12 +1,6 @@
-import type { Player, Progress } from "./types";
-import { profileMajor } from "./config";
-
-export type SessionData = {
-    user: { id: number } | null;
-    csrfToken: string;
-    profile: Player | null;
-    progress: Progress;
-};
+import type { Player, Progress, Snapshot } from "./types";
+import { GAMES, profileMajor } from "./config";
+import type { PublicConfig, ShellPlayer } from "./misc/CommonInt";
 /** Suggested colors read from a photo; all null when the AI is unavailable */
 export type AvatarSuggestion = {
     hairColor: string | null;
@@ -30,7 +24,26 @@ export class ApiError extends Error {
         super(message);
     }
 }
-let csrfToken = "";
+// A casual run identifier, not an identity credential. Preserve the existing progress key.
+const PLAYER_KEY = "eth-simulator.player-id.v1";
+let memoryId: string | undefined;
+export function anonymousPlayerId() {
+    if (memoryId) return memoryId;
+    try {
+        const saved = localStorage.getItem(PLAYER_KEY);
+        if (saved && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(saved))
+            return (memoryId = saved);
+    } catch {
+        /* Browser storage is optional for play. */
+    }
+    memoryId = crypto.randomUUID();
+    try {
+        localStorage.setItem(PLAYER_KEY, memoryId);
+    } catch {
+        /* In-memory fallback. */
+    }
+    return memoryId;
+}
 async function request<T>(
     path: string,
     method = "GET",
@@ -40,19 +53,17 @@ async function request<T>(
     try {
         response = await fetch(`/api${path}`, {
             method,
-            credentials: "same-origin",
             signal: AbortSignal.timeout(15000),
             headers: {
                 ...(body === undefined
                     ? {}
                     : { "Content-Type": "application/json" }),
-                ...(method === "GET" ? {} : { "X-CSRF-Token": csrfToken }),
             },
             ...(body === undefined ? {} : { body: JSON.stringify(body) }),
         });
     } catch {
         throw new ApiError(
-            "Cannot reach the server. Check your connection and try again.",
+            "Cannot reach the server. Your progress is kept in this browser. Try again when connected.",
             0,
         );
     }
@@ -69,47 +80,62 @@ async function request<T>(
     }
     return data as T;
 }
-async function sessionRequest(path: string, method = "GET", body?: unknown) {
-    const data = await request<SessionData>(path, method, body);
-    csrfToken = data.csrfToken;
-    return { ...data, progress: progressOnly(data.progress) };
+function profileBody(player: Player) {
+    return {
+        name: player.name,
+        ...player.character,
+        major: profileMajor(player.major),
+        onboardingStage: player.onboardingStage,
+    };
 }
-const progressOnly = ({ completedGameIds, graduated }: Progress): Progress => ({
-    completedGameIds,
-    graduated,
-});
+const playerPath = () => `/players/${anonymousPlayerId()}`;
+let pending: Promise<unknown> = Promise.resolve();
 export const api = {
-    session: () => sessionRequest("/session"),
-    auth: async (
-        mode: "login" | "register",
-        identifier: string,
-        password: string,
-    ) => {
-        if (!csrfToken) await sessionRequest("/session");
-        return sessionRequest(`/${mode}`, "POST", { identifier, password });
+    config: () => request<PublicConfig>("/config"),
+    player: () => request<ShellPlayer>(playerPath()),
+    // Serialize snapshots so a slow builder save cannot overwrite a later main-stage save.
+    synchronize(snapshot: Snapshot): Promise<Progress> {
+        const sync = pending
+            .catch(() => {})
+            .then(async () => {
+                const saved = await request<ShellPlayer>(
+                    playerPath(),
+                    "PUT",
+                    profileBody(snapshot.player),
+                );
+                let progress: Progress = saved.progress;
+                if (snapshot.player.onboardingStage === "main") {
+                    for (const game of GAMES) {
+                        if (
+                            game.implemented &&
+                            snapshot.progress.completedGameIds.includes(
+                                game.id,
+                            ) &&
+                            !progress.completedGameIds.includes(game.id)
+                        ) {
+                            progress = await request<Progress>(
+                                `${playerPath()}/completions/${encodeURIComponent(game.id)}`,
+                                "POST",
+                                { score: snapshot.progress.scores[game.id] },
+                            );
+                        }
+                    }
+                    if (snapshot.progress.graduated && !progress.graduated)
+                        progress = await request<Progress>(
+                            `${playerPath()}/graduation`,
+                            "POST",
+                        );
+                }
+                return progress;
+            });
+        pending = sync;
+        return sync;
     },
-    logout: () => sessionRequest("/logout", "POST"),
-    saveProfile: (player: Player) =>
-        request<Player>("/profile", "PUT", {
-            name: player.name,
-            ...player.character,
-            major: profileMajor(player.major),
-            onboardingStage: player.onboardingStage,
-        }),
-    progress: () => request<Progress>("/progress").then(progressOnly),
-    complete: (id: string) =>
-        request<Progress>(
-            `/completions/${encodeURIComponent(id)}`,
-            "POST",
-        ).then(progressOnly),
-    graduate: () => request<Progress>("/graduation", "POST").then(progressOnly),
     scoreboard: () => request<ScoreRow[]>("/scoreboard"),
-    avatarSuggestion: async (image: string) => {
-        if (!csrfToken) await sessionRequest("/session");
-        return request<AvatarSuggestion>("/avatar/suggestion", "POST", {
+    avatarSuggestion: (image: string) =>
+        request<AvatarSuggestion>("/avatar/suggestion", "POST", {
             image,
-        });
-    },
+        }),
 };
 export const errorMessage = (error: unknown) =>
     error instanceof Error

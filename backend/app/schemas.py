@@ -37,10 +37,14 @@ class HealthStatus(CamelModel):
     environment: str
 
 
+class PublicConfig(CamelModel):
+    graduation_preview: bool
+
+
 # --- runs ---
 
 GameId = Literal["blackjack", "shooter"]
-EndingId = Literal["c_level", "big_tech", "phd", "mcdonalds", "unemployed"]
+EndingId = Literal["quant", "phd", "masters", "mcdonalds", "homeless"]
 Pronouns = Literal["she", "he", "they"]
 DepartmentId = Literal[
     "arch", "baug", "biol", "bsse", "chab", "erdw", "gess", "hest",
@@ -140,15 +144,7 @@ class Epilogue(CamelModel):
     source: AiSource
 
 
-# --- account shell ---
-
-
-class Credentials(CamelModel):
-    model_config = ConfigDict(extra="forbid")
-    identifier: str = Field(min_length=3, max_length=48, pattern=r"^[a-zA-Z0-9_.-]+$")
-    password: str = Field(min_length=10, max_length=128)
-
-
+# --- anonymous shell ---
 # Chosen by the player in the character builder; the photo only pre-fills female/male.
 CharacterGender = Literal["unspecified", "female", "male", "nonbinary"]
 Glasses = Literal["none", "glasses", "sunglasses"]
@@ -192,19 +188,21 @@ class ShellProfile(CamelModel):
     onboarding_stage: Literal["acceptance", "main"]
 
 
+class CompletionInput(CamelModel):
+    # None pays the full ECTS, like completions saved before scores existed.
+    score: int | None = Field(default=None, ge=0, le=100)
+
+
 class ShellProgress(CamelModel):
     completed_game_ids: list[str] = Field(default_factory=list)
+    scores: dict[str, int] = Field(default_factory=dict)  # only completions that have a score
     graduated: bool = False
+    graduated_at: datetime | None = None
     ects: int = 0
 
 
-class AccountIdentity(CamelModel):
-    id: int
-
-
-class ShellSession(CamelModel):
-    user: AccountIdentity | None
-    csrf_token: str
+class ShellPlayer(CamelModel):
+    id: str
     profile: ShellProfile | None
     progress: ShellProgress
 

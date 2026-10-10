@@ -21,6 +21,6 @@ describe("moodColor", () => {
         expect(blue(calm)).toBeGreaterThan(red(calm));
         expect(red(hot)).toBeGreaterThan(red(calm));
         expect(moodColor(20, 0)).toBe(moodColor(8, 0)); // capped
-        expect(moodColor(0, 1)).toBe(0xff2a2a);
+        expect(moodColor(0, 1)).toBe(0xd97278);
     });
 });

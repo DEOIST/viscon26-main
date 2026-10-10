@@ -4,14 +4,7 @@ import {
     type PayloadAction,
 } from "@reduxjs/toolkit";
 import { useDispatch, useSelector } from "react-redux";
-import {
-    COLORS,
-    GAMES,
-    isSupportedMajor,
-    MAJOR,
-    TOTAL_ECTS,
-    YEARS,
-} from "./config";
+import { COLORS, GAMES, isSupportedMajor, MAJOR, YEARS } from "./config";
 import type {
     Gender,
     Glasses,
@@ -41,21 +34,31 @@ export const defaultPlayer: Player = {
 };
 export const emptyProgress: Progress = {
     completedGameIds: [],
+    scores: {},
     graduated: false,
 };
 export const isYearComplete = (year: Year, ids: string[]) =>
     year.games.every((game) => ids.includes(game.id));
 export const isYearUnlocked = (index: number, ids: string[]) =>
     YEARS.slice(0, index).every((year) => isYearComplete(year, ids));
-export const calculateEcts = (ids: string[]) =>
+// Mirrors backend/app/shell_config.py: each game pays its ECTS in proportion to its score,
+// rounded half up; a completion without a score (older saves) pays in full.
+export const calculateEcts = (ids: string[], scores: Record<string, number>) =>
     GAMES.reduce(
         (sum, game) =>
-            sum + (game.implemented && ids.includes(game.id) ? game.ects : 0),
+            sum +
+            (game.implemented && ids.includes(game.id)
+                ? Math.floor((game.ects * (scores[game.id] ?? 100)) / 100 + 0.5)
+                : 0),
         0,
     );
+// Finishing every year graduates you; the score decides the ECTS and the career.
 export const canGraduate = (ids: string[]) =>
-    YEARS.every((year) => isYearComplete(year, ids)) &&
-    calculateEcts(ids) === TOTAL_ECTS;
+    YEARS.every((year) => isYearComplete(year, ids));
+const isScore = (score: unknown): score is number =>
+    Number.isInteger(score) &&
+    (score as number) >= 0 &&
+    (score as number) <= 100;
 
 const playerSlice = createSlice({
     name: "player",
@@ -74,22 +77,31 @@ const progressSlice = createSlice({
     reducers: {
         replaceProgress: (_state, action: PayloadAction<Progress>) =>
             action.payload,
-        completeGame: (state, action: PayloadAction<string>) => {
+        completeGame: (
+            state,
+            action: PayloadAction<{ gameId: string; score: number }>,
+        ) => {
+            const { gameId, score } = action.payload;
             const index = YEARS.findIndex((year) =>
                 year.games.some(
-                    (game) => game.id === action.payload && game.implemented,
+                    (game) => game.id === gameId && game.implemented,
                 ),
             );
             if (
                 index >= 0 &&
+                isScore(score) &&
                 isYearUnlocked(index, state.completedGameIds) &&
-                !state.completedGameIds.includes(action.payload)
+                !state.completedGameIds.includes(gameId)
             ) {
-                state.completedGameIds.push(action.payload);
+                state.completedGameIds.push(gameId);
+                state.scores[gameId] = score;
             }
         },
         markGraduated: (state) => {
-            if (canGraduate(state.completedGameIds)) state.graduated = true;
+            if (canGraduate(state.completedGameIds) && !state.graduated) {
+                state.graduated = true;
+                state.graduatedAt = new Date().toISOString();
+            }
         },
     },
 });
@@ -155,12 +167,23 @@ export function readGuest(): Snapshot {
                     ids.push(game.id);
             }
         }
+        const savedScores = saved.progress?.scores ?? {};
+        const scores = Object.fromEntries(
+            ids.flatMap((id) =>
+                isScore(savedScores[id]) ? [[id, savedScores[id]]] : [],
+            ),
+        );
         return {
             player: { ...player, name: player.name.trim() },
             progress: {
                 completedGameIds: ids,
+                scores,
                 graduated:
                     saved.progress?.graduated === true && canGraduate(ids),
+                ...(saved.progress?.graduatedAt &&
+                Number.isFinite(Date.parse(saved.progress.graduatedAt))
+                    ? { graduatedAt: saved.progress.graduatedAt }
+                    : {}),
             },
         };
     } catch {
@@ -168,20 +191,14 @@ export function readGuest(): Snapshot {
     }
 }
 export const store = createAppStore(readGuest());
-let guestPersistence = false;
-export const setGuestPersistence = (enabled: boolean) => {
-    guestPersistence = enabled;
-};
 store.subscribe(() => {
-    if (guestPersistence) {
-        try {
-            localStorage.setItem(
-                GUEST_KEY,
-                JSON.stringify({ version: 1, ...store.getState() }),
-            );
-        } catch {
-            /* Guest play still works when browser storage is disabled. */
-        }
+    try {
+        localStorage.setItem(
+            GUEST_KEY,
+            JSON.stringify({ version: 1, ...store.getState() }),
+        );
+    } catch {
+        /* Play still works when browser storage is disabled. */
     }
 });
 export type RootState = ReturnType<typeof store.getState>;
@@ -189,7 +206,7 @@ export type AppDispatch = typeof store.dispatch;
 export const useAppDispatch = useDispatch.withTypes<AppDispatch>();
 export const useAppSelector = useSelector.withTypes<RootState>();
 export const selectEcts = (state: RootState) =>
-    calculateEcts(state.progress.completedGameIds);
+    calculateEcts(state.progress.completedGameIds, state.progress.scores);
 export const selectYearComplete = (state: RootState, year: Year) =>
     isYearComplete(year, state.progress.completedGameIds);
 export const selectYearUnlocked = (state: RootState, index: number) =>

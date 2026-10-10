@@ -1,6 +1,8 @@
-"""The account shell's sequential years; legacy run rewards remain in game_config.py."""
+"""The shell's sequential years; legacy run rewards remain in game_config.py."""
 
 import json
+import math
+from collections.abc import Collection, Mapping
 from pathlib import Path
 
 CONFIG = json.loads(
@@ -21,15 +23,23 @@ if sum(year["ects"] for year in YEARS) != CONFIG["totalEcts"]:
     raise RuntimeError("Configured years must total the degree's ECTS")
 
 
-def earned_ects(completed: set[str]) -> int:
+def earned_ects(scores: Mapping[str, int | None]) -> int:
+    """Each completed game pays its ECTS in proportion to its 0–100 score, rounded half up.
+
+    `scores` maps completed game ids to their score; None (completions saved before scores
+    existed) pays the full ECTS.
+    """
     return sum(
-        game["ects"] for key, game in GAMES.items() if key in completed and game["implemented"]
+        math.floor(game["ects"] * (100 if score is None else score) / 100 + 0.5)
+        for key, score in scores.items()
+        if (game := GAMES.get(key)) and game["implemented"]
     )
 
 
-def year_unlocked(index: int, completed: set[str]) -> bool:
+def year_unlocked(index: int, completed: Collection[str]) -> bool:
     return all(game["id"] in completed for year in YEARS[:index] for game in year["games"])
 
 
-def can_graduate(completed: set[str]) -> bool:
-    return set(GAMES).issubset(completed) and earned_ects(completed) == CONFIG["totalEcts"]
+def can_graduate(completed: Collection[str]) -> bool:
+    """Finishing every year graduates you; how well you did decides the ECTS and the career."""
+    return all(key in completed and game["implemented"] for key, game in GAMES.items())

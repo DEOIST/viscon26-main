@@ -1,11 +1,22 @@
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { GAMES, TOTAL_ECTS, YEARS } from "../config";
 import { isYearComplete, isYearUnlocked } from "../store";
 import type { Game, Player, Progress } from "../types";
 import { Avatar } from "./Avatar";
 import { GameHost } from "./GameHost";
 import { Icon } from "./Icon";
+import {
+    PresentationTimeline,
+    reducedMotion,
+    useAnimatedNumber,
+} from "../misc/motion";
 import styles from "./GameWorkspace.module.css";
+
+export interface CompletionFeedback {
+    id: number;
+    delta: number;
+    unlockedYears: number[];
+}
 
 const ENTRIES = YEARS.flatMap((year, yearIndex) =>
     year.games.map((game) => ({ game, year, yearIndex })),
@@ -16,15 +27,15 @@ interface GameWorkspaceArgs {
     progress: Progress;
     ects: number;
     eligible: boolean;
-    authenticated: boolean;
+    graduationPreview?: boolean;
     busy: boolean;
     error: string;
     selectedGame: Game | null;
+    completionFeedback?: CompletionFeedback | null;
     onOpen(game: Game): void;
-    onComplete(): void;
+    onComplete(score?: number): void; // no score: retry saving
     onExit(): void;
     onGraduate(): void;
-    onAccount(): void;
     onScoreboard(): void;
     onEditCharacter(): void;
 }
@@ -38,6 +49,48 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
         );
         return Math.max(0, next);
     });
+    const panel = useRef<HTMLDivElement>(null);
+    const direction = useRef(1);
+    const previousIndex = useRef(activeIndex);
+    const initialFeedback = useRef(args.completionFeedback?.id);
+    const seenFeedback = useRef(args.completionFeedback?.id);
+    const drawerMotion = useRef<PresentationTimeline | null>(null);
+    const [feedback, setFeedback] = useState<CompletionFeedback | null>(null);
+    const displayedEcts = useAnimatedNumber(
+        args.ects,
+        args.completionFeedback?.id !== initialFeedback.current
+            ? args.completionFeedback?.id
+            : undefined,
+    );
+    useEffect(() => {
+        const confirmed = args.completionFeedback;
+        if (!confirmed || confirmed.id === seenFeedback.current) return;
+        seenFeedback.current = confirmed.id;
+        if (confirmed.delta <= 0) return;
+        setFeedback(confirmed);
+        const run = new PresentationTimeline();
+        void run.wait(1500).then(() => {
+            if (run.active) setFeedback(null);
+        });
+        return () => run.dispose();
+    }, [args.completionFeedback]);
+    useEffect(() => {
+        if (previousIndex.current === activeIndex) return;
+        previousIndex.current = activeIndex;
+        if (args.selectedGame || reducedMotion()) return;
+        const animation = panel.current?.animate?.(
+            [
+                {
+                    opacity: 0.25,
+                    transform: `translateX(${direction.current * 24}px)`,
+                },
+                { opacity: 1, transform: "translateX(0)" },
+            ],
+            { duration: 340, easing: "cubic-bezier(.2,.7,.2,1)" },
+        );
+        return () => animation?.cancel();
+    }, [activeIndex, args.selectedGame]);
+    useEffect(() => () => drawerMotion.current?.dispose(), []);
     const studentMenu = useRef<HTMLDialogElement>(null);
     const menuTrigger = useRef<HTMLButtonElement>(null);
     const entry = args.selectedGame
@@ -50,9 +103,15 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
 
     function handleMove(delta: number) {
         if (args.selectedGame || args.busy) return;
+        direction.current = Math.sign(delta);
         setActiveIndex(
             (current) => (current + delta + ENTRIES.length) % ENTRIES.length,
         );
+    }
+
+    function handleSelect(index: number) {
+        direction.current = index >= activeIndex ? 1 : -1;
+        setActiveIndex(index);
     }
 
     function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
@@ -72,13 +131,25 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
             handleMove(event.key === "ArrowRight" ? 1 : -1);
         } else if (event.key === "Home" || event.key === "End") {
             event.preventDefault();
-            setActiveIndex(event.key === "Home" ? 0 : ENTRIES.length - 1);
+            handleSelect(event.key === "Home" ? 0 : ENTRIES.length - 1);
         }
     }
 
-    function handleCloseMenu() {
-        studentMenu.current?.close();
-        menuTrigger.current?.focus();
+    async function handleCloseMenu(after?: () => void) {
+        const dialog = studentMenu.current;
+        if (dialog?.open) {
+            if (drawerMotion.current?.active) return;
+            const run = new PresentationTimeline();
+            drawerMotion.current = run;
+            dialog.classList.add("is-closing");
+            await run.wait(160);
+            if (!run.active) return;
+            dialog.close();
+            dialog.classList.remove("is-closing");
+            run.dispose();
+            menuTrigger.current?.focus();
+        }
+        after?.();
     }
 
     // The same compact record is used in the desktop sidebar and mobile drawer.
@@ -91,25 +162,23 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                     title="Edit character"
                     aria-label="Edit character"
                     disabled={args.busy || !!args.selectedGame}
-                    onClick={args.onEditCharacter}
+                    onClick={() => void handleCloseMenu(args.onEditCharacter)}
                 >
                     <Avatar character={args.player.character} />
                 </button>
                 <h1>{args.player.name}</h1>
                 <span className={styles.department}>D-INFK</span>
-                <small>
-                    {args.authenticated ? "Account saved" : "Guest student"}
-                </small>
+                <small>Anonymous student</small>
             </div>
             <div className={styles.progress}>
                 <div>
                     <span>Degree progress</span>
                     <strong>
-                        {args.ects} / {TOTAL_ECTS}
+                        {displayedEcts} / {TOTAL_ECTS}
                     </strong>
                 </div>
                 <progress
-                    value={args.ects}
+                    value={displayedEcts}
                     max={TOTAL_ECTS}
                     aria-label="Degree ECTS earned"
                 />
@@ -122,28 +191,15 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                 <button
                     className="button secondary compact"
                     onClick={() => {
-                        handleCloseMenu();
-                        args.onScoreboard();
+                        void handleCloseMenu(args.onScoreboard);
                     }}
                 >
                     <Icon name="trophy" size={17} /> Scoreboard
                 </button>
-                <button
-                    className="button ghost compact"
-                    disabled={args.busy}
-                    onClick={() => {
-                        handleCloseMenu();
-                        args.onAccount();
-                    }}
-                >
-                    <Icon name="user" size={17} />{" "}
-                    {args.authenticated ? "Account" : "Log in / Register"}
-                </button>
             </nav>
             <p className={styles.recordNote}>
-                {args.authenticated
-                    ? "Your student record is saved to your account."
-                    : "Guest progress is saved in this browser. An account keeps your degree across devices."}
+                Progress stays in this browser. Your chosen name appears on the
+                leaderboard.
             </p>
             <div className={styles.sidebarBottom}>
                 <span>ETH After Hours</span>
@@ -168,7 +224,7 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                     <Icon name="user" size={20} />
                 </button>
                 <span>
-                    {args.ects}
+                    {displayedEcts}
                     <small>ECTS</small>
                 </span>
             </div>
@@ -176,6 +232,10 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                 ref={studentMenu}
                 className={styles.drawer}
                 aria-label="Student record"
+                onCancel={(event) => {
+                    event.preventDefault();
+                    void handleCloseMenu();
+                }}
                 onClick={(event) => {
                     if (event.target === event.currentTarget) handleCloseMenu();
                 }}
@@ -183,7 +243,7 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                 <button
                     className={`icon-button ${styles.closeDrawer}`}
                     aria-label="Close student menu"
-                    onClick={handleCloseMenu}
+                    onClick={() => void handleCloseMenu()}
                 >
                     <Icon name="close" />
                 </button>
@@ -208,17 +268,13 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                             return (
                                 <button
                                     key={item.id}
-                                    className={
-                                        year.id === item.id
-                                            ? styles.activeYear
-                                            : ""
-                                    }
+                                    className={`${year.id === item.id ? styles.activeYear : ""} ${feedback?.unlockedYears.includes(index) ? styles.justUnlocked : ""}`}
                                     aria-current={
                                         year.id === item.id ? "true" : undefined
                                     }
                                     disabled={!!args.selectedGame || args.busy}
                                     onClick={() =>
-                                        setActiveIndex(
+                                        handleSelect(
                                             ENTRIES.findIndex(
                                                 (value) =>
                                                     value.year.id === item.id,
@@ -287,7 +343,7 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                             aria-pressed={item.id === game.id}
                             disabled={!!args.selectedGame || args.busy}
                             onClick={() =>
-                                setActiveIndex(
+                                handleSelect(
                                     ENTRIES.findIndex(
                                         ({ game: value }) =>
                                             value.id === item.id,
@@ -300,6 +356,7 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                     ))}
                 </div>
                 <div
+                    ref={panel}
                     className={styles.panel}
                     role="region"
                     aria-roledescription="carousel"
@@ -421,6 +478,15 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                     </div>
                 </div>
                 <footer className={styles.degreeActions}>
+                    {feedback && (
+                        <span
+                            key={feedback.id}
+                            className={styles.ectsPopup}
+                            role="status"
+                        >
+                            +{feedback.delta} ECTS
+                        </span>
+                    )}
                     <p aria-live="polite">
                         {args.error && !args.selectedGame
                             ? args.error
@@ -431,16 +497,27 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                     <button
                         className="button primary compact"
                         disabled={
-                            !args.eligible || args.busy || !!args.selectedGame
+                            (!args.eligible && !args.graduationPreview) ||
+                            args.busy ||
+                            !!args.selectedGame
                         }
                         onClick={args.onGraduate}
                     >
                         {args.busy
                             ? "Saving…"
-                            : args.progress.graduated
-                              ? "View graduation"
-                              : "Graduate"}
-                        <Icon name={args.eligible ? "cap" : "lock"} size={16} />
+                            : !args.eligible && args.graduationPreview
+                              ? "Preview graduation"
+                              : args.progress.graduated
+                                ? "View graduation"
+                                : "Graduate"}
+                        <Icon
+                            name={
+                                args.eligible || args.graduationPreview
+                                    ? "cap"
+                                    : "lock"
+                            }
+                            size={16}
+                        />
                     </button>
                 </footer>
             </section>

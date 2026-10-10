@@ -1,8 +1,8 @@
 .workspace {
+    animation: workspaceEnter 320ms ease-out;
     display: grid;
     grid-template-columns: 208px minmax(0, 1fr);
     gap: 16px;
-    height: 100%;
     min-height: 0;
     min-width: 0;
     flex: 1;
@@ -10,8 +10,8 @@
 .sidebar {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    padding: 20px 16px;
+    gap: 16px;
+    padding: 16px;
     min-height: 0;
     overflow: auto;
     background: var(--surface);
@@ -116,6 +116,7 @@ button.portrait:disabled {
     overflow: auto;
 }
 .drawer[open] {
+    animation: drawerEnter 180ms ease-out;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -124,6 +125,9 @@ button.portrait:disabled {
     background: #060b16c9;
 }
 .closeDrawer {
+    position: sticky;
+    top: 0;
+    background: var(--surface);
     align-self: end;
     margin: -12px -12px -22px 0;
     z-index: 1;
@@ -141,6 +145,7 @@ button.portrait:disabled {
     align-items: center;
     gap: 8px;
     min-width: 0;
+    flex-shrink: 0;
 }
 .years {
     display: flex;
@@ -209,7 +214,6 @@ button.portrait:disabled {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
-    overflow: hidden;
 }
 .gameHeading {
     display: flex;
@@ -264,7 +268,8 @@ button.portrait:disabled {
     flex-direction: column;
 }
 .launchPanel {
-    flex: 1;
+    flex: 1 0 auto;
+    min-height: 280px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -291,11 +296,88 @@ button.portrait:disabled {
     margin-top: 8px;
 }
 .degreeActions {
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 12px;
     flex-shrink: 0;
+    flex-wrap: wrap;
+}
+.ectsPopup {
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 8px);
+    padding: 7px 12px;
+    border: 1px solid var(--success);
+    border-radius: 8px;
+    color: var(--success);
+    background: var(--surface);
+    font-size: 13px;
+    font-weight: 700;
+    pointer-events: none;
+    animation: ectsAward 1500ms ease-out both;
+    z-index: 2;
+}
+.years .justUnlocked {
+    animation: yearUnlock 850ms ease-out;
+}
+.drawer:global(.is-closing) {
+    animation: drawerExit 160ms ease-in both;
+}
+@keyframes workspaceEnter {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+@keyframes drawerEnter {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+@keyframes drawerExit {
+    to {
+        opacity: 0;
+        transform: translateX(-8px);
+    }
+}
+@keyframes ectsAward {
+    0% {
+        opacity: 0;
+        transform: translateY(7px) scale(0.96);
+    }
+    15%,
+    70% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-14px);
+    }
+}
+@keyframes yearUnlock {
+    30% {
+        color: var(--success);
+        background: color-mix(in srgb, var(--success) 15%, var(--surface));
+        box-shadow: inset 0 0 0 1px var(--success);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .workspace,
+    .drawer,
+    .ectsPopup,
+    .years .justUnlocked {
+        animation: none;
+    }
 }
 .degreeActions p {
     font-size: 10px;
@@ -305,6 +387,7 @@ button.portrait:disabled {
     .workspace {
         grid-template-columns: 42px minmax(0, 1fr);
         gap: 8px;
+        min-height: 560px;
     }
     .sidebar {
         display: none;
@@ -390,10 +473,6 @@ button.portrait:disabled {
     .studentIdentity h1 {
         font-size: 16px;
     }
-    .recordNote,
-    .sidebarBottom {
-        display: none;
-    }
     .gameArea {
         gap: 4px;
     }
@@ -418,8 +497,5 @@ button.portrait:disabled {
         margin-top: 0;
         padding: 8px 12px;
         min-height: 34px;
-    }
-    .gameSelectors {
-        display: none;
     }
 }

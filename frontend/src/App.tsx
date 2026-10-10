@@ -1,26 +1,25 @@
-import { useEffect, useRef, useState } from "react";
-import { api, errorMessage, type SessionData } from "./api";
-import { GAMES } from "./config";
-import {
-    AcceptanceScreen,
-    CharacterBuilder,
-    GraduationScreen,
-    WelcomeScreen,
-} from "./components/Screens";
-import { AuthDialog, ScoreboardDialog } from "./components/Dialogs";
+﻿import { useEffect, useRef, useState } from "react";
+import { api, errorMessage } from "./api";
+import { GAMES, YEARS } from "./config";
+import { GraduationScreen, WelcomeScreen } from "./components/Screens";
+import { ScoreboardDialog } from "./components/Dialogs";
 import { Icon } from "./components/Icon";
-import GameWorkspace from "./components/GameWorkspace";
+import GameWorkspace, {
+    type CompletionFeedback,
+} from "./components/GameWorkspace";
+import AdmissionFlow from "./components/AdmissionFlow";
 import {
     completeGame,
-    defaultPlayer,
+    calculateEcts,
+    canGraduate,
+    isYearUnlocked,
     markGraduated,
-    readGuest,
     replacePlayer,
     replaceProgress,
     selectCanGraduate,
     selectEcts,
-    setGuestPersistence,
     setStage,
+    store,
     useAppDispatch,
     useAppSelector,
 } from "./store";
@@ -32,13 +31,14 @@ export function App() {
     const progress = useAppSelector((state) => state.progress);
     const ects = useAppSelector(selectEcts);
     const eligible = useAppSelector(selectCanGraduate);
-    const [user, setUser] = useState<SessionData["user"]>(null);
-    const [booting, setBooting] = useState(true);
-    const [bootError, setBootError] = useState("");
-    const [dialog, setDialog] = useState<"auth" | "scoreboard" | null>(null);
+    const [scoreboard, setScoreboard] = useState(false);
     const [selectedGame, setSelectedGame] = useState<Game | null>(null);
-    const [graduation, setGraduation] = useState(false);
+    const [graduation, setGraduation] = useState(progress.graduated);
+    const [graduationPreview, setGraduationPreview] = useState(false);
+    const [previewingGraduation, setPreviewingGraduation] = useState(false);
     const [busy, setBusy] = useState(false);
+    const [syncing, setSyncing] = useState(false);
+    const [syncError, setSyncError] = useState("");
     const [error, setError] = useState("");
     const [notice, setNotice] = useState("");
     const [theme, setTheme] = useState<"dark" | "light">(() => {
@@ -50,47 +50,76 @@ export function App() {
             return "dark";
         }
     });
+    const [completionFeedback, setCompletionFeedback] =
+        useState<CompletionFeedback | null>(null);
+    const [celebrateGraduation, setCelebrateGraduation] = useState(false);
+    const completionId = useRef(0);
+    const syncVersion = useRef(0);
+    const mounted = useRef(true);
     const saving = useRef(false);
     const mainRef = useRef<HTMLElement>(null);
 
-    function applySession(data: SessionData, announce = false) {
-        setGuestPersistence(!data.user);
-        setUser(data.user);
-        const snapshot = data.user
-            ? {
-                  player: data.profile || {
-                      ...defaultPlayer,
-                      onboardingStage: "builder" as const,
-                  },
-                  progress: data.progress,
-              }
-            : readGuest();
-        dispatch(replacePlayer(snapshot.player));
-        dispatch(replaceProgress(snapshot.progress));
-        setSelectedGame(null);
-        setGraduation(false);
-        setError("");
-        setDialog(null);
-        if (announce)
-            setNotice(
-                data.user
-                    ? "Signed in. Your account’s student record is loaded."
-                    : "Signed out. Your browser’s guest record is loaded.",
-            );
-    }
-    async function bootstrap() {
-        setBooting(true);
-        setBootError("");
+    async function synchronize() {
+        const snapshot = store.getState();
+        if (
+            !snapshot.player.name ||
+            !["acceptance", "main"].includes(snapshot.player.onboardingStage)
+        )
+            return;
+        const version = ++syncVersion.current;
+        setSyncing(true);
+        setSyncError("");
         try {
-            applySession(await api.session());
+            const remote = await api.synchronize(snapshot);
+            if (!mounted.current) return;
+            // A response may arrive after more local games were completed. Never erase them.
+            const local = store.getState().progress;
+            const ids = GAMES.filter(
+                (game) =>
+                    game.implemented &&
+                    (local.completedGameIds.includes(game.id) ||
+                        remote.completedGameIds.includes(game.id)),
+            ).map((game) => game.id);
+            // A score saved in this browser wins over the server's copy of the same game.
+            const scores = Object.fromEntries(
+                ids.flatMap((id) => {
+                    const score = local.scores[id] ?? remote.scores[id];
+                    return score === undefined ? [] : [[id, score]];
+                }),
+            );
+            dispatch(
+                replaceProgress({
+                    completedGameIds: ids,
+                    scores,
+                    graduated:
+                        (local.graduated || remote.graduated) &&
+                        canGraduate(ids),
+                    graduatedAt:
+                        remote.graduatedAt || local.graduatedAt || null,
+                }),
+            );
         } catch (err) {
-            setBootError(errorMessage(err));
+            if (mounted.current && version === syncVersion.current)
+                setSyncError(errorMessage(err));
         } finally {
-            setBooting(false);
+            if (mounted.current && version === syncVersion.current)
+                setSyncing(false);
         }
     }
     useEffect(() => {
-        void bootstrap();
+        mounted.current = true;
+        void synchronize();
+        api.config()
+            .then((config) => {
+                if (mounted.current)
+                    setGraduationPreview(config.graduationPreview);
+            })
+            .catch(() => {
+                /* Preview stays disabled when configuration is unavailable. */
+            });
+        return () => {
+            mounted.current = false;
+        };
     }, []);
     useEffect(() => {
         document.documentElement.dataset.theme = theme;
@@ -104,72 +133,92 @@ export function App() {
         }
     }, [theme]);
     useEffect(() => {
-        if (!booting) {
-            mainRef.current?.focus({ preventScroll: true });
-            window.scrollTo({ top: 0 });
-        }
-    }, [player.onboardingStage, selectedGame?.id, graduation, booting]);
+        mainRef.current?.focus({ preventScroll: true });
+        window.scrollTo({ top: 0 });
+    }, [
+        player.onboardingStage,
+        selectedGame?.id,
+        graduation,
+        previewingGraduation,
+    ]);
 
-    async function savePlayer(next: Player) {
-        if (saving.current) return;
+    async function savePlayer(
+        next: Player,
+        beforeApply?: () => Promise<void>,
+    ): Promise<boolean> {
+        if (saving.current) return false;
         saving.current = true;
         setBusy(true);
         setError("");
         try {
-            dispatch(replacePlayer(user ? await api.saveProfile(next) : next));
+            await beforeApply?.();
+            if (!mounted.current) return false;
+            dispatch(replacePlayer(next));
+            void synchronize();
+            return true;
         } catch (err) {
-            setError(errorMessage(err));
+            if (
+                mounted.current &&
+                !(err instanceof DOMException && err.name === "AbortError")
+            )
+                setError(errorMessage(err));
+            return false;
         } finally {
             saving.current = false;
-            setBusy(false);
+            if (mounted.current) setBusy(false);
         }
     }
-    async function finishGame() {
+    // `score` is undefined when the player retries saving an already recorded result.
+    function finishGame(score?: number) {
         if (!selectedGame || saving.current) return;
-        if (progress.completedGameIds.includes(selectedGame.id)) {
+        const previous = store.getState().progress;
+        if (previous.completedGameIds.includes(selectedGame.id)) {
             setSelectedGame(null);
             return;
         }
+        if (score === undefined) return;
         if (!GAMES.find((game) => game.id === selectedGame.id)?.implemented) {
             setError("Placeholder previews cannot award ECTS.");
             return;
         }
-        saving.current = true;
-        setBusy(true);
-        setError("");
-        try {
-            if (user)
-                dispatch(replaceProgress(await api.complete(selectedGame.id)));
-            else dispatch(completeGame(selectedGame.id));
-            setSelectedGame(null);
-            setNotice(
-                "Minigame completed. ECTS earned. Your library chair misses you already.",
-            );
-        } catch (err) {
-            setError(errorMessage(err));
-        } finally {
-            saving.current = false;
-            setBusy(false);
-        }
+        dispatch(completeGame({ gameId: selectedGame.id, score }));
+        const current = store.getState().progress;
+        const ids = current.completedGameIds;
+        if (!ids.includes(selectedGame.id)) return;
+        setCompletionFeedback({
+            id: ++completionId.current,
+            delta:
+                calculateEcts(ids, current.scores) -
+                calculateEcts(previous.completedGameIds, previous.scores),
+            unlockedYears: YEARS.flatMap((_, index) =>
+                !isYearUnlocked(index, previous.completedGameIds) &&
+                isYearUnlocked(index, ids)
+                    ? [index]
+                    : [],
+            ),
+        });
+        setSelectedGame(null);
+        setNotice(
+            "Minigame completed. ECTS earned. Your library chair misses you already.",
+        );
+        void synchronize();
     }
-    async function graduate() {
-        if (!eligible || saving.current) return;
-        saving.current = true;
-        setBusy(true);
-        setError("");
-        try {
-            if (user) dispatch(replaceProgress(await api.graduate()));
-            else dispatch(markGraduated());
-            setGraduation(true);
-        } catch (err) {
-            setError(errorMessage(err));
-        } finally {
-            saving.current = false;
-            setBusy(false);
+    function graduate() {
+        if (saving.current) return;
+        if (!eligible) {
+            if (graduationPreview) setPreviewingGraduation(true);
+            return;
         }
+        const wasGraduated = store.getState().progress.graduated;
+        dispatch(markGraduated());
+        setCelebrateGraduation(!wasGraduated);
+        setGraduation(true);
+        if (!wasGraduated) void synchronize();
     }
     const inDegree = player.onboardingStage === "main";
-    const gameScreen = inDegree && !graduation && !booting && !bootError;
+    const showGraduation =
+        graduation || (graduationPreview && previewingGraduation);
+    const gameScreen = inDegree && !showGraduation;
     return (
         <div className={`app-shell ${gameScreen ? "game-screen" : ""}`}>
             <a className="skip-link" href="#main-content">
@@ -186,25 +235,14 @@ export function App() {
                 </div>
                 <nav className="top-actions" aria-label="Application actions">
                     {!inDegree && (
-                        <>
-                            <button
-                                className="button ghost compact"
-                                aria-label="Scoreboard"
-                                onClick={() => setDialog("scoreboard")}
-                                disabled={booting || !!bootError}
-                            >
-                                <Icon name="trophy" size={17} />
-                                <span className="nav-label">Scoreboard</span>
-                            </button>
-                            <button
-                                className="button ghost compact"
-                                onClick={() => setDialog("auth")}
-                                disabled={booting || !!bootError || busy}
-                            >
-                                <Icon name="user" size={17} />
-                                {user ? "Account" : "Log in / Register"}
-                            </button>
-                        </>
+                        <button
+                            className="button ghost compact"
+                            aria-label="Scoreboard"
+                            onClick={() => setScoreboard(true)}
+                        >
+                            <Icon name="trophy" size={17} />
+                            <span className="nav-label">Scoreboard</span>
+                        </button>
                     )}
                     <button
                         className="icon-button theme-button"
@@ -221,137 +259,115 @@ export function App() {
                 </nav>
             </header>
             <main id="main-content" ref={mainRef} tabIndex={-1}>
-                {booting ? (
-                    <div className="loading-screen" role="status">
-                        <span className="loading-mark">
-                            <Icon name="cap" size={38} />
-                        </span>
-                        <p>Finding your student record…</p>
+                {notice && !showGraduation && (
+                    <div className="notice" role="status">
+                        <span>{notice}</span>
+                        <button
+                            className="icon-button"
+                            onClick={() => setNotice("")}
+                            aria-label="Dismiss message"
+                        >
+                            <Icon name="close" size={16} />
+                        </button>
                     </div>
-                ) : bootError ? (
-                    <div className="connection-panel panel">
-                        <Icon name="slot" size={38} />
-                        <h1>The admissions office is offline.</h1>
-                        <p role="alert">{bootError}</p>
-                        <div className="form-actions">
-                            <button
-                                className="button secondary"
-                                onClick={() => void bootstrap()}
-                            >
-                                Try again
-                            </button>
-                            <button
-                                className="button primary"
-                                onClick={() => {
-                                    setGuestPersistence(true);
-                                    setBootError("");
-                                    setNotice(
-                                        "Guest mode is available. Account features need the server connection.",
-                                    );
-                                }}
-                            >
-                                Continue as guest <Icon name="arrow" />
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <>
-                        {notice && (
-                            <div className="notice" role="status">
-                                <span>{notice}</span>
-                                <button
-                                    className="icon-button"
-                                    onClick={() => setNotice("")}
-                                    aria-label="Dismiss message"
-                                >
-                                    <Icon name="close" size={16} />
-                                </button>
-                            </div>
-                        )}
-                        {player.onboardingStage === "welcome" && (
-                            <WelcomeScreen
-                                onStart={() => dispatch(setStage("builder"))}
-                            />
-                        )}
-                        {player.onboardingStage === "builder" && (
-                            <CharacterBuilder
-                                player={player}
-                                busy={busy}
-                                error={error}
-                                onBack={(draft) => {
-                                    dispatch(
-                                        replacePlayer({
-                                            ...draft,
-                                            onboardingStage: "welcome",
-                                        }),
-                                    );
-                                    setError("");
-                                }}
-                                onContinue={(next) => void savePlayer(next)}
-                            />
-                        )}
-                        {player.onboardingStage === "acceptance" && (
-                            <AcceptanceScreen
-                                player={player}
-                                busy={busy}
-                                error={error}
-                                onBack={() => {
-                                    dispatch(setStage("builder"));
-                                    setError("");
-                                }}
-                                onBegin={() =>
-                                    void savePlayer({
-                                        ...player,
-                                        onboardingStage: "main",
-                                    })
-                                }
-                            />
-                        )}
-                        {inDegree &&
-                            (graduation ? (
-                                <GraduationScreen
-                                    player={player}
-                                    ects={ects}
-                                    onReturn={() => setGraduation(false)}
-                                />
-                            ) : (
-                                <>
-                                    <GameWorkspace
-                                        player={player}
-                                        progress={progress}
-                                        ects={ects}
-                                        eligible={eligible}
-                                        authenticated={!!user}
-                                        busy={busy}
-                                        error={error}
-                                        selectedGame={selectedGame}
-                                        onAccount={() => setDialog("auth")}
-                                        onEditCharacter={() => {
-                                            dispatch(setStage("builder"));
-                                            setError("");
-                                            setNotice("");
-                                        }}
-                                        onScoreboard={() =>
-                                            setDialog("scoreboard")
-                                        }
-                                        onOpen={(game) => {
-                                            setSelectedGame(game);
-                                            setError("");
-                                            setNotice("");
-                                        }}
-                                        onComplete={() => void finishGame()}
-                                        onExit={() => {
-                                            if (!saving.current) {
-                                                setSelectedGame(null);
-                                                setError("");
-                                            }
-                                        }}
-                                        onGraduate={() => void graduate()}
-                                    />
-                                </>
-                            ))}
-                    </>
                 )}
+                {syncError && !showGraduation && (
+                    <div className="notice" role="status">
+                        <span>Leaderboard sync: {syncError}</span>
+                        <button
+                            className="button secondary compact"
+                            disabled={syncing}
+                            onClick={() => void synchronize()}
+                        >
+                            Retry sync
+                        </button>
+                    </div>
+                )}
+                {player.onboardingStage === "welcome" && (
+                    <WelcomeScreen
+                        onStart={() => dispatch(setStage("builder"))}
+                    />
+                )}
+                {(player.onboardingStage === "builder" ||
+                    player.onboardingStage === "acceptance") && (
+                    <AdmissionFlow
+                        player={player}
+                        busy={busy}
+                        error={error}
+                        onSave={savePlayer}
+                        onBack={(draft) => {
+                            dispatch(
+                                replacePlayer({
+                                    ...draft,
+                                    onboardingStage: "welcome",
+                                }),
+                            );
+                            setError("");
+                        }}
+                        onEdit={() => {
+                            dispatch(setStage("builder"));
+                            setError("");
+                        }}
+                        onBegin={() =>
+                            void savePlayer({
+                                ...player,
+                                onboardingStage: "main",
+                            })
+                        }
+                    />
+                )}
+                {inDegree &&
+                    (showGraduation ? (
+                        <GraduationScreen
+                            player={player}
+                            ects={ects}
+                            completedGameIds={progress.completedGameIds}
+                            graduatedAt={progress.graduatedAt || null}
+                            celebrate={celebrateGraduation}
+                            preview={previewingGraduation}
+                            submissionError={
+                                previewingGraduation ? "" : syncError
+                            }
+                            submitting={syncing}
+                            onRetry={() => void synchronize()}
+                            onLeaderboard={() => setScoreboard(true)}
+                            onReturn={() => {
+                                setGraduation(false);
+                                setPreviewingGraduation(false);
+                            }}
+                        />
+                    ) : (
+                        <GameWorkspace
+                            player={player}
+                            progress={progress}
+                            ects={ects}
+                            eligible={eligible}
+                            graduationPreview={graduationPreview}
+                            busy={busy}
+                            error={error}
+                            selectedGame={selectedGame}
+                            completionFeedback={completionFeedback}
+                            onEditCharacter={() => {
+                                dispatch(setStage("builder"));
+                                setError("");
+                                setNotice("");
+                            }}
+                            onScoreboard={() => setScoreboard(true)}
+                            onOpen={(game) => {
+                                setSelectedGame(game);
+                                setError("");
+                                setNotice("");
+                            }}
+                            onComplete={finishGame}
+                            onExit={() => {
+                                if (!saving.current) {
+                                    setSelectedGame(null);
+                                    setError("");
+                                }
+                            }}
+                            onGraduate={graduate}
+                        />
+                    ))}
             </main>
             <footer className="site-footer">
                 <span>
@@ -360,15 +376,8 @@ export function App() {
                 </span>
                 <span>Made for the plot. And the credits.</span>
             </footer>
-            {dialog === "auth" && (
-                <AuthDialog
-                    authenticated={!!user}
-                    onClose={() => setDialog(null)}
-                    onSession={(data) => applySession(data, true)}
-                />
-            )}
-            {dialog === "scoreboard" && (
-                <ScoreboardDialog onClose={() => setDialog(null)} />
+            {scoreboard && (
+                <ScoreboardDialog onClose={() => setScoreboard(false)} />
             )}
         </div>
     );

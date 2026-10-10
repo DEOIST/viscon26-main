@@ -2,13 +2,13 @@
 import { useEffect, useRef, useState } from "react";
 import { GAMES, departmentLabel } from "../config";
 import { MINIGAME_REGISTRY } from "../games/registry";
-import type { MinigameHandle } from "../games/shared/minigame";
-import type { GameId } from "../misc/CommonInt";
+import type { MinigameHandle, MinigameId } from "../games/shared/minigame";
 import type { MinigameProps } from "../types";
 
-const DESTINATION_IDS: Record<string, GameId> = {
+const DESTINATION_IDS: Record<string, MinigameId> = {
     "year-1-slot": "shooter", // level 1 (frontend/level1/)
     "year-2-slot": "blackjack",
+    "year-3-slot": "thesis", // level 3 (frontend/level3/)
 };
 
 export default function DestinationGame(args: MinigameProps) {
@@ -71,7 +71,7 @@ export default function DestinationGame(args: MinigameProps) {
                         GAMES.find((game) => game.id === args.gameId)
                             ?.implemented
                     )
-                        callbacks.current.onComplete();
+                        callbacks.current.onComplete(result.score);
                     else callbacks.current.onExit();
                 },
                 onExit() {

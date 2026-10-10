@@ -1,0 +1,204 @@
+.screen {
+    width: min(100%, 760px);
+    margin: clamp(12px, 3dvh, 28px) auto;
+    padding: clamp(20px, 4dvh, 36px) clamp(18px, 4vw, 36px);
+    text-align: center;
+    border-top: 3px solid var(--reward);
+}
+.screen h1 {
+    font-size: clamp(26px, 3.4vw, 38px);
+    overflow-wrap: anywhere;
+}
+.portrait {
+    position: relative;
+    width: 118px;
+    height: 130px;
+    margin: 18px auto;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: 60px 60px 14px 14px;
+    background: var(--surface-raised);
+}
+.portrait :global(.avatar) {
+    width: 89px;
+    height: 99px;
+}
+.seal {
+    position: absolute;
+    right: -12px;
+    bottom: -8px;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 3px solid var(--surface);
+    border-radius: 50%;
+    background: var(--reward);
+    color: var(--on-accent);
+}
+.lead {
+    margin: 10px 0 6px;
+    font-size: 18px;
+}
+.copy {
+    margin: 15px auto 20px;
+    max-width: 48ch;
+    font-size: 14px;
+}
+.actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+}
+.dialog :global(.dialog-heading h2) {
+    font-size: 20px;
+}
+.certificate {
+    position: relative;
+    isolation: isolate;
+    padding: clamp(16px, 3vw, 22px);
+    border: 3px double var(--reward);
+    outline: 1px solid color-mix(in srgb, var(--reward) 25%, transparent);
+    outline-offset: -9px;
+    background: linear-gradient(
+        140deg,
+        color-mix(in srgb, var(--reward) 4%, var(--surface)),
+        var(--surface)
+    );
+    text-align: center;
+}
+.certificateBrand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--reward);
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: 0.15em;
+}
+.certificate .certificateTitle {
+    margin: 8px auto 14px;
+    font-family: Georgia, serif;
+    font-size: 20px;
+    color: var(--text);
+}
+.certificate h2 {
+    font-size: clamp(22px, 3vw, 30px);
+    overflow-wrap: anywhere;
+}
+.certificate .career {
+    margin: 6px 0 22px;
+    color: var(--text);
+    font-family: Georgia, serif;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+.certificate .resultLabel {
+    margin-top: 12px;
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.result {
+    display: block;
+    color: var(--reward);
+    font-family: Georgia, serif;
+    font-size: 30px;
+    line-height: 1.3;
+}
+.records {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 18px;
+    padding: 14px 0;
+    margin: 0;
+    border-block: 1px solid color-mix(in srgb, var(--reward) 30%, var(--border));
+}
+.records dt {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+.records dd {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 650;
+}
+.certificate .completedGames {
+    margin-top: 9px;
+    font-size: 11px;
+}
+.certificate .congratulations {
+    margin-top: 15px;
+    color: var(--text);
+    font-family: Georgia, serif;
+    font-style: italic;
+}
+.certificate .unofficial {
+    max-width: 54ch;
+    margin: 9px auto 0;
+    font-size: 10px;
+}
+.submission {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    padding: 12px;
+    margin-top: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    text-align: center;
+}
+.submission p {
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+.celebration {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: clip;
+    pointer-events: none;
+}
+.celebration i {
+    position: absolute;
+    top: 40%;
+    left: calc(10% + var(--particle) * 11%);
+    width: 5px;
+    height: 9px;
+    background: var(--reward);
+    animation: celebrate 1100ms calc(var(--particle) * 40ms) ease-out both;
+}
+@keyframes celebrate {
+    from {
+        opacity: 0;
+        transform: translateY(35px) rotate(0deg);
+    }
+    20% {
+        opacity: 0.7;
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-140px) rotate(150deg);
+    }
+}
+@media (max-width: 440px) {
+    .records {
+        gap: 12px 8px;
+    }
+    .actions > button {
+        width: 100%;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .celebration {
+        display: none;
+    }
+}
