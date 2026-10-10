@@ -1,7 +1,5 @@
 """Every API / domain type lives here. Mirrors frontend/src/misc/CommonInt.ts; change both together.
 
-The full contract (types and endpoints) is documented in docs/ARCHITECTURE.md → "API contract".
-
 Convention: `XWHid` ("without id") is the create payload the client sends;
 `X(XWHid)` is what the server returns, adding `id` and timestamps.
 Fields are snake_case in Python and camelCase in JSON (see `CamelModel`).
@@ -10,8 +8,17 @@ Fields are snake_case in Python and camelCase in JSON (see `CamelModel`).
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    ValidationInfo,
+    field_validator,
+)
 from pydantic.alias_generators import to_camel
+
+from app.game_config import CONFIG
 
 
 class CamelModel(BaseModel):
@@ -54,7 +61,18 @@ class Character(CamelModel):
     department: DepartmentId
     archetype: ArchetypeId
     # Preset portrait id such as "a3"; the frontend owns the list of portraits.
-    avatar: str = Field(pattern=r"^[a-z0-9-]{1,32}$")
+    avatar: str = Field(pattern=r"^a[1-8]$")
+    hair_color: str = "#70432E"
+    skin_color: str = "#E4B48F"
+    eye_color: str = "#4B3024"
+
+    @field_validator("hair_color", "skin_color", "eye_color")
+    @classmethod
+    def preset_color(cls, value: str, info: ValidationInfo) -> str:
+        group = {"hair_color": "hair", "skin_color": "skin", "eye_color": "eyes"}[info.field_name]
+        if value not in {color["value"] for color in CONFIG["colors"][group]}:
+            raise ValueError("Choose a preset color")
+        return value
 
 
 class RunWHid(CamelModel):
@@ -69,15 +87,17 @@ class Ending(CamelModel):
 class Run(RunWHid):
     id: str
     created_at: datetime
-    scores: dict[GameId, int] = Field(default_factory=dict)  # 0–100 per finished minigame
+    scores: dict[GameId, int] = Field(default_factory=dict)  # 0â€“100 per finished minigame
     total_score: int | None = None  # set at graduation
     ending: Ending | None = None  # set at graduation
     graduated_at: datetime | None = None
+    completed_game_ids: list[GameId] = Field(default_factory=list)
+    ects_points: int = 0
 
 
 class ScoreSubmission(CamelModel):
     game: GameId
-    score: int = Field(ge=0, le=100)
+    score: int = Field(ge=0, le=100, strict=True)
 
 
 # --- leaderboard ---

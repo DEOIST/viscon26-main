@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from app import db
 from app.config import settings
+from app.game_config import GAMES
 from app.main import app
 
 CHARACTER = {
@@ -16,6 +17,9 @@ CHARACTER = {
     "department": "infk",
     "archetype": "nerd",
     "avatar": "a3",
+    "hairColor": "#70432E",
+    "skinColor": "#E4B48F",
+    "eyeColor": "#4B3024",
 }
 
 
@@ -24,9 +28,10 @@ def isolated(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     monkeypatch.setattr(settings, "redis_url", "")
     monkeypatch.setattr(settings, "ai_mode", "off")
     monkeypatch.setattr(settings, "openai_api_keys", [])
-    db.get_redis.cache_clear()  # a fresh, empty fakeredis per test
+    get_redis = db.get_redis
+    get_redis.cache_clear()  # a fresh, empty fakeredis per test
     yield
-    db.get_redis.cache_clear()
+    get_redis.cache_clear()
 
 
 @pytest.fixture
@@ -35,7 +40,14 @@ def client() -> TestClient:
 
 
 @pytest.fixture
-def make_run(client: TestClient) -> Callable[..., dict]:
+def connected_games(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Exercise completed game contracts without enabling public preview rewards."""
+    for game in GAMES.values():
+        monkeypatch.setitem(game, "implemented", True)
+
+
+@pytest.fixture
+def make_run(client: TestClient, connected_games: None) -> Callable[..., dict]:
     """Enroll a character (CHARACTER plus overrides) and return the created run JSON."""
 
     def make(**overrides: str) -> dict:

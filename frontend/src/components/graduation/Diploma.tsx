@@ -69,7 +69,7 @@ export default function Diploma(args: DiplomaArgs) {
 
     return (
         <article className={styles.diploma}>
-            <Avatar avatar={character.avatar} name={character.name} isLarge />
+            <Avatar character={character} />
             <h1 className={styles.career}>{ending.title}</h1>
             <p className={styles.muted}>
                 {character.name} · {DEPARTMENTS[character.department]}

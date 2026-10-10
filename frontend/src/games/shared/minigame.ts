@@ -2,7 +2,7 @@
 // "The minigame contract"). Pages only ever call a MountMinigame; games never fetch, never
 // navigate and never import React.
 
-import type { Character } from "../../misc/CommonInt";
+import type { Character, GameId } from "../../misc/CommonInt";
 
 export interface MinigameResult {
     score: number; // 0–100, normalized by the game
@@ -12,6 +12,12 @@ export interface MinigameResult {
 export interface MinigameOptions {
     parent: HTMLElement; // container element owned by React
     character: Character; // perks and flavor
+    gameId: GameId;
+    playerName: string;
+    major: string;
+    ectsPoints: number;
+    completedGameIds: GameId[];
+    onExit(): void;
     dialogue: Record<string, string[]> | null; // prefetched lines by event key, or null
     onFinish(result: MinigameResult): void; // called exactly once
 }
