@@ -8,6 +8,7 @@ browser falls back to its oval-guide measurement.
 """
 
 import io
+import logging
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -37,6 +38,7 @@ LIT_BAND = (0.6, 0.95)
 LIGHTNESS_OFFSET = 4.0
 
 SKIN_PRESETS = CONFIG["colors"]["skin"]
+log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -152,9 +154,12 @@ def measure_skin(image_bytes: bytes) -> SkinMeasurement | None:
     rgb = sample_skin(pixels, points)
     if rgb is None:
         return None
-    return SkinMeasurement(
+    measurement = SkinMeasurement(
         preset=nearest_preset(rgb), measured=_hex(rgb), lightness=round(lightness(rgb), 1)
     )
+    # Numbers only, never the image: for tuning LIGHTNESS_OFFSET on real webcams
+    log.info("avatar skin: L*=%.1f -> %s", measurement.lightness, measurement.preset)
+    return measurement
 
 
 _PRESET_LIGHTNESS = {preset["value"]: lightness(_rgb(preset["value"])) for preset in SKIN_PRESETS}
