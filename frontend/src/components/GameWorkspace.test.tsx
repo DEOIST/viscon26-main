@@ -97,3 +97,31 @@ it("leaves game keyboard input alone and prevents carousel switching during a ro
     ).toBe(true);
     expect(screen.getByRole("button", { name: "Overview" })).toBeTruthy();
 });
+
+it("explains Galton Blackjack in three steps before Year 2 launches", () => {
+    const onOpen = vi.fn();
+    render(
+        <GameWorkspace
+            player={{ ...defaultPlayer, name: "Ada" }}
+            progress={{ completedGameIds: ["year-1-slot"], graduated: false }}
+            ects={60}
+            eligible={false}
+            authenticated={false}
+            busy={false}
+            error=""
+            selectedGame={null}
+            onOpen={onOpen}
+            onComplete={vi.fn()}
+            onExit={vi.fn()}
+            onGraduate={vi.fn()}
+            onAccount={vi.fn()}
+            onScoreboard={vi.fn()}
+            onEditCharacter={vi.fn()}
+        />,
+    );
+    const howTo = screen.getByRole("region", { name: "How to play" });
+    expect(howTo.querySelectorAll("li")).toHaveLength(3);
+    expect(howTo.querySelectorAll("img")).toHaveLength(3);
+    fireEvent.click(screen.getByRole("button", { name: "Launch game" }));
+    expect(onOpen).toHaveBeenCalledExactlyOnceWith(GAMES[1]);
+});

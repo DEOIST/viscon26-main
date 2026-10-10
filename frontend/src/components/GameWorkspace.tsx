@@ -3,6 +3,7 @@ import { GAMES, TOTAL_ECTS, YEARS } from "../config";
 import { isYearComplete, isYearUnlocked } from "../store";
 import type { Game, Player, Progress } from "../types";
 import { Avatar } from "./Avatar";
+import BlackjackHowTo from "./BlackjackHowTo";
 import { GameHost } from "./GameHost";
 import { Icon } from "./Icon";
 import styles from "./GameWorkspace.module.css";
@@ -47,6 +48,9 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
     const completed = args.progress.completedGameIds.includes(game.id);
     const unlocked = isYearUnlocked(yearIndex, args.progress.completedGameIds);
     const state = !unlocked ? "Locked" : completed ? "Completed" : "Available";
+    // Year 2's slot plays Galton Blackjack (minigames/DestinationGame.tsx), whose twist on the
+    // rules needs explaining before the first deal.
+    const showsHowTo = unlocked && game.id === "year-2-slot";
 
     function handleMove(delta: number) {
         if (args.selectedGame || args.busy) return;
@@ -362,37 +366,47 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                             />
                         ) : (
                             <div className={styles.launchPanel}>
-                                <span className={styles.launchIcon}>
-                                    <Icon
-                                        name={
-                                            !unlocked
-                                                ? "lock"
+                                {showsHowTo ? (
+                                    <BlackjackHowTo />
+                                ) : (
+                                    <>
+                                        <span className={styles.launchIcon}>
+                                            <Icon
+                                                name={
+                                                    !unlocked
+                                                        ? "lock"
+                                                        : completed
+                                                          ? "check"
+                                                          : "slot"
+                                                }
+                                                size={38}
+                                            />
+                                        </span>
+                                        <h3>
+                                            {!unlocked
+                                                ? `${year.title} is still locked.`
                                                 : completed
-                                                  ? "check"
-                                                  : "slot"
-                                        }
-                                        size={38}
-                                    />
-                                </span>
-                                <h3>
-                                    {!unlocked
-                                        ? `${year.title} is still locked.`
-                                        : completed
-                                          ? "Ready for another visit?"
-                                          : game.title}
-                                </h3>
-                                <p>
-                                    {!unlocked
-                                        ? `Complete every minigame in Year ${year.id - 1} to unlock this game.`
-                                        : year.description}
-                                </p>
+                                                  ? "Ready for another visit?"
+                                                  : game.title}
+                                        </h3>
+                                        <p>
+                                            {!unlocked
+                                                ? `Complete every minigame in Year ${year.id - 1} to unlock this game.`
+                                                : year.description}
+                                        </p>
+                                    </>
+                                )}
                                 {!game.implemented && unlocked && (
                                     <small>
                                         Preview component · no ECTS awarded
                                     </small>
                                 )}
                                 <button
-                                    className="button primary"
+                                    className={
+                                        showsHowTo
+                                            ? `button primary ${styles.afterHowTo}`
+                                            : "button primary"
+                                    }
                                     disabled={!unlocked || args.busy}
                                     onClick={() => {
                                         if (
