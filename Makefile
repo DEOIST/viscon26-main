@@ -6,11 +6,11 @@ URL ?= http://localhost:5173
 BACKEND_PORT ?= $(or $(shell sed -n 's/^BACKEND_PORT=//p' .env 2>/dev/null | tail -n 1),8000)
 .DEFAULT_GOAL := help
 
-.PHONY: install dev dev-frontend dev-backend build test check format prod prod-logs prod-down smoke redis ai-check help
+.PHONY: install dev dev-db dev-frontend dev-backend build test check format prod prod-logs prod-down smoke redis ai-check help
 
 help:
 	@echo "make install     npm install + backend venv"
-	@echo "make dev         Vite + backend autoreload at http://localhost:5173"
+	@echo "make dev         Postgres (Docker) + Vite + backend autoreload at http://localhost:5173"
 	@echo "make check       typecheck, prettier, ruff, pytest (run before every push)"
 	@echo "make format      prettier --write + ruff fix/format"
 	@echo "make test        backend tests only"
@@ -28,8 +28,14 @@ install:
 	$(PY)/pip install -r backend/requirements-dev.txt
 
 # Vite + backend autoreload at http://localhost:5173. Ctrl-C stops both.
-dev:
+dev: dev-db
 	$(MAKE) -j2 dev-frontend dev-backend
+
+# The backend needs Postgres for player progress (127.0.0.1:5433, its default). Start the
+# compose `db` service and wait until it is healthy; a running one is left as is. With your own
+# DATABASE_URL instead, run `make -j2 dev-frontend dev-backend`.
+dev-db:
+	docker compose up -d --wait db
 
 # The proxy target follows BACKEND_PORT, so Vite never talks to whatever else holds 8000.
 dev-frontend:
