@@ -1,16 +1,14 @@
 """Runs: one player's journey from enrollment to graduation, stored in Redis as JSON."""
 
 from datetime import UTC, datetime
-from typing import get_args
 from uuid import uuid4
 
 import redis
 
 from app import ai, db
-from app.schemas import GameId, Run, RunWHid, ScoreSubmission
+from app.game_config import GAMES, earned_ects
+from app.schemas import Run, RunWHid, ScoreSubmission
 from app.services.endings import decide_ending, total_score
-
-GAMES: tuple[GameId, ...] = get_args(GameId)
 
 
 class RunStateError(Exception):
@@ -18,7 +16,7 @@ class RunStateError(Exception):
 
 
 class NameRejectedError(Exception):
-    """Moderation flagged the character's name (the router answers 422)."""
+    """Moderation flagged the character name (the router answers 422)."""
 
 
 def create_run(payload: RunWHid) -> Run:
@@ -35,14 +33,33 @@ def get_run_by_id(run_id: str) -> Run | None:
 
 
 def submit_score(run_id: str, payload: ScoreSubmission) -> Run | None:
-    run = get_run_by_id(run_id)
-    if run is None:
-        return None
-    if run.ending is not None:
-        raise RunStateError("This run has already graduated")
-    updated = run.model_copy(update={"scores": {**run.scores, payload.game: payload.score}})
-    db.get_redis().set(db.run_key(run_id), updated.model_dump_json())
-    return updated
+    """WATCH prevents simultaneous independent completions or graduation from losing state."""
+    with db.get_redis().pipeline() as pipe:
+        while True:
+            try:
+                pipe.watch(db.run_key(run_id))
+                raw = pipe.get(db.run_key(run_id))
+                if raw is None:
+                    return None
+                run = Run.model_validate_json(raw)
+                if run.ending is not None:
+                    raise RunStateError("This run has already graduated")
+                if not GAMES[payload.game]["implemented"]:
+                    raise RunStateError("Preview minigames cannot award scores or ECTS")
+                scores = {**run.scores, payload.game: payload.score}
+                updated = run.model_copy(
+                    update={
+                        "scores": scores,
+                        "completed_game_ids": [game for game in GAMES if game in scores],
+                        "ects_points": earned_ects(scores),
+                    }
+                )
+                pipe.multi()
+                pipe.set(db.run_key(run_id), updated.model_dump_json())
+                pipe.execute()
+                return updated
+            except redis.WatchError:
+                continue
 
 
 def graduate_run(run_id: str) -> Run | None:
@@ -61,7 +78,11 @@ def graduate_run(run_id: str) -> Run | None:
                 run = Run.model_validate_json(raw)
                 if run.ending is not None:
                     return run
-                missing = [game for game in GAMES if game not in run.scores]
+                missing = [
+                    game
+                    for game in GAMES
+                    if game not in run.scores or not GAMES[game]["implemented"]
+                ]
                 if missing:
                     raise RunStateError(f"Play {' and '.join(missing)} before graduating")
                 total = total_score(run.scores)

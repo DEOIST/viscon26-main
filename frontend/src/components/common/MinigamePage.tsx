@@ -1,126 +1,191 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
+import ShellLayout from "./ShellLayout";
+import RunStatus from "./RunStatus";
 import MinigameHost from "./MinigameHost";
-import MissingRun from "./MissingRun";
-import {
-    apiGenerateDialogue,
-    apiGetRunById,
-    apiSubmitScore,
-} from "../../misc/apiClient";
+import Icon from "./Icon";
+import { MINIGAME_REGISTRY } from "../../games/registry";
+import { apiGenerateDialogue, apiSubmitScore } from "../../misc/apiClient";
+import { GAMES } from "../../misc/shellConfig";
+import { useRun } from "../../misc/useRun";
 import { runHref } from "../../misc/run";
-import { useApi } from "../../misc/useApi";
-import type {
-    MinigameResult,
-    MountMinigame,
-} from "../../games/shared/minigame";
 import type { GameId } from "../../misc/CommonInt";
-import styles from "./MinigamePage.module.css";
+import type { MinigameResult } from "../../games/shared/minigame";
+import { shellClass } from "../../misc/shellStyles";
 
 interface MinigamePageArgs {
-    runId: string;
-    game: GameId;
-    title: string;
-    instructions: string;
+    gameId: GameId;
     introExtra?: ReactNode; // e.g. the shooter's camera and engine status
-    mount: MountMinigame;
 }
-
-type Phase = "intro" | "playing" | "saving" | "saveFailed";
-
-// The React outer shell of every minigame: instructions → the round (MinigameHost) → save the
-// score → back to campus. It never leaves the page with an unsaved score: it offers Retry.
 export default function MinigamePage(args: MinigamePageArgs) {
-    const run = useApi(() => apiGetRunById(args.runId), [args.runId]);
-    // Prefetched while the player reads the instructions, so the round never waits for the AI.
-    const dialogue = useApi(
-        () => apiGenerateDialogue(args.runId, { scene: args.game }),
-        [args.runId, args.game],
-    );
-    const [phase, setPhase] = useState<Phase>("intro");
-    const [roundDialogue, setRoundDialogue] = useState<Record<
-        string,
-        string[]
-    > | null>(null);
+    const state = useRun();
+    const game = GAMES.find((game) => game.id === args.gameId)!;
+    const mount = MINIGAME_REGISTRY[game.id];
     const [result, setResult] = useState<MinigameResult | null>(null);
-    const [saveError, setSaveError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (run.data?.ending)
-            window.location.replace(runHref("/graduation", args.runId));
-    }, [run.data, args.runId]);
-
-    async function saveScore(finished: MinigameResult) {
-        setPhase("saving");
-        const res = await apiSubmitScore(args.runId, {
-            game: args.game,
-            score: Math.round(finished.score),
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState("");
+    const [started, setStarted] = useState(false);
+    const [dialogue, setDialogue] = useState<Record<string, string[]> | null>(
+        null,
+    );
+    const saving = useRef(false);
+    async function handleStart() {
+        if (!state.data || saving.current) return;
+        saving.current = true;
+        setBusy(true);
+        const response = await apiGenerateDialogue(state.data.id, {
+            scene: game.id,
         });
-        if (res.error !== null) {
-            setSaveError(res.error);
-            setPhase("saveFailed");
+        setDialogue(response.data?.lines ?? null);
+        setStarted(true);
+        saving.current = false;
+        setBusy(false);
+    }
+    function handleExit() {
+        if (state.data && !saving.current)
+            window.location.href = runHref("/campus", state.data.id);
+    }
+    async function handleSave(completion: MinigameResult) {
+        if (!state.data || saving.current || !mount) return;
+        if (!game.implemented) {
+            setResult(completion);
             return;
         }
-        window.location.href = runHref("/campus", args.runId);
+        saving.current = true;
+        setBusy(true);
+        setError("");
+        setResult(completion);
+        const saved = await apiSubmitScore(state.data.id, {
+            game: game.id,
+            score: completion.score,
+        });
+        if (saved.data)
+            window.location.href = runHref("/campus", state.data.id);
+        else {
+            setError(saved.error || "Your result could not be saved.");
+            saving.current = false;
+            setBusy(false);
+        }
     }
-
-    function handleStart() {
-        // Frozen for the whole round: a new dialogue object would remount the game.
-        setRoundDialogue(dialogue.data?.lines ?? null);
-        setPhase("playing");
-    }
-
-    function handleFinish(finished: MinigameResult) {
-        setResult(finished);
-        void saveScore(finished);
-    }
-
-    function handleRetry() {
-        if (result !== null) void saveScore(result);
-    }
-
-    if (run.error !== null) return <MissingRun error={run.error} />;
-    if (run.data === null) return <p className={styles.muted}>Loading…</p>;
-
     return (
-        <section className={styles.page}>
-            <h1 className={styles.title}>{args.title}</h1>
-            {phase === "intro" && (
-                <div className={styles.panel}>
-                    <p>{args.instructions}</p>
-                    {args.introExtra}
-                    <button
-                        className={styles.primary}
-                        onClick={handleStart}
-                        disabled={dialogue.loading}
+        <ShellLayout title={game.title}>
+            <RunStatus
+                loading={state.loading}
+                error={state.error}
+                onRetry={state.reload}
+            >
+                {state.data && (
+                    <section
+                        className={shellClass("game-host panel")}
+                        aria-labelledby="host-title"
                     >
-                        {dialogue.loading ? "Getting ready…" : "Start"}
-                    </button>
-                </div>
-            )}
-            {phase === "playing" && (
-                <MinigameHost
-                    mount={args.mount}
-                    character={run.data.character}
-                    dialogue={roundDialogue}
-                    onFinish={handleFinish}
-                />
-            )}
-            {phase === "saving" && (
-                <p className={styles.panel}>
-                    Score {result?.score}. Saving your result…
-                </p>
-            )}
-            {phase === "saveFailed" && (
-                <div className={styles.panel}>
-                    <p className={styles.error}>
-                        Your score ({result?.score}) isn't saved yet:{" "}
-                        {saveError}
-                    </p>
-                    <button className={styles.primary} onClick={handleRetry}>
-                        Retry
-                    </button>
-                </div>
-            )}
-            <a href={runHref("/campus", args.runId)}>Back to campus</a>
-        </section>
+                        <div className={shellClass("host-toolbar")}>
+                            <div>
+                                <span className={shellClass("eyebrow")}>
+                                    {game.implemented && mount
+                                        ? "MINIGAME"
+                                        : "PREVIEW"}
+                                </span>
+                                <h1 id="host-title">{game.title}</h1>
+                            </div>
+                            <button
+                                className={shellClass("button ghost compact")}
+                                disabled={busy}
+                                onClick={handleExit}
+                            >
+                                <Icon name="back" size={16} />
+                                Campus
+                            </button>
+                        </div>
+                        {!mount ? (
+                            <div className={shellClass("placeholder")}>
+                                <Icon name="slot" size={40} />
+                                <h2>A little space for a big challenge.</h2>
+                                <p>{game.description}</p>
+                                <p>
+                                    This minigame is coming later. Previews do
+                                    not change your scores or ECTS.
+                                </p>
+                                <button
+                                    className={shellClass("button secondary")}
+                                    onClick={handleExit}
+                                >
+                                    Return to campus
+                                </button>
+                            </div>
+                        ) : !started ? (
+                            <div className={shellClass("placeholder")}>
+                                <p>{game.description}</p>
+                                {args.introExtra}
+                                {!game.implemented && (
+                                    <p>
+                                        This is a preview. Results do not change
+                                        your scores or ECTS.
+                                    </p>
+                                )}
+                                <button
+                                    className={shellClass("button primary")}
+                                    disabled={busy}
+                                    onClick={() => void handleStart()}
+                                >
+                                    {busy
+                                        ? "Getting ready…"
+                                        : game.implemented
+                                          ? "Start"
+                                          : "Start preview"}
+                                </button>
+                            </div>
+                        ) : result ? (
+                            <div className={shellClass("placeholder")}>
+                                <h2>Your result: {result.score} / 100</h2>
+                                {!game.implemented && (
+                                    <p>
+                                        Preview complete. Your saved scores and
+                                        ECTS are unchanged.
+                                    </p>
+                                )}
+                                {busy && (
+                                    <p role="status">Saving completion…</p>
+                                )}
+                                {error && (
+                                    <>
+                                        <p
+                                            className={shellClass("error-box")}
+                                            role="alert"
+                                        >
+                                            {error}
+                                        </p>
+                                        <button
+                                            className={shellClass(
+                                                "button primary",
+                                            )}
+                                            onClick={() =>
+                                                void handleSave(result)
+                                            }
+                                        >
+                                            Retry save
+                                        </button>
+                                        <p>
+                                            Returning without retrying leaves
+                                            this result unsaved.
+                                        </p>
+                                    </>
+                                )}
+                            </div>
+                        ) : (
+                            <MinigameHost
+                                mount={mount}
+                                run={state.data}
+                                game={game}
+                                dialogue={dialogue}
+                                onFinish={(completion) =>
+                                    void handleSave(completion)
+                                }
+                                onExit={handleExit}
+                            />
+                        )}
+                    </section>
+                )}
+            </RunStatus>
+        </ShellLayout>
     );
 }

@@ -1,14 +1,19 @@
+import ShellLayout from "../common/ShellLayout";
+import RunStatus from "../common/RunStatus";
 import Graduation from "./Graduation";
-import Layout from "../common/Layout";
-import MissingRun from "../common/MissingRun";
-import { readRunId } from "../../misc/run";
+import { useRun } from "../../misc/useRun";
 
 export default function App() {
-    const runId = readRunId();
-
+    const result = useRun(true);
     return (
-        <Layout title="Graduation">
-            {runId ? <Graduation runId={runId} /> : <MissingRun />}
-        </Layout>
+        <ShellLayout title="Graduation">
+            <RunStatus
+                loading={result.loading}
+                error={result.error}
+                onRetry={result.reload}
+            >
+                {result.data && <Graduation initialRun={result.data} />}
+            </RunStatus>
+        </ShellLayout>
     );
 }

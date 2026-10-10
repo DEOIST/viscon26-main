@@ -15,6 +15,7 @@ WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 
+COPY shared/ /app/shared/
 COPY frontend/ ./
 RUN node build.js --prod
 
@@ -45,6 +46,7 @@ RUN apt-get update \
 COPY backend/requirements.txt ./
 RUN pip install -r requirements.txt
 
+COPY shared/ /app/shared/
 COPY backend/app ./app
 COPY --from=frontend /app/frontend/dist /app/frontend/dist
 
