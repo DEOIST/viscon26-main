@@ -1913,3 +1913,46 @@ td strong {
         font-size: 17px;
     }
 }
+
+/* --- avatar photo (issue #19) --- */
+.photo-avatar {
+    display: grid;
+    gap: 0.5rem;
+}
+.photo-capture {
+    display: grid;
+    gap: 0.75rem;
+}
+.photo-frame {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #000;
+}
+.photo-frame video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* A mirror feels natural; the captured photo is not mirrored */
+    transform: scaleX(-1);
+}
+/* Matches OVAL in photo-avatar.ts: center (50%, 45%), radii 17% x 30% */
+.photo-oval {
+    position: absolute;
+    left: 33%;
+    top: 15%;
+    width: 34%;
+    height: 60%;
+    border: 3px dashed rgba(255, 255, 255, 0.85);
+    border-radius: 50%;
+    /* Dark halo so the guide stays visible against light backgrounds */
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.45),
+        inset 0 0 0 1px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+}
+.photo-result {
+    margin: 0;
+    font-size: 0.9rem;
+}

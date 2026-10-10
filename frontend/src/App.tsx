@@ -326,6 +326,11 @@ export function App() {
                                         error={error}
                                         selectedGame={selectedGame}
                                         onAccount={() => setDialog("auth")}
+                                        onEditCharacter={() => {
+                                            dispatch(setStage("builder"));
+                                            setError("");
+                                            setNotice("");
+                                        }}
                                         onScoreboard={() =>
                                             setDialog("scoreboard")
                                         }

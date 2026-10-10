@@ -6,9 +6,10 @@ import {
     TOTAL_ECTS,
     YEARS,
 } from "../config";
-import type { Character, Player } from "../types";
+import type { Character, Gender, Glasses, HairLength, Player } from "../types";
 import { Avatar } from "./Avatar";
 import { Icon } from "./Icon";
+import { PhotoAvatar } from "./PhotoAvatar";
 
 export function WelcomeScreen({ onStart }: { onStart: () => void }) {
     return (
@@ -162,6 +163,24 @@ function Swatches({
     );
 }
 
+const HAIR_LENGTH_OPTIONS: [HairLength, string][] = [
+    ["short", "Short"],
+    ["long", "Long"],
+];
+
+const GLASSES_OPTIONS: [Glasses, string][] = [
+    ["none", "None"],
+    ["glasses", "Glasses"],
+    ["sunglasses", "Sunglasses"],
+];
+
+const GENDER_OPTIONS: [Gender, string][] = [
+    ["unspecified", "Prefer not to say"],
+    ["female", "Female"],
+    ["male", "Male"],
+    ["nonbinary", "Non-binary"],
+];
+
 export function CharacterBuilder({
     player,
     busy,
@@ -277,6 +296,15 @@ export function CharacterBuilder({
                                 "This name appears on your student record and the scoreboard."}
                         </small>
                     </div>
+                    <PhotoAvatar
+                        disabled={busy}
+                        onApply={(colors) =>
+                            setCharacter((current) => ({
+                                ...current,
+                                ...colors,
+                            }))
+                        }
+                    />
                     <fieldset className="appearance-fields" disabled={busy}>
                         <legend className="sr-only">
                             Character appearance
@@ -300,6 +328,67 @@ export function CharacterBuilder({
                             onChange={(color) => choose("eyeColor", color)}
                         />
                     </fieldset>
+                    <div className="field">
+                        <label htmlFor="hair-length">Hair length</label>
+                        <select
+                            id="hair-length"
+                            value={character.hairLength}
+                            disabled={busy}
+                            onChange={(event) =>
+                                setCharacter((current) => ({
+                                    ...current,
+                                    hairLength: event.target
+                                        .value as HairLength,
+                                }))
+                            }
+                        >
+                            {HAIR_LENGTH_OPTIONS.map(([value, label]) => (
+                                <option key={value} value={value}>
+                                    {label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="field">
+                        <label htmlFor="glasses">Glasses</label>
+                        <select
+                            id="glasses"
+                            value={character.glasses}
+                            disabled={busy}
+                            onChange={(event) =>
+                                setCharacter((current) => ({
+                                    ...current,
+                                    glasses: event.target.value as Glasses,
+                                }))
+                            }
+                        >
+                            {GLASSES_OPTIONS.map(([value, label]) => (
+                                <option key={value} value={value}>
+                                    {label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="field">
+                        <label htmlFor="gender">Gender</label>
+                        <select
+                            id="gender"
+                            value={character.gender}
+                            disabled={busy}
+                            onChange={(event) =>
+                                setCharacter((current) => ({
+                                    ...current,
+                                    gender: event.target.value as Gender,
+                                }))
+                            }
+                        >
+                            {GENDER_OPTIONS.map(([value, label]) => (
+                                <option key={value} value={value}>
+                                    {label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                     <div className="field">
                         <label htmlFor="major">Department</label>
                         <select id="major" value={DEPARTMENT} disabled>

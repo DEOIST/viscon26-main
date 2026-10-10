@@ -75,6 +75,28 @@ def generate_structured[ModelT: BaseModel](
     return response.output_parsed
 
 
+def generate_structured_from_image[ModelT: BaseModel](
+    instructions: str, prompt: str, image_url: str, schema: type[ModelT], max_output_tokens: int
+) -> ModelT:
+    """Structured output about one image (a data: URL). Low detail: at most 512 px is read,
+    which keeps a call at a few hundred tokens."""
+    params = _text_params(instructions, prompt, max_output_tokens)
+    params["model"] = settings.openai_vision_model
+    params["input"] = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "input_image", "image_url": image_url, "detail": "low"},
+                {"type": "input_text", "text": prompt},
+            ],
+        }
+    ]
+    response = _call("vision", lambda client: client.responses.parse(text_format=schema, **params))
+    if response.output_parsed is None:
+        raise AiUnavailableError("The model returned no structured output")
+    return response.output_parsed
+
+
 def generate_speech(text: str, instructions: str) -> bytes:
     response = _call(
         "speech",
@@ -114,6 +136,7 @@ def check_keys(*, live: bool = False) -> list[KeyCheck]:
         settings.openai_text_model,
         settings.openai_tts_model,
         settings.openai_image_model,
+        settings.openai_vision_model,
         MODERATION_MODEL,
     )
     checks = []

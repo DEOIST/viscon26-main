@@ -7,6 +7,15 @@ export type SessionData = {
     profile: Player | null;
     progress: Progress;
 };
+/** Suggested colors read from a photo; all null when the AI is unavailable */
+export type AvatarSuggestion = {
+    hairColor: string | null;
+    hairLength: "short" | "long" | null;
+    eyeColor: string | null;
+    glasses: "none" | "glasses" | "sunglasses" | null;
+    gender: "male" | "female" | "unclear" | null;
+    source: "ai" | "fallback";
+};
 export type ScoreRow = {
     name: string;
     major: string;
@@ -95,6 +104,12 @@ export const api = {
         ).then(progressOnly),
     graduate: () => request<Progress>("/graduation", "POST").then(progressOnly),
     scoreboard: () => request<ScoreRow[]>("/scoreboard"),
+    avatarSuggestion: async (image: string) => {
+        if (!csrfToken) await sessionRequest("/session");
+        return request<AvatarSuggestion>("/avatar/suggestion", "POST", {
+            image,
+        });
+    },
 };
 export const errorMessage = (error: unknown) =>
     error instanceof Error

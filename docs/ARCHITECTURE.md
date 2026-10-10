@@ -39,7 +39,10 @@ Three rules hold the design together:
 2. **The browser never sees a secret and never calls OpenAI.** Only the backend
    does, through `app/ai.py`, with caching, a daily cap and fallbacks.
 3. **Camera frames never leave the browser.** Computer vision runs on the
-   device; the backend only receives a score from 0 to 100.
+   device; the backend only receives a score from 0 to 100. *One opt-in
+   exception (#19, needs team sign-off, see DECISIONS.md):* the AI avatar
+   creator sends a single still, at most 512 px wide, when the player clicks
+   **Take photo**; the backend passes it to OpenAI and never stores or logs it.
 
 ## Pages and navigation
 
@@ -217,6 +220,7 @@ interface Epilogue {
 | Epilogue | `POST /api/runs/{run_id}/epilogue` | `generate_epilogue` | `apiGenerateEpilogue` | 200 `Epilogue` · 404 · 409 not graduated |
 | Narration | `POST /api/runs/{run_id}/epilogue/speech` | `generate_epilogue_speech` | `apiGenerateEpilogueSpeech` | 200 `audio/mpeg` · 404 · 409 no epilogue yet · 503 narrator unavailable |
 | Health | `GET /api/health` | `get_health` (exists) | `apiGetHealth` | 200; touches no dependency |
+| Avatar suggestion | `POST /api/avatar/suggestion` (body `AvatarPhoto`: `{ image }`, a JPEG/PNG/WebP data URL), CSRF header required | `suggest_from_photo` | `api.avatarSuggestion` | 200 `AvatarSuggestion` (`hairColor`, `eyeColor` as preset hex values, `hairLength`, `glasses`, `gender` guess; all `null` with `source: "fallback"` when the AI is unavailable) · 403 missing CSRF token · 422 not an image data URL |
 
 Routers: `routers/runs.py` (prefix `/runs`), `routers/leaderboard.py` (prefix
 `/leaderboard`), `routers/story.py` (prefix `/runs`, tag `story`). Services have
@@ -356,6 +360,7 @@ large batches.
 | Epilogue | `gpt-6-luna` | Once per graduated run | ≈ $0.0003 |
 | Narration | `gpt-4o-mini-tts`, voice `cedar`, `instructions` "pompous university rector…" (`OPENAI_TTS_MODEL`, `OPENAI_TTS_VOICE`) | Once per epilogue | ≈ 1–2 ¢ per minute of audio |
 | Name moderation | `omni-moderation-latest` | Once per enrollment, `live` only | free |
+| Avatar photo | `gpt-5.6-luna`, low-detail image, Structured Outputs (`OPENAI_VISION_MODEL`) | Once per **Take photo** click in the character builder | ≈ $0.0002 (≈ 460 input + 30 output tokens) |
 | Art, offline | `gpt-image-2.5-sunburst`, webp (`OPENAI_IMAGE_MODEL`) | `make art`, reviewed by a human, committed | ≈ $0.05–0.25 per image |
 
 A full live playthrough costs about 2 ¢, so the credits are not the bottleneck;

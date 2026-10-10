@@ -24,6 +24,7 @@ log = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     database.Base.metadata.create_all(database.engine)
+    database.add_missing_columns()
     yield
 
 

@@ -33,6 +33,17 @@ export function Avatar({
                 stroke="#152238"
                 strokeWidth="3"
             />
+            {character.hairLength === "long" && (
+                // Two locks from the temples onto the shoulders: over the ears, behind the face
+                <path
+                    d="M46 66c-16 30-18 76-2 112 8 4 20 4 28-2-8-26-10-58-4-86ZM134 66c16 30 18 76 2 112-8 4-20 4-28-2 8-26 10-58 4-86Z"
+                    fill={character.hairColor}
+                    stroke="#152238"
+                    strokeWidth="3"
+                    strokeLinejoin="round"
+                    data-testid="avatar-long-hair"
+                />
+            )}
             <path
                 d="M43 62c0-30 94-30 94 0v33c0 30-24 47-47 47S43 125 43 95Z"
                 fill={character.skinColor}
@@ -59,6 +70,22 @@ export function Avatar({
             <circle cx="109" cy="91" r="5" fill={character.eyeColor} />
             <circle cx="72" cy="90" r="2" fill="#152238" />
             <circle cx="108" cy="90" r="2" fill="#152238" />
+            {character.glasses !== "none" && (
+                <g
+                    fill={
+                        character.glasses === "sunglasses" ? "#152238" : "none"
+                    }
+                    fillOpacity={0.88}
+                    stroke="#152238"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    data-testid="avatar-glasses"
+                >
+                    <circle cx="70" cy="90" r="13" />
+                    <circle cx="110" cy="90" r="13" />
+                    <path d="M83 89h14M57 88l-12-3m78 3 12-3" fill="none" />
+                </g>
+            )}
             <path
                 d="m88 96-3 10h7m-13 12c7 6 15 6 22 0"
                 fill="none"

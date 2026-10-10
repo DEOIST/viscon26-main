@@ -62,6 +62,8 @@ class Settings(BaseSettings):
     openai_tts_model: str = "gpt-4o-mini-tts"
     openai_tts_voice: str = "cedar"
     openai_image_model: str = "gpt-image-2.5-sunburst"
+    # Reads the webcam photo in the character builder; picking a few presets needs no more
+    openai_vision_model: str = "gpt-5.6-luna"
     openai_timeout_seconds: float = 12.0
     ai_daily_call_limit: int = 3000
 

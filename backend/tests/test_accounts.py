@@ -277,3 +277,59 @@ def test_database_health_reports_a_real_connection_failure(client, monkeypatch):
     monkeypatch.setattr(accounts, "database_health", unavailable)
     assert client.get("/api/db-health").status_code == 503
     assert client.get("/api/health").status_code == 200
+
+
+def test_gender_and_glasses_are_saved_with_defaults(client):
+    headers = register(client)
+    profile(client, headers)
+    character = client.get("/api/profile").json()["character"]
+    assert (character["gender"], character["glasses"], character["hairLength"]) == (
+        "unspecified",
+        "none",
+        "short",
+    )
+
+    body = {
+        "name": "Ada",
+        "hairColor": CONFIG["colors"]["hair"][0]["value"],
+        "skinColor": CONFIG["colors"]["skin"][0]["value"],
+        "eyeColor": CONFIG["colors"]["eyes"][0]["value"],
+        "onboardingStage": "main",
+    }
+    chosen = {"gender": "female", "glasses": "sunglasses", "hairLength": "long"}
+    saved = client.put("/api/profile", headers=headers, json={**body, **chosen})
+    assert saved.status_code == 200
+    assert saved.json()["character"] | chosen == saved.json()["character"]
+    assert client.get("/api/profile").json()["character"] | chosen == saved.json()["character"]
+    for bad in ({"gender": "robot"}, {"glasses": "monocle"}, {"hairLength": "medium"}):
+        assert client.put("/api/profile", headers=headers, json={**body, **bad}).status_code == 422
+
+
+def test_startup_adds_new_profile_columns_to_an_old_database(monkeypatch):
+    engine = create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
+    with engine.begin() as connection:
+        # The profiles table as deployed before the gender and glasses columns existed
+        connection.execute(
+            text(
+                "CREATE TABLE profiles (user_id INTEGER PRIMARY KEY, name VARCHAR(24), "
+                "hair_color VARCHAR(7), skin_color VARCHAR(7), eye_color VARCHAR(7), "
+                "major VARCHAR(32), onboarding_stage VARCHAR(16))"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO profiles VALUES "
+                "(1, 'Ada', '#000000', '#000000', '#000000', 'x', 'main')"
+            )
+        )
+    monkeypatch.setattr(database, "engine", engine)
+
+    database.add_missing_columns()
+    database.add_missing_columns()  # idempotent
+
+    with engine.connect() as connection:
+        row = connection.execute(text("SELECT gender, glasses, hair_length FROM profiles")).one()
+        assert tuple(row) == ("unspecified", "none", "short")
+    engine.dispose()

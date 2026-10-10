@@ -3,7 +3,16 @@
 from collections.abc import Iterator
 from datetime import datetime
 
-from sqlalchemy import URL, DateTime, ForeignKey, String, UniqueConstraint, create_engine
+from sqlalchemy import (
+    URL,
+    DateTime,
+    ForeignKey,
+    String,
+    UniqueConstraint,
+    create_engine,
+    inspect,
+    text,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 from app.config import settings
@@ -41,6 +50,11 @@ class Profile(Base):
     hair_color: Mapped[str] = mapped_column(String(7))
     skin_color: Mapped[str] = mapped_column(String(7))
     eye_color: Mapped[str] = mapped_column(String(7))
+    gender: Mapped[str] = mapped_column(
+        String(16), default="unspecified", server_default="unspecified"
+    )
+    glasses: Mapped[str] = mapped_column(String(16), default="none", server_default="none")
+    hair_length: Mapped[str] = mapped_column(String(8), default="short", server_default="short")
     major: Mapped[str] = mapped_column(String(32))
     onboarding_stage: Mapped[str] = mapped_column(String(16))
 
@@ -67,3 +81,22 @@ class LoginSession(Base):
 def get_db() -> Iterator[Session]:
     with SessionLocal() as db:
         yield db
+
+
+def add_missing_columns() -> None:
+    """create_all() never alters existing tables, so columns added after the first deploy are
+    added here. Each one needs a default so existing rows stay valid. Works on Postgres and SQLite.
+    """
+    added = {
+        "profiles": {
+            "gender": "VARCHAR(16) NOT NULL DEFAULT 'unspecified'",
+            "glasses": "VARCHAR(16) NOT NULL DEFAULT 'none'",
+            "hair_length": "VARCHAR(8) NOT NULL DEFAULT 'short'",
+        }
+    }
+    with engine.begin() as connection:
+        for table, columns in added.items():
+            existing = {column["name"] for column in inspect(connection).get_columns(table)}
+            for name, definition in columns.items():
+                if name not in existing:
+                    connection.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {definition}"))
