@@ -57,7 +57,12 @@ DIALOGUE_EVENTS: dict[DialogueScene, tuple[str, ...]] = {
 
 DIALOGUE_SPEAKERS: dict[DialogueScene, str] = {
     "campus": "Dr. Gradient, the player's study advisor, greeting them on campus",
-    "blackjack": "the casino dealer at the player's blackjack table",
+    # Galton Blackjack (docs/GAME_DESIGN.md) has no card totals: no jokes about 21.
+    "blackjack": (
+        "the casino dealer at the player's Galton blackjack table, where every card drops balls "
+        "onto a Galton board: a red ball above the curve busts, three yellow balls on the curve "
+        "are a blackjack, otherwise more balls wins (never mention 21 or card totals)"
+    ),
     "shooter": "the strict exam proctor while exam questions fly at the player",
 }
 

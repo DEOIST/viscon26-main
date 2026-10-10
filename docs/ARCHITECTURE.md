@@ -386,7 +386,7 @@ cannot spend them, by construction:
 | AI plumbing (`ai.py`) | pytest with a fake OpenAI client object | Key order, dead-key marking, daily cap, timeout → fallback, error mapping, all without the network |
 | Story features | pytest with `FakeAI` | A cache hit doesn't call `FakeAI` again (assert the call count); fallback content when `FakeAI` raises; 404 and 409 rules |
 | Endings | pytest | Every tier boundary: 24/25, 44/45, 64/65, 84/85 |
-| Pure frontend logic | vitest *(planned)* | Blackjack rules and scoring, gesture detection on synthetic and recorded landmarks, the One-Euro filter, `run.ts` |
+| Pure frontend logic | vitest | Blackjack rules and scoring (`games/blackjack/rules.test.ts`). *(planned)*: gesture detection on synthetic and recorded landmarks, the One-Euro filter, `run.ts` |
 | Docker smoke | `scripts/smoke.sh` | Read-only GETs only, never a story POST. CI has no keys, so no AI call can happen |
 | Performance (game + CV) | In-page perf overlay (`?debug=1`), real browser | Frame times (p50/p95), detection time and draw calls, measured on the demo laptop and on the weakest team laptop with the camera on. Never on the VM or in CI: neither has a GPU, so the browser falls back to software rendering and the numbers mean nothing |
 | Manual, UI | Browser with `AI_MODE=fake` | Loading states, typewriter, audio, all without credits |
@@ -479,7 +479,7 @@ announce it to the team first.
 - [x] Runs API, endings, leaderboard (#12)
 - [x] Story API: `ai.py`, `AI_MODE`, fallbacks, cache, daily cap, pytest-socket, `make ai-check` (#12)
 - [x] Pages: index, enroll, campus, graduation, as working skeletons (#12)
-- [ ] Blackjack (a placeholder scene is wired in)
+- [x] Blackjack: Galton Blackjack, rules in `rules.ts` with vitest tests, Phaser scene on the shared canvas
 - [ ] Shooter with the mouse, then with the camera (a placeholder mouse round is wired in)
 - [ ] Generated art and fallback narration
 - [ ] Deployed on a secure origin

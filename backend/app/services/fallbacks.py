@@ -35,11 +35,11 @@ _SCENE_LINES: dict[DialogueScene, dict[str, tuple[str, ...]]] = {
         "deal": ("Cards are out. Try to look confident.", "Fresh cards, fresh regrets."),
         "playerBlackjack": (
             "Blackjack! Somebody tell the Mensa, {name} is buying.",
-            "Twenty-one. Even the dealer is impressed.",
+            "Three yellow balls. Even the dealer is impressed.",
         ),
         "playerBust": (
             "Bust. A very {department} way to lose.",
-            "Over 21, like your weekly lecture hours.",
+            "Over the curve, like your weekly lecture hours.",
         ),
         "dealerBust": ("I busted. Don't tell my professor.", "Dealer busts. Enjoy it."),
         "win": (

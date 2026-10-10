@@ -1,0 +1,174 @@
+{
+    "frames": {
+        "chip_1": {
+            "frame": {
+                "x": 4,
+                "y": 4,
+                "w": 200,
+                "h": 200
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 200,
+                "h": 200
+            },
+            "sourceSize": {
+                "w": 200,
+                "h": 200
+            }
+        },
+        "chip_5": {
+            "frame": {
+                "x": 208,
+                "y": 4,
+                "w": 200,
+                "h": 200
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 200,
+                "h": 200
+            },
+            "sourceSize": {
+                "w": 200,
+                "h": 200
+            }
+        },
+        "chip_10": {
+            "frame": {
+                "x": 412,
+                "y": 4,
+                "w": 200,
+                "h": 200
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 200,
+                "h": 200
+            },
+            "sourceSize": {
+                "w": 200,
+                "h": 200
+            }
+        },
+        "chip_25": {
+            "frame": {
+                "x": 616,
+                "y": 4,
+                "w": 200,
+                "h": 200
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 200,
+                "h": 200
+            },
+            "sourceSize": {
+                "w": 200,
+                "h": 200
+            }
+        },
+        "chip_50": {
+            "frame": {
+                "x": 4,
+                "y": 208,
+                "w": 200,
+                "h": 200
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 200,
+                "h": 200
+            },
+            "sourceSize": {
+                "w": 200,
+                "h": 200
+            }
+        },
+        "chip_100": {
+            "frame": {
+                "x": 208,
+                "y": 208,
+                "w": 200,
+                "h": 200
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 200,
+                "h": 200
+            },
+            "sourceSize": {
+                "w": 200,
+                "h": 200
+            }
+        },
+        "chip_500": {
+            "frame": {
+                "x": 412,
+                "y": 208,
+                "w": 200,
+                "h": 200
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 200,
+                "h": 200
+            },
+            "sourceSize": {
+                "w": 200,
+                "h": 200
+            }
+        },
+        "chip_1000": {
+            "frame": {
+                "x": 616,
+                "y": 208,
+                "w": 200,
+                "h": 200
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 200,
+                "h": 200
+            },
+            "sourceSize": {
+                "w": 200,
+                "h": 200
+            }
+        }
+    },
+    "meta": {
+        "app": "poker-cards/build.py",
+        "image": "chips.png",
+        "format": "RGBA8888",
+        "size": {
+            "w": 820,
+            "h": 412
+        },
+        "scale": "1"
+    }
+}

@@ -19,7 +19,7 @@ Guidance for Claude Code **and for every teammate** working in this repository. 
 | [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md) | The finger-gun computer vision |
 | [docs/STACK.md](docs/STACK.md) | Versions, what to add, what we rejected and why |
 
-> **Status:** the foundation is built (#12): API contract, Redis, OpenAI plumbing, Phaser and MediaPipe in the build, and every page as a working skeleton. Both minigames are still **placeholders** for their tracks. Anything marked *(planned)* below does not exist until its PR lands ([build status](docs/ARCHITECTURE.md#build-status)).
+> **Status:** the foundation is built (#12): API contract, Redis, OpenAI plumbing, Phaser and MediaPipe in the build, and every page as a working skeleton. Blackjack is the real game (Galton Blackjack, see GAME_DESIGN.md); the shooter is still a **placeholder** for its tracks. Anything marked *(planned)* below does not exist until its PR lands ([build status](docs/ARCHITECTURE.md#build-status)).
 
 Stack: **React + TypeScript** outer shell bundled by **esbuild**; a WebGL inner shell for the minigames: **Phaser 4** for both (blackjack, and the shooter, which fakes depth with isometric 2D art); **MediaPipe** hand tracking in the browser; a **FastAPI** backend with **Redis** (no Redux, no client-side store); and **OpenAI** called only from the backend. FastAPI serves both the JSON API and the built frontend from **one origin**, so there is no CORS, no proxy and no API base URL.
 
@@ -149,7 +149,8 @@ The tree shows the target. *(planned)* marks parts that don't exist yet.
 │       ├── games/                WebGL inner shell: plain TS + Phaser. No React, no fetch.
 │       │   ├── shared/           minigame.ts (the MountMinigame contract), createGame.ts (Phaser setup)
 │       │   ├── blackjack/        Phaser 4, 2D: index.ts (mountBlackjack), rules.ts + rules.test.ts,
-│       │   │                     BlackjackScene.ts, config.ts, assets/
+│       │   │                     board.ts, config.ts, lines.ts, BlackjackScene.ts, BoardView.ts,
+│       │   │                     CardView.ts, layout.ts, textures.ts, ui.ts, assets/ (sprite sheets)
 │       │   └── shooter/          Phaser 4, isometric 2D: index.ts (mountShooter), ShooterScene.ts,
 │       │       │                 hitTest.ts (+ test), config.ts, assets/
 │       │       └── input/        InputSource.ts, HandInput.ts, gesture.ts (+ test), MouseInput.ts,
