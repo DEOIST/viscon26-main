@@ -44,8 +44,10 @@ class GestureConfig:
     cooldown_ms: float = 250.0
     lookback_ms: float = 100.0
     box: Box = (0.2, 0.15, 0.8, 0.75)
-    min_cutoff: float = 1.2  # One-Euro filter
-    beta: float = 0.02
+    min_cutoff: float = 1.2  # One-Euro filter, Hz
+    # Speed is in game-area widths per second: beta 8 keeps the lag near 1 % of the screen at one
+    # width per second. (0.02, common in examples, is meant for pixels and lags 12 % here.)
+    beta: float = 8.0
     d_cutoff: float = 1.0
 
 

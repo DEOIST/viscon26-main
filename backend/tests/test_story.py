@@ -1,11 +1,14 @@
 from collections.abc import Callable
+from datetime import UTC, datetime
 
 import openai
 import pytest
 from fastapi.testclient import TestClient
 
 from app.config import settings
-from app.prompts import DialogueEntry, DialogueOutput
+from app.prompts import DEPARTMENT_NAMES, MAX_QUESTION_LENGTH, DialogueEntry, DialogueOutput
+from app.schemas import Character, Run
+from app.services import fallbacks
 from app.services import story as story_service
 from tests.fake_openai import (
     REQUEST,
@@ -267,6 +270,21 @@ def test_the_shooter_pack_has_exam_questions_short_enough_for_a_target(
 
     assert len(questions) >= 8
     assert all(0 < len(question) <= 40 for question in questions)
+
+
+@pytest.mark.parametrize("department", sorted(DEPARTMENT_NAMES))
+def test_fallback_exam_questions_fit_a_target_in_every_department(department: str):
+    run = Run(
+        id="r1",
+        created_at=datetime.now(UTC),
+        character=Character(
+            name="Ada", pronouns="they", department=department, archetype="nerd", avatar="a1"
+        ),
+    )
+
+    questions = fallbacks.dialogue_lines(run, "shooter")["questions"]
+
+    assert all(0 < len(question) <= MAX_QUESTION_LENGTH for question in questions)
 
 
 def test_ai_exam_questions_longer_than_a_target_are_dropped(

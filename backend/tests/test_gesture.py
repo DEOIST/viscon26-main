@@ -82,6 +82,25 @@ def test_the_thumb_must_go_back_up_before_the_next_shot():
     assert [frame.fired_at is not None for frame in frames].count(True) == 2
 
 
+def test_holding_the_thumb_down_fires_only_once():
+    # Longer than the 250 ms cooldown: only the re-cock rule stops a second shot.
+    hands = [make_hand(thumb_up=True)] * 4 + [make_hand(thumb_up=False)] * 20
+
+    frames = _feed(GestureTracker(RAW), hands)
+
+    assert [frame.fired_at is not None for frame in frames].count(True) == 1
+
+
+def test_a_hand_that_reappears_with_the_thumb_down_does_not_fire():
+    tracker = GestureTracker(RAW)
+    _feed(tracker, [make_hand(thumb_up=True)] * 4)  # in pose and cocked
+    tracker.update(None, 4 * FRAME_MS)  # tracking drops out for a frame
+
+    back = _feed(tracker, [make_hand(thumb_up=False)] * 3, start_ms=5 * FRAME_MS)
+
+    assert all(frame.fired_at is None for frame in back)
+
+
 def test_a_thumb_hovering_between_the_thresholds_never_fires():
     cocked = [make_hand(thumb_gap=0.06)] * 4  # above the 0.055 m "up" threshold
     hovering = [make_hand(thumb_gap=0.045)] * 6  # below "up", above the 0.035 m "down"
@@ -146,3 +165,15 @@ def test_the_filter_calms_jitter_but_follows_a_real_move():
     moved = _feed(tracker, [make_hand(tip=(0.3, 0.45))] * 30, start_ms=30 * FRAME_MS)
     assert moved[-1].aim[0] == pytest.approx(5 / 6, abs=0.02)
     assert not math.isnan(moved[-1].aim[1])
+
+
+def test_the_aim_keeps_up_with_a_moving_hand():
+    # The fingertip sweeps across the box at one game-area width per second (mirrored: camera x
+    # falls from 0.8 to 0.2). Smoothing may not drag the crosshair behind the finger.
+    tracker = GestureTracker(GestureConfig())  # default smoothing
+    times_s = [i * FRAME_MS / 1000 for i in range(16)]
+    hands = [make_hand(tip=(0.8 - 0.6 * t, 0.45)) for t in times_s]
+
+    frames = _feed(tracker, hands)
+
+    assert frames[-1].aim[0] == pytest.approx(times_s[-1], abs=0.03)
