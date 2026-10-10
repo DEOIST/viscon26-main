@@ -2,6 +2,7 @@
 import { GAME_HEIGHT, GAME_WIDTH } from "./gameSize";
 import { Math as PhaserMath } from "phaser";
 import type { GameObjects } from "phaser";
+import type { HandColors } from "./handColors";
 import type { AimPoint, InputSource } from "./input/InputSource";
 
 const FINGERS = [
@@ -11,24 +12,22 @@ const FINGERS = [
     [13, 14, 15, 16],
     [17, 18, 19, 20],
 ];
-const SKIN = 0xeebc96;
-const OUTLINE = 0x714c40;
-const NAIL = 0xffdfca;
-const CREASE = 0xc78d71;
-
 // The hand itself is the interaction guide; no crosshair or fingertip cursor.
 export function drawHandOverlay(
     graphics: GameObjects.Graphics,
     input: InputSource,
     _aim: AimPoint | null,
+    colors: HandColors,
 ) {
     graphics.clear();
-    if (input.landmarks?.length === 21) drawHand(graphics, input.landmarks);
+    if (input.landmarks?.length === 21)
+        drawHand(graphics, input.landmarks, colors);
 }
 
 function drawHand(
     graphics: GameObjects.Graphics,
     landmarks: readonly AimPoint[],
+    colors: HandColors,
 ) {
     const points = landmarks.map((point) => ({
         x: point.x * GAME_WIDTH,
@@ -64,9 +63,9 @@ function drawHand(
     const border = Math.max(2, palmWidth * 0.025);
 
     // Draw all borders first, then the skin, so joints merge instead of looking like tubes.
-    graphics.fillStyle(OUTLINE, 1);
+    graphics.fillStyle(colors.outline, 1);
     graphics.fillPoints(palm, true);
-    graphics.lineStyle(border * 2, OUTLINE, 1);
+    graphics.lineStyle(border * 2, colors.outline, 1);
     graphics.strokePoints(palm, true);
     for (let finger = 0; finger < FINGERS.length; finger += 1)
         drawFinger(
@@ -74,12 +73,18 @@ function drawHand(
             points,
             FINGERS[finger],
             widths[finger] + border * 2,
-            OUTLINE,
+            colors.outline,
         );
-    graphics.fillStyle(SKIN, 1);
+    graphics.fillStyle(colors.skin, 1);
     graphics.fillPoints(palm, true);
     for (let finger = 0; finger < FINGERS.length; finger += 1)
-        drawFinger(graphics, points, FINGERS[finger], widths[finger], SKIN);
+        drawFinger(
+            graphics,
+            points,
+            FINGERS[finger],
+            widths[finger],
+            colors.skin,
+        );
 
     // Small nail-shaped highlights make the finger ends readable without landmark dots.
     for (let finger = 0; finger < FINGERS.length; finger += 1) {
@@ -90,9 +95,15 @@ function drawHand(
             x: tip.x + (joint.x - tip.x) * 0.25,
             y: tip.y + (joint.y - tip.y) * 0.25,
         };
-        drawCapsule(graphics, nailBase, tip, widths[finger] * 0.48, NAIL);
+        drawCapsule(
+            graphics,
+            nailBase,
+            tip,
+            widths[finger] * 0.48,
+            colors.nail,
+        );
     }
-    graphics.lineStyle(border, CREASE, 0.65);
+    graphics.lineStyle(border, colors.crease, 0.65);
     graphics.lineBetween(
         points[5].x * 0.6 + wrist.x * 0.4,
         points[5].y * 0.6 + wrist.y * 0.4,

@@ -17,6 +17,9 @@ are local and have not been pushed or merged.
   speech bubbles. One appears every 6.5–11 seconds; it leaves after 4.5 seconds if ignored.
 - The tracked hand is a filled cartoon hand with a solid palm, rounded tapered fingers,
   outline and nail highlights. There is no crosshair or browser cursor over the canvas.
+- The hand takes the player's avatar skin colour (`frontend/level1/handColors.ts`); its outline,
+  nails and crease are shades of it. Very dark skin, including the builder's "Deep brown", gets a
+  light rim instead of a dark outline, which would vanish into the near-black editor.
 
 ## Pinch, grab and throw
 

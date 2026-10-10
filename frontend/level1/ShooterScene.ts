@@ -6,6 +6,7 @@ import Backdrop from "./Backdrop";
 import SlapWalkers from "./SlapWalkers";
 import { makeBug, makeCodeBomb, drawFuse } from "./CodeTargets";
 import { drawHandOverlay } from "./handOverlay";
+import { handColors, type HandColors } from "./handColors";
 import { floatText, muzzleFlash, shatter, textStyle } from "./effects";
 import { GAME_HEIGHT, GAME_WIDTH } from "./gameSize";
 import {
@@ -47,6 +48,7 @@ interface ShooterSceneArgs {
     dialogue: Record<string, string[]> | null;
     input: SwitchableInput;
     targetScale: number; // Gamer perk
+    skinColor: string; // the avatar's, for the tracked hand
     finish(result: MinigameResult): void;
 }
 
@@ -102,6 +104,7 @@ export default class ShooterScene extends Scene {
     private backdrop!: Backdrop;
     private slapWalkers!: SlapWalkers;
     private overlay!: GameObjects.Graphics;
+    private readonly handColors: HandColors;
     private subtitle!: GameObjects.Text;
     private hud!: GameObjects.Text;
     private hint!: GameObjects.Text;
@@ -111,6 +114,7 @@ export default class ShooterScene extends Scene {
     constructor(args: ShooterSceneArgs) {
         super("shooter");
         this.args = args;
+        this.handColors = handColors(args.skinColor);
     }
 
     create() {
@@ -243,7 +247,7 @@ export default class ShooterScene extends Scene {
                 this.secondsLeft <= FINAL_STRETCH_SECONDS,
         });
         if (this.phase === "playing") this.slapWalkers.update(delta);
-        drawHandOverlay(this.overlay, input, null);
+        drawHandOverlay(this.overlay, input, null, this.handColors);
         this.hint.setText(this.hintText());
         this.updateHud();
         const shots = this.args.input.takeShots(); // always drained, so none pile up
