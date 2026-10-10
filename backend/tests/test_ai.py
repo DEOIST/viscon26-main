@@ -201,11 +201,17 @@ def test_moderation_does_not_count_toward_the_daily_cap(monkeypatch: pytest.Monk
     assert ai.moderate("Alex") is False
 
 
-ALL_MODELS = ("gpt-6-luna", "gpt-4o-mini-tts", "gpt-image-2.5-sunburst", "omni-moderation-latest")
+ALL_MODELS = (
+    "gpt-6-luna",
+    "gpt-4o-mini-tts",
+    "gpt-image-2.5-sunburst",
+    "omni-moderation-latest",
+    "gpt-5.6-luna",  # vision (avatar photo)
+)
 
 
 def test_key_check_masks_keys_and_never_generates_anything(monkeypatch: pytest.MonkeyPatch):
-    good = FakeOpenAI(models=(model_list(*ALL_MODELS[:2], ALL_MODELS[3]),))
+    good = FakeOpenAI(models=(model_list(*ALL_MODELS[:2], *ALL_MODELS[3:]),))
     bad = FakeOpenAI(models=(invalid_key(),))
     use_live_clients(monkeypatch, good, bad)
     monkeypatch.setattr(settings, "ai_mode", "off")  # checking keys works in every mode

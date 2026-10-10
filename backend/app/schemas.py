@@ -202,3 +202,30 @@ class ScoreboardEntry(CamelModel):
     major: str
     ects: int
     graduated: bool
+
+
+# --- avatar ---
+
+# A webcam still as a data URL. ~2.8 MB of base64 is far more than a 640x480 JPEG needs.
+AvatarPhotoUrl = Annotated[
+    str, Field(max_length=2_800_000, pattern=r"^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$")
+]
+Glasses = Literal["none", "glasses", "sunglasses"]
+# A guess from appearance, offered as a default the player can change; never used as pronouns.
+PresentedGender = Literal["male", "female", "unclear"]
+
+
+class AvatarPhoto(CamelModel):
+    model_config = ConfigDict(extra="forbid")
+    image: AvatarPhotoUrl
+
+
+class AvatarSuggestion(CamelModel):
+    """Suggested character colors (preset hex values) read from a photo. Skin is measured in the
+    browser, not here. Every field is None when the AI is unavailable (source="fallback")."""
+
+    hair_color: str | None = None
+    eye_color: str | None = None
+    glasses: Glasses | None = None
+    gender: PresentedGender | None = None
+    source: Literal["ai", "fallback"]

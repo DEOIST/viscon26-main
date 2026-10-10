@@ -9,6 +9,7 @@ import {
 import type { Character, Player } from "../types";
 import { Avatar } from "./Avatar";
 import { Icon } from "./Icon";
+import { PhotoAvatar } from "./PhotoAvatar";
 
 export function WelcomeScreen({ onStart }: { onStart: () => void }) {
     return (
@@ -277,6 +278,15 @@ export function CharacterBuilder({
                                 "This name appears on your student record and the scoreboard."}
                         </small>
                     </div>
+                    <PhotoAvatar
+                        disabled={busy}
+                        onApply={(colors) =>
+                            setCharacter((current) => ({
+                                ...current,
+                                ...colors,
+                            }))
+                        }
+                    />
                     <fieldset className="appearance-fields" disabled={busy}>
                         <legend className="sr-only">
                             Character appearance
