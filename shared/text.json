@@ -569,68 +569,110 @@
     "thesisDefense": {
         "defaultName": "Candidate",
         "lanes": ["Theory", "Proofs", "Experiments", "Critique"],
-        "professors": [
-            {
-                "name": "PROF. LEMMA",
-                "field": "THEORY"
-            },
-            {
-                "name": "PROF. GRADIENT",
-                "field": "CHAIR · ML"
-            },
-            {
-                "name": "PROF. BOOTSTRAP",
-                "field": "EXPERIMENTS"
-            }
+        "laneTokens": [
+            [
+                "Thm. 4.2",
+                "Lemma 3",
+                "Def. 2.1",
+                "Cor. 1",
+                "Axiom 7",
+                "Thm. 3.9"
+            ],
+            [
+                "eq. (3.7)",
+                "eq. (4.1)",
+                "Prop. 5",
+                "(A.12)",
+                "eq. (2.4)",
+                "Proof"
+            ],
+            ["Fig. 3.4", "Tab. 2", "χ² = 3.8", "n = 12", "Fig. 5.1", "p < .05"],
+            ["[42]", "[Rev. 2]", "[17]", "[ibid.]", "[sic]", "[3, 9]"]
         ],
-        "chalkboard": [
-            "∀ε>0 ∃δ>0",
-            "P ≟ NP",
-            "∇·E = ρ/ε₀",
-            "p = 0.051 :(",
-            "O(n log n)",
-            "λx. x x",
-            "E[X] = Σ x·p(x)",
-            "git push --force",
-            "∂L/∂θ = 0 ?",
-            "det(A) ≠ 0 ⇒ hope",
-            "sudo make thesis",
-            "lim coffee(n) = ∞"
-        ],
-        "titleCard": {
-            "eyebrow": "YEAR 3 · THE FINAL BOSS",
-            "heading": "THESIS DEFENSE",
-            "instructions": "Questions fly at you. Press the lane's key as each one hits the line.",
-            "goldHint": "★ Golden questions fill EUREKA. Then SPACE doubles your points.",
-            "personalBest": "PERSONAL BEST  {score}  ·  {accuracy}%  ·  {combo} COMBO",
-            "noPersonalBest": "NO PERSONAL BEST YET. MAKE HISTORY.",
-            "start": "PRESS SPACE TO BEGIN THE DEFENSE"
+        "professors": ["Lemma", "Gradient", "Bootstrap"],
+        "viewer": {
+            "fileName": "thesis_FINAL_v7_really_final.pdf",
+            "pageOf": "/  {pages}",
+            "soundOn": "M  sound on",
+            "soundOff": "M  sound off",
+            "fullscreenKey": "F",
+            "sectionThumb": "3.{number}  {name}",
+            "sections": ["Opening", "Cross-exam.", "Lightning", "Final"]
         },
-        "countdownGo": "DEFEND!",
-        "pause": {
-            "title": "COFFEE BREAK",
-            "subtitle": "The committee waits. Impatiently.",
-            "keys": "SPACE · CONTINUE      R · RESTART"
+        "pane": {
+            "soundtrack": "Soundtrack",
+            "soundtrackIdle": "Silence, until you begin.",
+            "nowPlaying": "Now playing: Thesis Defense, the original soundtrack.",
+            "timing": "Timing",
+            "early": "early",
+            "late": "late",
+            "keys": "Keys",
+            "keyHints": [
+                ["D F J K", "answer"],
+                ["Space", "start, Eureka"],
+                ["Esc", "pause"],
+                ["R", "revise"],
+                ["M", "sound"],
+                ["F", "fullscreen"]
+            ]
         },
-        "hud": {
-            "score": "SCORE",
-            "combo": "COMBO",
-            "confidence": "THESIS CONFIDENCE",
+        "page": {
+            "runningHead": "{name} · Bachelor Thesis · ETH Zürich",
+            "sectionNumber": "3.{number}",
+            "figureCaption": "Figure 3.1: Live defense. Highlight each reference as it reaches the rule.",
+            "confidence": "CONFIDENCE  {value} %",
             "eureka": "EUREKA",
-            "progress": "DEFENSE PROGRESS",
-            "pressSpace": "PRESS SPACE!",
-            "accuracy": "ACCURACY {accuracy}%",
-            "eurekaActive": "EUREKA! ×2"
+            "eurekaHint": "Space!",
+            "eurekaActive": "Eureka! ×2",
+            "tableCaption": "Table 3.1: The defense so far.",
+            "score": "Score",
+            "accuracy": "Accuracy",
+            "combo": "Combo",
+            "errata": "errata"
         },
         "judgments": {
-            "perfect": "PERFECT",
-            "great": "GREAT",
-            "good": "GOOD",
-            "miss": "MISS"
+            "perfect": "perfect",
+            "great": "great",
+            "good": "ok",
+            "miss": "miss",
+            "stray": "?"
         },
-        "timing": {
-            "early": "EARLY",
-            "late": "LATE"
+        "countdownGo": "\\begin{defense}",
+        "pause": {
+            "title": "Paused",
+            "subtitle": "The committee went for a coffee.",
+            "keys": "Space  continue      R  revise and restart"
+        },
+        "titlePage": {
+            "title": "Thesis Defense",
+            "subtitle": "or: How I Learned to Stop Worrying and Love the Committee",
+            "author": "Bachelor Thesis by {name}",
+            "department": "Department of Computer Science, ETH Zürich",
+            "examiners": "Examiners: Prof. Dr. Lemma, Prof. Dr. Gradient, Prof. Dr. Bootstrap",
+            "tableCaption": "Table 1: How to answer the committee.",
+            "tableHead": ["Key", "Answer with", "Notation"],
+            "eurekaRow": "Eureka (golden references)",
+            "start": "Press Space to begin your defense",
+            "best": "Previous best: {score} points, {accuracy} % accuracy, combo {combo}.",
+            "noBest": "No defense on record yet.",
+            "luck": "good luck :)"
+        },
+        "transcript": {
+            "degree": "Bachelor of Science ETH in Computer Science",
+            "course": "Course",
+            "ects": "ECTS",
+            "grade": "Grade",
+            "courseName": "Bachelor Thesis: Defense",
+            "tableCaption": "Table 2: The defense in numbers.",
+            "footer": "ETH Zürich, Leistungsüberblick (transcript of records). Unofficial, like everything here.",
+            "career": "Career forecast: {career}.",
+            "stats": "Score {score}    Accuracy {accuracy} %    Max. combo {combo}",
+            "counts": "Perfect {perfect} · Great {great} · Good {good} · Missed {miss}",
+            "newBest": "A new personal best.",
+            "best": "Personal best: {score} points.",
+            "revise": "Revise and resubmit",
+            "submit": "Submit final version",
+            "submitted": "Submitted. The ECTS are yours."
         },
         "sections": {
             "opening": {
@@ -654,50 +696,112 @@
             "combo10": "PROMISING RESEARCH",
             "combo25": "PEER REVIEW SURVIVED",
             "combo50": "ACADEMIC POWERHOUSE",
-            "combo75": "CITED BY EVERYONE",
+            "combo75": "MENSA QUEUE SKIPPED",
             "combo100": "TENURE TRACK UNLOCKED",
             "combo150": "FIELDS MEDAL SPEEDRUN",
             "perfectStreak": "NOBEL PRIZE INCOMING"
         },
         "verdicts": {
-            "summaCumLaude": {
-                "title": "SUMMA CUM LAUDE",
-                "line": "The committee requests a selfie. Prof. Lemma is crying."
-            },
-            "defended": {
-                "title": "THESIS DEFENDED",
-                "line": "\"Solid work.\" The highest praise this committee gives."
-            },
-            "conditionalPass": {
-                "title": "CONDITIONAL PASS",
-                "line": "Pass, if you fix the typo on page 3. And chapter 4."
-            },
-            "majorRevisions": {
-                "title": "MAJOR REVISIONS REQUIRED",
-                "line": "Reviewer 2 has entered the chat."
-            },
-            "destroyed": {
-                "title": "BACK TO THE DRAWING BOARD",
-                "line": "Every great thesis has a second draft. Try again!"
-            }
-        },
-        "results": {
-            "heading": "THE COMMITTEE HAS REACHED A VERDICT",
-            "grade": "SWISS GRADE  {grade}",
-            "score": "SCORE      {score}",
-            "accuracy": "ACCURACY   {accuracy}",
-            "maxCombo": "MAX COMBO  {combo}",
-            "counts": "PERFECT {perfect}   GREAT {great}   GOOD {good}   MISS {miss}",
-            "newBest": "★ NEW PERSONAL BEST ★",
-            "best": "PERSONAL BEST  {score}",
-            "retry": "R · DEFEND AGAIN",
-            "submit": "ENTER · SUBMIT THESIS",
-            "submitAnyway": "ENTER · SUBMIT ANYWAY",
-            "submitted": "THESIS SUBMITTED ✓"
+            "passed": [
+                {
+                    "min": 6,
+                    "title": "SUMMA CUM LAUDE",
+                    "line": "A perfect 6.0. The committee requests a selfie. Prof. Lemma is crying.",
+                    "career": "Professor at 27, sabbatical at 28"
+                },
+                {
+                    "min": 5.75,
+                    "title": "MAGNA CUM LAUDE",
+                    "line": "Offered a PhD on the spot. You said \"I'll think about it\" and ran for the Polybahn.",
+                    "career": "PhD at ETH: free coffee, no sunlight"
+                },
+                {
+                    "min": 5.5,
+                    "title": "CUM LAUDE",
+                    "line": "Your parents print the diploma twice. One for the fridge, one for the family group chat.",
+                    "career": "Quant in Zug, tax-optimised happiness"
+                },
+                {
+                    "min": 5.25,
+                    "title": "THESIS DEFENDED",
+                    "line": "\"Solid work.\" The highest praise this committee gives.",
+                    "career": "Big tech in Zürich, the office with the slide"
+                },
+                {
+                    "min": 5,
+                    "title": "A VERY SWISS 5.0",
+                    "line": "Efficient, punctual, slightly boring. Like the S-Bahn.",
+                    "career": "Bank IT: three meetings, one line of code a day"
+                },
+                {
+                    "min": 4.75,
+                    "title": "RESPECTABLE",
+                    "line": "Good enough for industry. Your study group is impressed anyway.",
+                    "career": "Startup at the ETH incubator, pivoting weekly"
+                },
+                {
+                    "min": 4.5,
+                    "title": "CONDITIONAL PASS",
+                    "line": "Pass, if you fix the typo on page 3. And chapter 4. And the title.",
+                    "career": "Consultant: slides about slides"
+                },
+                {
+                    "min": 4.25,
+                    "title": "KOMPENSIERT",
+                    "line": "Your other grades carried this one. Teamwork!",
+                    "career": "Eternal teaching assistant"
+                },
+                {
+                    "min": 4,
+                    "title": "4.0 IS A PASS",
+                    "line": "Bestanden. Nobody will ever ask for your grade. Never tell them.",
+                    "career": "Product manager, in charge of everything at once"
+                }
+            ],
+            "notPassed": [
+                {
+                    "min": 3.75,
+                    "title": "SO CLOSE",
+                    "line": "3.75. The grading scale has no mercy. See you at the Repetition.",
+                    "career": "Influencer: \"How I almost passed ETH\""
+                },
+                {
+                    "min": 3,
+                    "title": "MAJOR REVISIONS REQUIRED",
+                    "line": "Reviewer 2 has entered the chat.",
+                    "career": "Repeating the year, with better Zusammenfassungen"
+                },
+                {
+                    "min": 2,
+                    "title": "REPETITION NEXT SEMESTER",
+                    "line": "Your seat in the lecture hall is reserved. Same seat, same coffee, same committee.",
+                    "career": "Mensa regular, front row for the Basisprüfung panic"
+                },
+                {
+                    "min": 1,
+                    "title": "EXMATRIKULIERT",
+                    "line": "myStudies has logged you out. Your Legi still opens the Mensa.",
+                    "career": "Professional Jass player"
+                }
+            ],
+            "destroyed": [
+                {
+                    "min": 2.5,
+                    "title": "BACK TO THE DRAWING BOARD",
+                    "line": "Every great thesis has a second draft. Try again!",
+                    "career": "Coffee-fuelled second draft, starting tomorrow"
+                },
+                {
+                    "min": 1,
+                    "title": "SENT BACK TO THE BASISPRÜFUNG",
+                    "line": "Do not pass the Polyterrasse. Do not collect 180 ECTS.",
+                    "career": "First-semester student, again (the coffee machine remembers you)"
+                }
+            ]
         },
         "announcements": {
-            "intro": "Thesis defense. Press D, F, J and K as the questions reach the line. Press Space to begin.",
-            "results": "{verdict}. Grade {grade}. Score {score}. Press R to defend again or Enter to submit your thesis.",
+            "intro": "Thesis defense. Press D, F, J and K as the references reach the rule. Press Space to begin, F for fullscreen.",
+            "results": "{verdict}. Grade {grade}. Score {score}. Press R to revise and resubmit, or Enter to submit your thesis.",
             "eurekaReady": "Eureka is ready. Press Space."
         },
         "committeeLines": {
@@ -713,7 +817,12 @@
                 "Page 42 disagrees with you.",
                 "My PhD students would weep.",
                 "Hmm. Citation needed.",
-                "That's not even wrong."
+                "That's not even wrong.",
+                "This wouldn't survive the Basisprüfung.",
+                "Did you write this in the Mensa queue?",
+                "Have you tried asking your study group?",
+                "Your Zusammenfassung is showing.",
+                "Is this from a 2009 exam collection?"
             ],
             "stray": [
                 "Nobody asked that.",
@@ -725,29 +834,38 @@
                 "Hm. Not bad.",
                 "I may have to re-read my notes.",
                 "Fine. FINE.",
-                "Is this... novel?"
+                "Is this... novel?",
+                "Okay, who leaked the exam?",
+                "Is this the Lerngruppe of legends?",
+                "Somebody call the Rektorin."
             ],
             "meltdown": [
                 "WHY IS YOUR p-VALUE 0.051?!",
                 "DEFINE 'CONVERGES'!",
                 "THE LEARNING RATE! THE LEARNING RATE!",
-                "HAVE YOU TRIED A LARGER n?!"
+                "HAVE YOU TRIED A LARGER n?!",
+                "WHO PUT TABS IN YOUR LATEX?!",
+                "IT DOESN'T EVEN RUN ON EULER!",
+                "THE MENSA IS CLOSED AND SO IS MY PATIENCE!"
             ],
             "final": [
                 "One last question...",
                 "Convince all three of us.",
-                "Defend. Your. Thesis."
+                "Defend. Your. Thesis.",
+                "Last question, then coffee."
             ],
             "eureka": [
                 "Wait, that actually makes sense.",
-                "Eureka?! In MY defense?"
+                "Eureka?! In MY defense?",
+                "Did somebody ring the tram bell?"
             ],
             "failed": [
                 "We'll need to talk to your supervisor.",
-                "Let's schedule a follow-up, shall we?"
+                "Let's schedule a follow-up, shall we?",
+                "There's always the Repetition in August."
             ],
             "passed": [
-                "Congratulations, Dr. {name}.",
+                "Congratulations, {name}, BSc ETH.",
                 "The committee will now deliberate. Over coffee."
             ]
         }

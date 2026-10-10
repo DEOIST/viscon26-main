@@ -189,24 +189,52 @@ index finger, drop your thumb to shoot. The technical design is in
   muzzle flash at your fingertip, camera shake, hit-stop, particles, sound,
   combo counter, and the neon hand skeleton over your hand.
 
-## Minigame 3: Thesis defense (Year 3, level 3)
+## Minigame 3: Thesis defense (Year 3, level 3, a bachelor thesis)
 
-Guitar Hero meets your thesis defense. A three-professor examination committee
-fires questions down a four-lane neon highway; you answer each one by pressing
-its lane's key as it crosses the hit line. Keyboard only, no audio, no server
-side: the code is in `frontend/level3/`.
+Guitar Hero meets your thesis defense, set as page 42 of your own thesis open
+in a PDF viewer. References (theorems, equations, figures, citations) slide down
+Figure 3.1, four highlighter lanes set like a booktabs table; you highlight each
+one by pressing its lane's key as it lands on the rule. The three-professor
+committee is doodled in blue ballpoint in the margin and grades you in red pen.
+Keyboard only, no server side: the code is in `frontend/level3/`.
+
+- **Look (the "typeset thesis" world, `.impeccable/surfaces/`):** PDF-viewer
+  graphite around one white sheet; Source Serif 4 type with Caveat for the red
+  pen and Source Code Pro for file names (all self-hosted, OFL), rendered at the
+  screen's native resolution so it stays sharp in fullscreen; highlighter inks blue/pink/green/orange per lane, yellow reserved for
+  golden notes and Eureka; red ballpoint for corrections, misses struck through
+  and logged on the margin's errata timeline; the toolbar's page counter is the
+  progress, the thumbnail sidebar is the phase list. The title screen is the
+  thesis title page with the key table, the verdict is an ETH transcript
+  (Leistungsüberblick) with the committee's red rubber stamp.
+- **Fullscreen:** `F` or the toolbar button; starting from the title page also
+  requests fullscreen (it is the user gesture browsers require). Leaving
+  fullscreen pauses the defense.
 
 - **Controls:** `D` Theory (∀), `F` Proofs (∫), `J` Experiments (χ²),
   `K` Critique (?!). `Space` starts and spends Eureka, `Esc`/`P` pauses (also
   automatic when the tab loses focus), `R` restarts from the pause or the verdict,
-  `Enter` submits the thesis.
-- **Chart:** one deterministic 31-bar chart at 128 BPM (about 58 s), written in
-  `chart.ts`, so practice pays off. Four phases, each opened by an empty bar
-  for its banner: *Opening questions* (quarters and eighths), *Cross-examination*
-  (chords), *Professor meltdown* (Prof. Gradient's sixteenth-note bursts) and
-  *Final defense* (the densest bars, ending on a golden four-key "QED" chord).
-  Beat lines on the highway and a hall that pulses on every beat replace the
-  music's timing cues; chord notes are linked by a bar.
+  `Enter` submits the thesis, `M` mutes (remembered in `localStorage`).
+- **Chart from the music:** the level plays its own track
+  (`assets/music/thesis-defense.ogg`, 128 BPM, about 62 s, provided by the team).
+  `backend/tools/thesis_chart.py` (dev-only, needs librosa) fits the track's beat
+  grid, measures onset strength and the dominant pitch at every sixteenth and
+  writes `trackChart.ts`: every note sits on an onset of the track, higher pitches
+  go to lanes further right, and the four phases start on the track's own break
+  bars (15.0, 31.9 and 45.0 s). Per-phase budgets keep it fair: the opening is
+  sparse, the meltdown is the peak and the final defense never outruns it (under
+  4 notes per second, sixteenth bursts of at most four notes, both chart tests);
+  it ends on a golden four-key "QED" chord. Song time is track time.
+- **Music:** the track starts with the countdown so song time 0 is its first
+  sample, stops on pause and resumes at the exact position, compensates the
+  device's output latency, and fades out on a failed defense. Hits only tick, so
+  the player hears the track rather than a second melody. Audio starts on the
+  first key press or click, as browsers require.
+- **Sound effects (Swiss/ETH jokes):** a clashing wrong note on a miss, a knock
+  for a stray press, a cowbell plus arpeggio on milestones, the Zürich tram bell
+  for Eureka, a gong per phase (an alarm for the meltdown), countdown beeps, a
+  sad trombone for a failed defense, a fanfare for a passed one and a thump when
+  the verdict stamp lands.
 - **Judgment:** by the key event's own timestamp, ±45 ms PERFECT, ±90 GREAT,
   ±135 GOOD, later is a MISS. A press with no note in its window is a stray: it
   breaks the combo and costs a little confidence, so mashing never pays. A
@@ -218,12 +246,17 @@ side: the code is in `frontend/level3/`.
   −2 per stray. At 0 the defense fails. Simulated players who hit about two
   thirds of the notes survive; a flawless run scores 100.
 - **Milestones:** 10 combo "PROMISING RESEARCH", 25 "PEER REVIEW SURVIVED",
-  50 "ACADEMIC WEAPON", 75 "CITED BY EVERYONE", 100 "TENURE TRACK UNLOCKED",
+  50 "ACADEMIC WEAPON", 75 "MENSA QUEUE SKIPPED", 100 "TENURE TRACK UNLOCKED",
   150 "FIELDS MEDAL SPEEDRUN"; 25 PERFECTs in a row "NOBEL PRIZE INCOMING".
-- **Verdict:** SUMMA CUM LAUDE (≥ 93 % accuracy), THESIS DEFENDED (≥ 80),
-  CONDITIONAL PASS (≥ 65), MAJOR REVISIONS REQUIRED, or ACADEMICALLY DESTROYED
-  when confidence ran out, plus an ETH grade (1–6 in quarter steps, never a pass
-  for a failed defense). The personal best lives in `localStorage` only.
+- **Verdict by final GPA:** accuracy becomes an ETH grade (1–6 in quarter steps,
+  never a pass for a failed defense), and every band has its own verdict, line
+  and career forecast (`verdict.ts`): 6.0 SUMMA CUM LAUDE, 5.75 MAGNA CUM LAUDE,
+  5.5 CUM LAUDE, 5.25 THESIS DEFENDED, 5.0 A VERY SWISS 5.0, 4.75 RESPECTABLE,
+  4.5 CONDITIONAL PASS, 4.25 KOMPENSIERT, 4.0 "4.0 IS A PASS"; below a pass SO
+  CLOSE (3.75), MAJOR REVISIONS REQUIRED (3–3.5), REPETITION NEXT SEMESTER (2–2.75)
+  and EXMATRIKULIERT; a defense that ran out of confidence is ACADEMICALLY
+  DESTROYED or, below 2.5, SENT BACK TO THE BASISPRÜFUNG. The personal best lives
+  in `localStorage` only.
 - **Contract score:** the weighted share of all notes (1 / 0.8 / 0.5 / 0),
   unplayed notes of a failed defense count as misses; the best attempt of the
   visit is sent once, when the player submits.

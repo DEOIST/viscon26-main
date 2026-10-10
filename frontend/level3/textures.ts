@@ -1,26 +1,73 @@
-// Every texture of the defense is drawn here on canvases, so the level ships no image files:
-// the lecture hall, the question notes per lane, golden notes and the particle shapes.
+// The thesis world's materials: the PDF viewer's greys, white paper, black Computer Modern
+// type, highlighter ink, red and blue ballpoint. Fonts are self-hosted (OFL, assets/fonts/)
+// and loaded before the scene draws; textures are drawn on canvases, no image files ship.
 
-import type { Scene } from "phaser";
-import { LANE_CSS, LANE_GLYPHS } from "./config";
-import { HEIGHT, WIDTH } from "./layout";
-import { TEXT } from "../src/misc/text";
+import type { GameObjects, Scene, Textures, Types } from "phaser";
+import caveatBold from "./assets/fonts/caveat-bold.woff2";
+import caveatMedium from "./assets/fonts/caveat-medium.woff2";
+import sourceCodePro from "./assets/fonts/source-code-pro.woff2";
+import serifBold from "./assets/fonts/source-serif-bold.woff2";
+import serifItalic from "./assets/fonts/source-serif-italic.woff2";
+import serifRegular from "./assets/fonts/source-serif-regular.woff2";
 
-export const FONT = '"Avenir Next", "Segoe UI", system-ui, sans-serif';
-export const MONO = '"JetBrains Mono", "SF Mono", Menlo, Consolas, monospace';
-export const NOTE_W = 124;
-export const NOTE_H = 62;
+// Source Serif 4 reads like a typeset thesis and stays sturdy on a projector; Caveat is the
+// committee's pen; Source Code Pro sets file names and LaTeX source.
+export const SERIF = '"Source Serif 4", Georgia, serif';
+export const MONO = '"Source Code Pro", Menlo, monospace';
+export const HAND = '"Caveat", "Bradley Hand", cursive';
 
 export const COLORS = {
-    ink: 0x070b1f,
-    ethBlue: 0x215caf,
-    gold: 0xffd84a,
-    red: 0xff4f6d,
-    white: 0xffffff,
+    toolbar: 0x323639,
+    ground: 0x525659,
+    paper: 0xffffff,
+    ink: 0x1b1b1b,
+    redPen: 0xd11a2a,
+    bluePen: 0x1f3c9b,
+    selection: 0x8ab4f8,
+    gold: 0xfff23a,
 };
 
-// Formulas on the chalkboard behind the committee.
-const CHALK = TEXT.thesisDefense.chalkboard;
+export const CSS = {
+    ink: "#1b1b1b",
+    inkSoft: "#555555",
+    redPen: "#d11a2a",
+    bluePen: "#1f3c9b",
+    chrome: "#f1f3f4",
+    chromeMuted: "#bdc1c6",
+};
+
+const FACES: [string, string, string, string][] = [
+    ["Source Serif 4", serifRegular, "400", "normal"],
+    ["Source Serif 4", serifBold, "700", "normal"],
+    ["Source Serif 4", serifItalic, "400", "italic"],
+    ["Source Code Pro", sourceCodePro, "400", "normal"],
+    ["Caveat", caveatMedium, "400", "normal"],
+    ["Caveat", caveatBold, "700", "normal"],
+];
+
+// Loads every face once per page; resolves even if a face fails (the fallbacks still read).
+let fontsReady: Promise<void> | null = null;
+export function loadFonts(): Promise<void> {
+    if (fontsReady) return fontsReady;
+    if (typeof FontFace === "undefined" || !document.fonts) {
+        fontsReady = Promise.resolve();
+        return fontsReady;
+    }
+    fontsReady = Promise.all(
+        FACES.map(async ([family, url, weight, style]) => {
+            try {
+                const face = new FontFace(family, `url(${url})`, {
+                    weight,
+                    style,
+                });
+                document.fonts.add(await face.load());
+            } catch {
+                // A missing face falls back to the next family in the stack.
+            }
+        }),
+    ).then(() => undefined);
+    return fontsReady;
+}
 
 function canvas(
     scene: Scene,
@@ -36,144 +83,245 @@ function canvas(
     texture.refresh();
 }
 
-function roundRect(
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    r: number,
-) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
+// A tiny deterministic random, so every pen and marker stroke looks hand-made but stable.
+export function seeded(seed: number): () => number {
+    let x = Math.abs(Math.floor(seed)) % 2147483647 || 1;
+    return () => {
+        x = (x * 1103515245 + 12345) % 2147483648;
+        return x / 2147483648;
+    };
 }
 
-function drawHall(ctx: CanvasRenderingContext2D) {
-    const sky = ctx.createLinearGradient(0, 0, 0, HEIGHT);
-    sky.addColorStop(0, "#0b1233");
-    sky.addColorStop(0.45, "#090d24");
-    sky.addColorStop(1, "#04060f");
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
-    // Tiered lecture-hall seats rising to both sides.
-    for (let row = 0; row < 9; row++) {
-        const y = 250 + row * 52;
-        const inset = 330 - row * 30;
-        ctx.fillStyle = `rgba(80, 110, 200, ${0.05 + row * 0.012})`;
-        ctx.fillRect(0, y, inset, 18);
-        ctx.fillRect(WIDTH - inset, y, inset, 18);
-        ctx.fillStyle = "rgba(255,255,255,0.04)";
-        ctx.fillRect(0, y, inset, 2);
-        ctx.fillRect(WIDTH - inset, y, inset, 2);
+// White highlighter stroke (tinted per lane): streaky body, ragged ends, slightly uneven
+// edges, the way a chisel-tip marker actually lays ink.
+function drawHighlighter(ctx: CanvasRenderingContext2D, seed: number) {
+    const w = 256;
+    const h = 64;
+    const random = seeded(seed);
+    for (let x = 0; x < w; x++) {
+        const fade = Math.min(1, Math.min(x, w - x) / 12);
+        const top = 7 + random() * 4 + (1 - fade) * 8 * random();
+        const bottom = h - 7 - random() * 4 - (1 - fade) * 8 * random();
+        const alpha = (0.8 + random() * 0.16) * Math.max(0.3, fade);
+        ctx.fillStyle = `rgba(255,255,255,${alpha.toFixed(3)})`;
+        ctx.fillRect(x, top, 1, bottom - top);
     }
-
-    // The chalkboard, wider than the desk, with half-wiped formulas.
-    const board = { x: 230, y: 18, w: 820, h: 178 };
-    ctx.fillStyle = "#13261f";
-    roundRect(ctx, board.x - 10, board.y - 10, board.w + 20, board.h + 20, 10);
-    ctx.fill();
-    ctx.fillStyle = "#1b3a2f";
-    ctx.fillRect(board.x, board.y, board.w, board.h);
-    const smudge = ctx.createRadialGradient(640, 100, 20, 640, 100, 420);
-    smudge.addColorStop(0, "rgba(255,255,255,0.07)");
-    smudge.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = smudge;
-    ctx.fillRect(board.x, board.y, board.w, board.h);
-    ctx.font = `18px ${MONO}`;
-    ctx.textBaseline = "middle";
-    CHALK.forEach((text, i) => {
-        const col = i % 3;
-        const row = Math.floor(i / 3);
-        ctx.fillStyle = `rgba(235, 245, 235, ${0.16 + ((i * 7) % 5) * 0.035})`;
-        ctx.save();
-        ctx.translate(
-            board.x + 30 + col * 270 + (row % 2) * 34,
-            board.y + 30 + row * 42,
-        );
-        ctx.rotate((((i * 13) % 7) - 3) * 0.01);
-        ctx.fillText(text, 0, 0);
-        ctx.restore();
-    });
-}
-
-function drawNote(
-    ctx: CanvasRenderingContext2D,
-    color: string,
-    glyph: string,
-    gold: boolean,
-) {
-    const pad = 6;
-    const w = NOTE_W - pad * 2;
-    const h = NOTE_H - pad * 2;
-    ctx.shadowColor = gold ? "#ffd84a" : color;
-    ctx.shadowBlur = 10;
-    const fill = ctx.createLinearGradient(0, pad, 0, pad + h);
-    if (gold) {
-        fill.addColorStop(0, "#fff6c2");
-        fill.addColorStop(0.5, "#ffd84a");
-        fill.addColorStop(1, "#c98a12");
-    } else {
-        fill.addColorStop(0, "#ffffff");
-        fill.addColorStop(0.18, color);
-        fill.addColorStop(1, "#141a3a");
+    // Where the felt tip pressed harder.
+    for (const band of [0.3, 0.68]) {
+        ctx.fillStyle = "rgba(255,255,255,0.22)";
+        ctx.fillRect(12, h * band, w - 24, 3);
     }
-    ctx.fillStyle = fill;
-    roundRect(ctx, pad, pad, w, h, 14);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = gold ? "#fffbe0" : "rgba(255,255,255,0.85)";
-    roundRect(ctx, pad + 1.5, pad + 1.5, w - 3, h - 3, 13);
-    ctx.stroke();
-    ctx.fillStyle = gold ? "#4a2d00" : "#ffffff";
-    ctx.font = `900 30px ${FONT}`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(gold ? `★ ${glyph}` : glyph, NOTE_W / 2, NOTE_H / 2 + 1);
 }
 
 export function makeTextures(scene: Scene) {
-    canvas(scene, "td-hall", WIDTH, HEIGHT, drawHall);
-    LANE_CSS.forEach((color, lane) => {
-        canvas(scene, `td-note-${lane}`, NOTE_W, NOTE_H, (ctx) =>
-            drawNote(ctx, color, LANE_GLYPHS[lane], false),
-        );
-        canvas(scene, `td-gold-${lane}`, NOTE_W, NOTE_H, (ctx) =>
-            drawNote(ctx, color, LANE_GLYPHS[lane], true),
-        );
-    });
-    canvas(scene, "td-glow", 128, 128, (ctx) => {
-        const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
-        g.addColorStop(0, "rgba(255,255,255,1)");
-        g.addColorStop(0.35, "rgba(255,255,255,0.45)");
-        g.addColorStop(1, "rgba(255,255,255,0)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, 128, 128);
-    });
-    canvas(scene, "td-spark", 24, 24, (ctx) => {
-        const g = ctx.createRadialGradient(12, 12, 0, 12, 12, 12);
-        g.addColorStop(0, "rgba(255,255,255,1)");
-        g.addColorStop(0.4, "rgba(255,255,255,0.8)");
-        g.addColorStop(1, "rgba(255,255,255,0)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, 24, 24);
-    });
-    canvas(scene, "td-shard", 10, 4, (ctx) => {
+    [11, 23, 37].forEach((seed, i) =>
+        canvas(scene, `td-marker-${i}`, 256, 64, (ctx) =>
+            drawHighlighter(ctx, seed),
+        ),
+    );
+    canvas(scene, "td-dot", 8, 8, (ctx) => {
         ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, 10, 4);
+        ctx.beginPath();
+        ctx.arc(4, 4, 3.2, 0, Math.PI * 2);
+        ctx.fill();
     });
-    // A vertical beam for lane presses: bright at the bottom, gone at the top.
-    canvas(scene, "td-beam", 64, 256, (ctx) => {
-        const g = ctx.createLinearGradient(0, 256, 0, 0);
-        g.addColorStop(0, "rgba(255,255,255,0.9)");
-        g.addColorStop(1, "rgba(255,255,255,0)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, 64, 256);
+}
+
+// A ballpoint line: slightly wobbly, so pen marks never look like vector rules.
+export function penLine(
+    g: GameObjects.Graphics,
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    wobble = 1.2,
+    seed = 1,
+) {
+    const random = seeded(seed * 7919 + 13);
+    const steps = Math.max(2, Math.round(Math.hypot(x2 - x1, y2 - y1) / 14));
+    g.beginPath();
+    g.moveTo(x1, y1);
+    for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+        const jitter = i === steps ? 0 : (random() - 0.5) * 2 * wobble;
+        g.lineTo(x1 + (x2 - x1) * t + jitter, y1 + (y2 - y1) * t + jitter);
+    }
+    g.strokePath();
+}
+
+// A ballpoint ellipse (circling something), drawn as a slightly open, wobbly loop.
+export function penCircle(
+    g: GameObjects.Graphics,
+    cx: number,
+    cy: number,
+    rx: number,
+    ry: number,
+    seed = 1,
+) {
+    const random = seeded(seed * 104729 + 7);
+    const start = random() * Math.PI * 2;
+    g.beginPath();
+    for (let i = 0; i <= 28; i++) {
+        const a = start + (i / 26) * Math.PI * 2;
+        const wob = 1 + (random() - 0.5) * 0.08;
+        const x = cx + Math.cos(a) * rx * wob;
+        const y = cy + Math.sin(a) * ry * wob;
+        if (i === 0) g.moveTo(x, y);
+        else g.lineTo(x, y);
+    }
+    g.strokePath();
+}
+
+// Text is rasterised at this resolution; the scene raises it to its camera zoom.
+export const TEXT = { resolution: 2 };
+
+// Shared text styles.
+export function serif(
+    size: number,
+    color = CSS.ink,
+    style: "normal" | "bold" | "italic" = "normal",
+): Types.GameObjects.Text.TextStyle {
+    return {
+        fontFamily: SERIF,
+        fontSize: `${size}px`,
+        fontStyle: style,
+        color,
+        resolution: TEXT.resolution,
+    };
+}
+
+export function hand(
+    size: number,
+    color = CSS.redPen,
+    bold = false,
+): Types.GameObjects.Text.TextStyle {
+    return {
+        fontFamily: HAND,
+        // Caveat runs small for its size; this keeps the pen as legible as the layout expects.
+        fontSize: `${Math.round(size * 1.22)}px`,
+        fontStyle: bold ? "bold" : "normal",
+        color,
+        resolution: TEXT.resolution,
+    };
+}
+
+// --- The committee's rubber stamp ---------------------------------------------
+
+const STAMP_W = 620;
+const STAMP_H = 220;
+
+// Splits a verdict into at most two balanced lines, so long ones are never shrunk.
+export function stampLines(
+    title: string,
+    fits: (line: string) => boolean,
+): string[] {
+    if (fits(title)) return [title];
+    const words = title.split(" ");
+    let best = [title];
+    let bestGap = Infinity;
+    for (let i = 1; i < words.length; i++) {
+        const a = words.slice(0, i).join(" ");
+        const b = words.slice(i).join(" ");
+        const gap = Math.abs(a.length - b.length);
+        if (gap < bestGap) {
+            bestGap = gap;
+            best = [a, b];
+        }
+    }
+    return best;
+}
+
+// Draws the verdict as a real ink impression: rough double border, uneven pressure across the
+// face, and voids where the rubber did not take ink. Redrawn on the one "td-stamp" texture.
+export function drawStamp(
+    scene: Scene,
+    title: string,
+    seed: number,
+): { w: number; h: number; lines: number } {
+    const texture =
+        (scene.textures.exists("td-stamp") && scene.textures.get("td-stamp")) ||
+        scene.textures.createCanvas("td-stamp", STAMP_W, STAMP_H);
+    if (!texture || !("getContext" in texture))
+        return { w: STAMP_W, h: STAMP_H, lines: 1 };
+    const ctx = (texture as Textures.CanvasTexture).getContext();
+    const random = seeded(seed);
+    ctx.clearRect(0, 0, STAMP_W, STAMP_H);
+    const size = 46;
+    ctx.font = `bold ${size}px ${SERIF}`;
+    const lines = stampLines(
+        title,
+        (line) => ctx.measureText(line).width <= 420,
+    );
+    const textW = Math.max(...lines.map((line) => ctx.measureText(line).width));
+    const w = Math.min(STAMP_W - 16, textW + 96);
+    const h = lines.length === 1 ? 104 : 160;
+    const x0 = (STAMP_W - w) / 2;
+    const y0 = (STAMP_H - h) / 2;
+    ctx.strokeStyle = CSS.redPen;
+    ctx.fillStyle = CSS.redPen;
+    // Rough rectangle: every edge walks with a little jitter.
+    const rough = (inset: number, width: number) => {
+        ctx.lineWidth = width;
+        ctx.beginPath();
+        const corners = [
+            [x0 + inset, y0 + inset],
+            [x0 + w - inset, y0 + inset],
+            [x0 + w - inset, y0 + h - inset],
+            [x0 + inset, y0 + h - inset],
+        ];
+        corners.forEach(([cx, cy], i) => {
+            const [nx, ny] = corners[(i + 1) % 4];
+            for (let s = 0; s <= 12; s++) {
+                const t = s / 12;
+                const x = cx + (nx - cx) * t + (random() - 0.5) * 1.6;
+                const y = cy + (ny - cy) * t + (random() - 0.5) * 1.6;
+                if (i === 0 && s === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+        });
+        ctx.closePath();
+        ctx.stroke();
+    };
+    rough(4, 6);
+    rough(14, 2.2);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const lineH = size * 1.08;
+    lines.forEach((line, i) => {
+        const y = STAMP_H / 2 + (i - (lines.length - 1) / 2) * lineH + 2;
+        ctx.fillText(line, STAMP_W / 2, y);
     });
+    // Uneven pressure: one side of the stamp pressed lighter.
+    ctx.globalCompositeOperation = "destination-out";
+    const side = ctx.createLinearGradient(x0, 0, x0 + w, 0);
+    const light = random() < 0.5;
+    side.addColorStop(0, `rgba(0,0,0,${light ? 0.35 : 0})`);
+    side.addColorStop(1, `rgba(0,0,0,${light ? 0 : 0.35})`);
+    ctx.fillStyle = side;
+    ctx.fillRect(0, 0, STAMP_W, STAMP_H);
+    // Voids: specks and a few drag streaks where no ink took.
+    for (let i = 0; i < 520; i++) {
+        ctx.fillStyle = `rgba(0,0,0,${(0.45 + random() * 0.55).toFixed(2)})`;
+        ctx.beginPath();
+        ctx.arc(
+            x0 + random() * w,
+            y0 + random() * h,
+            0.5 + random() * 1.9,
+            0,
+            Math.PI * 2,
+        );
+        ctx.fill();
+    }
+    for (let i = 0; i < 7; i++) {
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.fillRect(
+            x0 + random() * w,
+            y0 + random() * h,
+            18 + random() * 50,
+            1 + random() * 1.5,
+        );
+    }
+    ctx.globalCompositeOperation = "source-over";
+    (texture as Textures.CanvasTexture).refresh();
+    return { w: STAMP_W, h: STAMP_H, lines: lines.length };
 }
