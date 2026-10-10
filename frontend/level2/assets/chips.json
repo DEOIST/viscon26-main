@@ -163,7 +163,7 @@
     },
     "meta": {
         "app": "poker-cards/build.py",
-        "image": "chips.png",
+        "image": "chips.svg",
         "format": "RGBA8888",
         "size": {
             "w": 820,

@@ -6,6 +6,7 @@ import { Math as PhaserMath, Scene } from "phaser";
 import type { GameObjects, Time } from "phaser";
 import BoardView from "./BoardView";
 import CardView from "./CardView";
+import Tutorial from "./Tutorial";
 import {
     BALL_GAP_MS,
     CHIP_VALUES,
@@ -16,6 +17,7 @@ import {
 } from "./config";
 import {
     BET,
+    BET_LABEL_DY,
     BOARD_SCALE,
     BUTTON_ROW,
     CARD_ON_BOARD,
@@ -27,11 +29,14 @@ import {
     FAN_SCALE,
     HAND_LABEL,
     HEIGHT,
+    PILE_SCALE,
     SEATS,
     SECRET,
     SPEECH,
     TRAY,
+    TRAY_SCALE,
     WIDTH,
+    WINNINGS_DX,
     ZOOM,
 } from "./layout";
 import type { Point } from "./layout";
@@ -70,9 +75,6 @@ interface BlackjackSceneArgs {
     finish(result: MinigameResult): void;
     announce(text: string): void; // for screen readers: the canvas itself says nothing
 }
-
-const PILE_SCALE = 0.3;
-const TRAY_SCALE = 0.34;
 
 // What the dealer says when a hand ends.
 const LINE_FOR_REASON: Record<Reason, DealerEvent> = {
@@ -168,9 +170,9 @@ export default class BlackjackScene extends Scene {
             ),
         };
         this.boards.player.onLand = (landing) =>
-            this.onLand(landing.decisive, landing.at);
+            this.onLand("player", landing.decisive, landing.at);
         this.boards.dealer.onLand = (landing) =>
-            this.onLand(landing.decisive, landing.at);
+            this.onLand("dealer", landing.decisive, landing.at);
 
         this.drawSeat("dealer", T.seats.dealer, "avatar-dealer");
         this.drawSeat("player", T.seats.player, "avatar-player");
@@ -183,7 +185,13 @@ export default class BlackjackScene extends Scene {
             "",
             30,
         ).setDepth(50);
-        this.betText = label(this, BET.x, BET.y + 82, "", 26).setDepth(50);
+        this.betText = label(
+            this,
+            BET.x,
+            BET.y + BET_LABEL_DY,
+            "",
+            26,
+        ).setDepth(50);
         this.shownChips = this.state.chips;
         const avatar = SEATS.player.avatar;
         this.chipsText = label(
@@ -250,7 +258,18 @@ export default class BlackjackScene extends Scene {
         this.confetti.setDepth(86);
 
         this.refresh();
-        this.say("intro");
+
+        // Every game opens with the how-to-play window; the dealer greets the player once it
+        // is closed, and the table's state is read out again after the tutorial's steps.
+        new Tutorial(
+            this,
+            (text) => this.args.announce(text),
+            () => {
+                this.say("intro");
+                this.announced = "";
+                this.announce();
+            },
+        );
     }
 
     // --- Input -----------------------------------------------------------------
@@ -621,7 +640,7 @@ export default class BlackjackScene extends Scene {
                 winnings.map((chip, i) =>
                     tween(this, {
                         targets: chip,
-                        x: BET.x + 70,
+                        x: BET.x + WINNINGS_DX,
                         y: this.pile[i].y,
                         duration: 420,
                         delay: i * 50,
@@ -787,13 +806,17 @@ export default class BlackjackScene extends Scene {
         this.fans[who].push(view);
     }
 
-    // The moment a decisive ball lands.
-    private onLand(decisive: "bust" | "blackjack" | null, at: Point) {
+    // The moment a decisive ball lands. The third yellow ball is only cheered when the board
+    // ends as a blackjack: `state` already knows whether a red ball follows from the same card.
+    private onLand(who: Who, decisive: "bust" | "blackjack" | null, at: Point) {
         if (decisive === "bust") {
             this.cameras.main.shake(260, 0.008);
             this.cameras.main.flash(180, 238, 90, 120, false);
             floatText(this, at.x, at.y - 30, T.callouts.red, "#ee5a78");
-        } else if (decisive === "blackjack") {
+        } else if (
+            decisive === "blackjack" &&
+            this.state[who].board.event === "blackjack"
+        ) {
             this.cameras.main.flash(220, 255, 214, 120, false);
             this.sparks.setParticleTint(COLORS.gold);
             this.sparks.explode(30, at.x, at.y);

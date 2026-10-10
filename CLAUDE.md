@@ -146,9 +146,9 @@ The tree shows the target. *(planned)* marks parts that don't exist yet.
 ├── frontend/
 │   ├── build.js                  esbuild script: discovers pages, bundles, writes HTML, copies public/
 │   ├── level2/                   Level 2, Galton Blackjack (Phaser 4, 2D): index.ts (mountBlackjack),
-│   │                             rules.ts + rules.test.ts, board.ts, config.ts, lines.ts,
-│   │                             BlackjackScene.ts, BoardView.ts, CardView.ts, layout.ts, textures.ts,
-│   │                             ui.ts, assets/ (sprite sheets)
+│   │                             rules.ts + rules.test.ts, board.ts + board.test.ts, config.ts, lines.ts,
+│   │                             BlackjackScene.ts, BoardView.ts, CardView.ts, Tutorial.ts, layout.ts,
+│   │                             textures.ts, ui.ts, assets/ (sprite sheets, tutorial/ screenshots)
 │   ├── level3/                   Level 3, Thesis defense (Phaser 4, keyboard rhythm game, no backend):
 │   │                             index.ts (mountThesisDefense), chart.ts, engine.ts, verdict.ts,
 │   │                             layout.ts (+ tests), config.ts, ThesisScene.ts, Highway.ts, Hud.ts,
