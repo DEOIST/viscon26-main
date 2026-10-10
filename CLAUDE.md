@@ -25,7 +25,7 @@ Stack: **React + TypeScript** outer shell bundled by **esbuild**; a WebGL inner 
 
 ## Current level 1 implementation
 
-Level 1 is now **Bug Bash**: pinch/throw pixel bugs in an IDE, slap burning code fuses,
+Level 1 is now **Introduction to Programming - Bug Bash** (Bug Bash for short): pinch/throw pixel bugs in an IDE, slap burning code fuses,
 and swat side interruptions. Pinching uses thumb/index tips; slaps use whole-hand movement.
 Fast slaps are broad; gentle swipes affect only targets covered by the swept hand.
 The complete current behavior, thresholds, controls, wire additions, file inventory and

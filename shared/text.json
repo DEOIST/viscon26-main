@@ -315,7 +315,7 @@
         "backToGraduation": "Back to graduation"
     },
     "shooter": {
-        "intro": "Bug Bash — ship it, {name}!",
+        "intro": "Introduction to Programming - Bug Bash — ship it, {name}!",
         "fullscreen": {
             "enter": "F  ⛶ Fullscreen",
             "exit": "F  ⛶ Exit fullscreen",
@@ -1008,7 +1008,7 @@
         },
         "shooter": {
             "intro": [
-                "Bug Bash time, {name}. Pinch the bugs, throw them out, and keep the code working!",
+                "Welcome to Introduction to Programming - Bug Bash, {name}. Pinch the bugs, throw them out, and keep the code working!",
                 "Open hand ready? Swipe or slide to save the code."
             ],
             "streak": [

@@ -7,7 +7,8 @@ are local and have not been pushed or merged.
 ## Game and visuals
 
 - Year 1 / the internal `shooter` slot is displayed as **Introduction to Programming - Bug
-  Bash** (in-game lines still say Bug Bash), like Year 2's "Probability Class - Gauss Jack".
+  Bash**, like Year 2's "Probability Class - Gauss Jack": on the hub, the diploma, the
+  in-game banner and the advisor's intro line.
 - The background is a restrained navy IDE with a file explorer, syntax-colored code,
   minimap, terminal and scrollbar. Code scrolls during the round; the line counter
   advances. The earlier perspective tunnel and its wires were removed.
