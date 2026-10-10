@@ -9,7 +9,7 @@ function fakeSynth(hasTrack = true) {
         hasTrack,
         muted: false,
         unlock: vi.fn(),
-        loadTrack: vi.fn(() => Promise.resolve(true)),
+        loadTrack: vi.fn((_data?: ArrayBuffer) => Promise.resolve(true)),
         playTrack: vi.fn(),
         stopTrack: vi.fn(),
         toggleMute: vi.fn(() => true),
@@ -30,9 +30,9 @@ function fakeSynth(hasTrack = true) {
 
 const storage = { getItem: () => null, setItem: () => undefined };
 const make = (synth: ReturnType<typeof fakeSynth>) =>
-    new Soundtrack(DEFENSE_CHART, storage, synth as unknown as Synth, () =>
-        Promise.resolve(new ArrayBuffer(8)),
-    );
+    new Soundtrack(DEFENSE_CHART, storage, synth as unknown as Synth, [
+        () => Promise.resolve(new ArrayBuffer(8)),
+    ]);
 
 describe("Soundtrack", () => {
     it("starts the track so that song time 0 is its first sample", () => {
@@ -82,5 +82,28 @@ describe("Soundtrack", () => {
         synth.hasTrack = true;
         await track.unlock();
         expect(synth.playTrack).toHaveBeenCalledWith(300, 0);
+    });
+
+    // Safari cannot decode Ogg Vorbis: the same track as AAC must take over.
+    it("falls back to the next file when the browser cannot decode the first", async () => {
+        const synth = fakeSynth(false);
+        const ogg = new ArrayBuffer(8);
+        const m4a = new ArrayBuffer(16);
+        synth.loadTrack.mockImplementation((data?: ArrayBuffer) => {
+            if (data === m4a) synth.hasTrack = true;
+            return Promise.resolve(data === m4a);
+        });
+        const fetchM4a = vi.fn(() => Promise.resolve(m4a));
+        const track = new Soundtrack(
+            DEFENSE_CHART,
+            storage,
+            synth as unknown as Synth,
+            [() => Promise.resolve(ogg), fetchM4a],
+        );
+        track.play(0);
+        await track.unlock();
+        expect(synth.loadTrack).toHaveBeenCalledTimes(2);
+        expect(fetchM4a).toHaveBeenCalledOnce();
+        expect(synth.playTrack).toHaveBeenCalled();
     });
 });

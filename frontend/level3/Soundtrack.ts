@@ -6,22 +6,30 @@ import type { Chart, Phase } from "./chart";
 import type { DefenseEvent } from "./engine";
 import Synth from "./Synth";
 import type { SoundStorage } from "./Synth";
-import trackUrl from "./assets/music/thesis-defense.ogg";
+import trackM4a from "./assets/music/thesis-defense.m4a";
+import trackOgg from "./assets/music/thesis-defense.ogg";
 
 const VELOCITY = { perfect: 1, great: 0.85, good: 0.65 } as const;
 const FAIL_FADE_MS = 600;
 
 type FetchTrack = () => Promise<ArrayBuffer>;
 
-const fetchTrack: FetchTrack = () =>
-    fetch(trackUrl).then((response) => {
-        if (!response.ok) throw new Error(`Track ${response.status}`);
-        return response.arrayBuffer();
-    });
+const fetchFile =
+    (url: string): FetchTrack =>
+    () =>
+        fetch(url).then((response) => {
+            if (!response.ok) throw new Error(`Track ${response.status}`);
+            return response.arrayBuffer();
+        });
+
+// The same track twice: Ogg Vorbis first, AAC for Safari, which cannot decode Ogg in Web
+// Audio (it fails with "EncodingError: Decoding failed" even where canPlayType says yes).
+const TRACK_FILES: FetchTrack[] = [fetchFile(trackOgg), fetchFile(trackM4a)];
 
 export default class Soundtrack {
     private readonly synth: Synth;
-    private readonly data: Promise<ArrayBuffer | null>;
+    private readonly sources: FetchTrack[];
+    private readonly first: Promise<ArrayBuffer | null>;
     private songZero: number | null = null; // performance.now() at song time 0, while playing
     private loading: Promise<void> | null = null;
 
@@ -29,12 +37,13 @@ export default class Soundtrack {
         chart: Chart,
         storage: SoundStorage,
         synth?: Synth,
-        fetcher: FetchTrack = fetchTrack,
+        sources: FetchTrack[] = TRACK_FILES,
     ) {
         void chart;
         this.synth = synth ?? new Synth(storage);
+        this.sources = sources;
         // Downloading needs no gesture; decoding waits for the audio context.
-        this.data = fetcher().catch(() => null);
+        this.first = sources[0]?.().catch(() => null) ?? Promise.resolve(null);
     }
 
     get muted(): boolean {
@@ -44,10 +53,7 @@ export default class Soundtrack {
     // Call from every key or click handler: browsers only start audio after a gesture.
     unlock(): Promise<void> {
         this.synth.unlock();
-        if (!this.loading)
-            this.loading = this.data.then(async (data) => {
-                if (data && (await this.synth.loadTrack(data))) this.resync();
-            });
+        if (!this.loading) this.loading = this.load();
         return this.loading;
     }
 
@@ -117,6 +123,20 @@ export default class Soundtrack {
 
     stamp() {
         this.synth.stamp();
+    }
+
+    // Decodes the first file this browser can play; the defense runs silent if none works.
+    private async load() {
+        for (let i = 0; i < this.sources.length; i++) {
+            const data =
+                i === 0
+                    ? await this.first
+                    : await this.sources[i]().catch(() => null);
+            if (data && (await this.synth.loadTrack(data))) {
+                this.resync();
+                return;
+            }
+        }
     }
 
     // (Re)starts the track at the song clock's current position, if both are ready.
