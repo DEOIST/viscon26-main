@@ -79,7 +79,7 @@
             "title": "Basispr\u00fcfung",
             "description": "Shoot the exam questions with your finger gun.",
             "ects": 90,
-            "implemented": false
+            "implemented": true
         }
     ]
 }
