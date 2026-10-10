@@ -1869,6 +1869,18 @@ td strong {
     position: relative;
     overflow: auto;
 }
+.destination-game-mount:fullscreen {
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    max-height: none;
+    min-height: 0;
+    aspect-ratio: auto;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #11151e;
+}
 .destination-game-mount canvas {
     display: block;
     max-width: 100%;

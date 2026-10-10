@@ -19,6 +19,13 @@ class CvStatus(CamelModel):
     max_sessions: int
 
 
+class CvSlide(CamelModel):
+    direction: Literal["left", "right"]
+    path: list[tuple[float, float]]
+    radius: float  # fraction of game width
+    outlines: list[list[tuple[float, float]]] = Field(default_factory=list)
+
+
 class CvFrame(CamelModel):
     """One processed camera frame, sent over /api/cv/stream. Points are [x, y] in the game
     area (0..1, mirrored like the video); landmarks may lie outside 0..1."""
@@ -29,6 +36,8 @@ class CvFrame(CamelModel):
     fired_at: tuple[float, float] | None  # set on the frame a shot fires
     landmarks: list[tuple[float, float]] | None  # 21 points, for drawing the hand
     thumb_angle: float | None  # degrees from straight up (cocked < 32, fires > 55), for tuning
+    slide: CvSlide | None = None
+    pinching: bool = False  # held pinch; reopens only above the calibrated open threshold
     processing_ms: float
     slap: Literal["left", "right"] | None = None  # set on the frame a slap is recognised
 
@@ -89,6 +98,8 @@ class CvTriggerThresholds(CamelModel):
     fired_above_deg: float
     upright_above: float
     folded_below: float
+    pinch_open_above: float = 0.65
+    pinch_closed_below: float = 0.3
 
 
 class CvTriggerReply(CamelModel):

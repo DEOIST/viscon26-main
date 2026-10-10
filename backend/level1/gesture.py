@@ -57,6 +57,13 @@ THUMB_LENGTH_SHRINK = 0.02  # per frame, toward a shorter one (~1.5 s): a fold b
 FIRE_CONFIRM_FRAMES = 2  # +1 frame (~33 ms) of latency; removes one-frame flickers
 
 
+# Pinch defaults and calibration tunables, in index-to-pinky knuckle widths.
+PINCH_OPEN_ABOVE = 0.65
+PINCH_CLOSED_BELOW = 0.3
+PINCH_MIN_GAP = 0.15
+PINCH_SETTLING_FRAMES = 10
+
+
 @dataclass(frozen=True)
 class TriggerThresholds:
     """When the hammer counts as cocked and as fallen. The defaults above fit most hands; a
@@ -66,6 +73,8 @@ class TriggerThresholds:
     fired_above_deg: float = FIRED_ABOVE_DEG
     upright_above: float = THUMB_UPRIGHT_ABOVE
     folded_below: float = THUMB_FOLDED_BELOW
+    pinch_open_above: float = PINCH_OPEN_ABOVE
+    pinch_closed_below: float = PINCH_CLOSED_BELOW
 
 
 DEFAULT_TRIGGER = TriggerThresholds()
@@ -129,9 +138,17 @@ SLAP_SHOT_BLOCK_S = 0.3
 # A very fast slap blurs the hand away before any frame shows it moving. Two signals that don't
 # need the hand: the share of pixels that changed sharply around where the hand was last seen
 # (CvSession measures it, `motion`), and the hand coming back far from where it vanished.
-SLAP_MIN_MOTION = 0.35  # share of the area around the last hand that changed sharply
+SLAP_MIN_MOTION = 0.25  # share of the area around the last hand that changed sharply
 SLAP_REAPPEAR_S = 0.6
 SLAP_REAPPEAR_DISTANCE = 0.3  # frame widths
+# A deliberate open-hand slide can be much slower than a slap. Require lateral travel,
+# mostly one direction, and open fingers to distinguish it from carrying a pinched bug.
+SLIDE_WINDOW_S = 0.9
+SLIDE_MIN_DURATION_S = 0.18
+SLIDE_MIN_DISTANCE = 0.18  # camera widths
+SLIDE_MIN_SPEED = 0.45  # camera widths per second: hovering is not a swipe
+SLAP_RAW_MIN_SPEED = 0.9
+SLIDE_MIN_DIRECTNESS = 0.7  # net travel / total travel
 Slap = Literal["left", "right"]  # on screen (the camera image is mirrored)
 
 
@@ -140,7 +157,8 @@ class Motion:
     """How much changed around the player's last known hand since the previous frame."""
 
     share: float  # 0..1 of that area changed sharply
-    dx: float  # where the change is, relative to the hand: > 0 toward the image's right
+    dx: float  # direction of moving image changes
+    speed: float = 0.0  # camera widths per second, measured across changed-image regions
 
 
 # Minimum time between two shots of the player. The ASVZ-athlete perk lowers it per stream
@@ -255,6 +273,8 @@ class GunReading:
     cocked: bool  # after this frame
     palm: tuple[float, float]  # the aim's reference point, frame widths, camera view
     reach: tuple[float, float, float]  # index, ring, pinky: above 1 means extended
+    pinching: bool = False
+    pinch_distance: float | None = None  # fingertip gap in palm widths
 
 
 class GunTracker:
@@ -392,6 +412,93 @@ class TriggerCalibration:
         ), None
 
 
+class PinchTracker:
+    """An open hand arms one pinch. Holding the pinch cannot produce repeated grabs."""
+
+    def __init__(self) -> None:
+        self._armed = False
+        self._closed_frames = 0
+        self._pinching = False
+
+    def reset(self) -> None:
+        self._armed = False
+        self._closed_frames = 0
+        self._pinching = False
+
+    def update(
+        self, hand: Hand, width: int, height: int, trigger: TriggerThresholds = DEFAULT_TRIGGER
+    ) -> GunReading:
+        pts = to_points(hand, width, height)
+        span = float(np.linalg.norm(pts[INDEX_MCP, :2] - pts[17, :2]))
+        gap = float(np.linalg.norm(pts[THUMB_TIP, :2] - pts[INDEX_TIP, :2]))
+        distance = gap / span if span > 1.0 else None
+        shot = False
+        if distance is None:
+            self.reset()
+        elif distance > trigger.pinch_open_above:
+            self._pinching = False
+            self._armed = True
+            self._closed_frames = 0
+        elif distance < trigger.pinch_closed_below and self._armed:
+            self._closed_frames += 1
+            if self._closed_frames >= FIRE_CONFIRM_FRAMES:
+                shot = True
+                self.reset()
+                self._pinching = True
+        else:
+            self._closed_frames = 0
+        return GunReading(
+            shot=shot,
+            gun=distance is not None,
+            hammer_angle=round(thumb_angle(pts), 1),
+            thumb_angle=round(thumb_angle(pts), 1),
+            thumb_length=None,
+            swapped=False,
+            cocked=self._armed,
+            palm=palm_point(pts, width),
+            reach=(0.0, 0.0, 0.0),
+            pinching=self._pinching,
+            pinch_distance=distance,
+        )
+
+
+class PinchCalibration:
+    """Use palm-normalized distances so moving closer does not change the trigger."""
+
+    def __init__(self) -> None:
+        # Keep the existing wire steps: up means open, down means pinched.
+        self.position: TriggerPosition | None = None
+        self._readings: dict[TriggerPosition, list[float]] = {"up": [], "down": []}
+        self._settling_frames = 0
+
+    def start(self, position: TriggerPosition) -> None:
+        self.position = position
+        # Ignore the reaction and movement at the start of each instruction.
+        self._settling_frames = PINCH_SETTLING_FRAMES
+
+    def add(self, reading: GunReading) -> None:
+        if self.position is None or reading.pinch_distance is None:
+            return
+        if self._settling_frames > 0:
+            self._settling_frames -= 1
+            return
+        self._readings[self.position].append(reading.pinch_distance)
+
+    def result(self) -> tuple[TriggerThresholds | None, str | None]:
+        opened, closed = self._readings["up"], self._readings["down"]
+        if min(len(opened), len(closed)) < TRIGGER_MIN_SAMPLES:
+            return None, "Keep your palm facing the camera with both fingertips visible"
+        open_gap = float(np.percentile(opened, 20))
+        closed_gap = float(np.percentile(closed, 80))
+        gap = open_gap - closed_gap
+        if gap < PINCH_MIN_GAP:
+            return None, "Separate your index finger and thumb more, then touch their tips together"
+        return TriggerThresholds(
+            pinch_open_above=round(closed_gap + 0.7 * gap, 3),
+            pinch_closed_below=round(closed_gap + 0.3 * gap, 3),
+        ), None
+
+
 def _box(hand: Hand) -> tuple[np.ndarray, np.ndarray]:
     xy = np.array([(p[0], p[1]) for p in hand])
     return xy.min(axis=0), xy.max(axis=0)
@@ -423,9 +530,9 @@ def drop_duplicate_hands(hands: Sequence[Hand]) -> tuple[list[Hand], list[Hand]]
 
 
 class _Track:
-    def __init__(self, track_id: int) -> None:
+    def __init__(self, track_id: int, pinch: bool = False) -> None:
         self.id = track_id
-        self.gun = GunTracker()
+        self.gun = PinchTracker() if pinch else GunTracker()
         self.palm = np.zeros(2)  # in frame widths
         self.last_seen = 0.0
 
@@ -438,9 +545,15 @@ class GunTracks:
     """
 
     def __init__(self) -> None:
+        self.pinch = False
         self._tracks: list[_Track] = []
         self._next_id = 1
         self.ids: list[int] = []  # track id of each hand in the last update, in the same order
+
+    def reset_pinches(self) -> None:
+        for track in self._tracks:
+            if isinstance(track.gun, PinchTracker):
+                track.gun.reset()
 
     def update(
         self,
@@ -471,7 +584,7 @@ class GunTracks:
         for h, hand in enumerate(hands):
             track = matched.get(h)
             if track is None:
-                track = _Track(self._next_id)
+                track = _Track(self._next_id, self.pinch)
                 self._next_id += 1
                 self._tracks.append(track)
             track.palm, track.last_seen = palms[h], t
@@ -488,6 +601,14 @@ class TrackedHand:
 
 
 @dataclass(frozen=True)
+class Slide:
+    direction: Slap
+    path: list[tuple[float, float]]  # mirrored game coordinates
+    radius: float  # small contact tolerance, fraction of game width
+    outlines: list[list[tuple[float, float]]]  # all 21 points on each swept frame
+
+
+@dataclass(frozen=True)
 class GestureFrame:
     tracking: Tracking
     aim: tuple[float, float] | None  # game area 0..1, filtered
@@ -499,14 +620,15 @@ class GestureFrame:
     duplicates: list[Hand]  # detections dropped as a second copy of a hand above
     player_id: int | None
     slap: Slap | None = None  # set on the frame a slap is recognised
+    pinching: bool = False
+    slide: Slide | None = None
 
 
 class PlayerGun:
-    """The game's one crosshair: picks the player's hand, calibrates its neutral position, maps
-    the palm to the game area and smooths it, and turns the hand's trigger into shots.
+    """The game's crosshair follows the fingertip midpoint; closing a pinch grabs a target.
 
-    Every distinct hand in view keeps its own GunTracker, so a second hand can't disturb the
-    player's cocked thumb. The player is the largest hand (closest to the camera) when the
+    Every distinct hand in view keeps its own PinchTracker, so a second hand can't disturb the
+    player's pinch. The player is the largest hand (closest to the camera) when the
     crosshair is acquired, and stays that hand for as long as it is tracked: choosing the largest
     hand on every frame made the crosshair jump between two hands of similar size. While the
     player's hand is briefly out of view (TRACK_TIMEOUT_S) the frame is "lost" even if another
@@ -515,20 +637,22 @@ class PlayerGun:
     def __init__(self, cooldown_ms: float = DEFAULT_COOLDOWN_MS) -> None:
         self.cooldown_ms = cooldown_ms
         self._tracks = GunTracks()
+        self._tracks.pinch = True
+        self.box: Box = (0.2, 0.15, 0.8, 0.75)
         self._player_id: int | None = None
-        self._neutral: np.ndarray | None = None  # the calibrated palm position
-        self._still: deque[tuple[float, float]] = deque(maxlen=CALIBRATION_FRAMES)
         self._filter_x = OneEuroFilter(AIM_MIN_CUTOFF_HZ, AIM_BETA)
         self._filter_y = OneEuroFilter(AIM_MIN_CUTOFF_HZ, AIM_BETA)
-        self._recent_aims: deque[tuple[float, tuple[float, float]]] = deque()  # (t, aim)
         self._last_shot_ms: float | None = None
         self._last_seen_ms: float | None = None  # when the player's hand was last seen
         self._last_aim: tuple[float, float] | None = None
         self.trigger = DEFAULT_TRIGGER
-        self._trigger_calibration: TriggerCalibration | None = None
+        self._trigger_calibration: PinchCalibration | None = None
         # The player's recent palm positions (t, x, y) in frame widths, for slaps
         self._palms: deque[tuple[float, float, float]] = deque()
         self._palms_of: int | None = None  # whose palms they are
+        self._slides: deque[tuple[float, float, float]] = deque()
+        self._slide_outlines: deque[list[tuple[float, float]]] = deque()
+        self._slides_of: int | None = None
         self._last_slap_s: float | None = None
         self._vanished: tuple[float, float, float] | None = None  # (t, x, y) when the hand went
 
@@ -551,7 +675,28 @@ class PlayerGun:
         if self._player_id not in ids and not recently:
             self._player_id = ids[0] if ids else None  # (re)acquire: the largest hand
         t = timestamp_ms / 1000
+        # Back-of-hand swings can lose landmarks or retain an unreliable pose. Check raw
+        # camera motion on every frame, including continued dropouts, independently of pose.
+        # A visible, slowly moving hand belongs to the localized slide path, even if its
+        # open fingers change many pixels. Keep raw-motion slaps for fast moves and dropouts.
+        raw_is_fast = motion is not None and motion.speed >= SLAP_RAW_MIN_SPEED
+        if self._player_id in ids and self._palms:
+            previous_t, previous_x, previous_y = self._palms[-1]
+            current_pts = to_points(hands[ids.index(self._player_id)], width, height)
+            current = tuple(current_pts[:, :2].mean(axis=0) / width)
+            raw_is_fast = raw_is_fast or (
+                t > previous_t
+                and math.hypot(current[0] - previous_x, current[1] - previous_y) / (t - previous_t)
+                >= SLAP_MIN_SPEED
+            )
+        motion_slap = (
+            self._slap(t, motion.dx)
+            if raw_is_fast and motion is not None and motion.share >= SLAP_MIN_MOTION
+            else None
+        )
         if self._player_id not in ids:
+            self._slides.clear()
+            self._slide_outlines.clear()
             if not recently:
                 self._last_aim = None
             return GestureFrame(
@@ -563,45 +708,44 @@ class PlayerGun:
                 tracked,
                 duplicates,
                 self._player_id,
-                slap=self._slap_on_vanishing(t, motion),
+                slap=motion_slap or self._slap_on_vanishing(t, motion),
             )
 
         player = tracked[ids.index(self._player_id)]
         reading = player.reading
         self._last_seen_ms = timestamp_ms
-        slap = self._slap_on_reappearing(reading.palm, t) or self._slap_on_moving(
-            self._player_id, reading.palm, t
+        whole_hand = tuple(to_points(player.landmarks, width, height)[:, :2].mean(axis=0) / width)
+        slap = (
+            motion_slap
+            or self._slap_on_reappearing(whole_hand, t)
+            or self._slap_on_moving(self._player_id, whole_hand, t)
         )
+        slide = self._slide_on_moving(player, width, height, t) if slap is None else None
         if self._trigger_calibration is not None:
             self._trigger_calibration.add(reading)
-        if self._neutral is None and not self._calibrate(reading):
-            self._last_aim = (0.5, 0.5)  # the crosshair waits in the centre
-            return GestureFrame(
-                tracking="calibrating" if reading.gun else "noPose",
-                aim=self._last_aim,
-                fired_at=None,
-                hand=player.landmarks,
-                thumb_angle=reading.hammer_angle,
-                hands=tracked,
-                duplicates=duplicates,
-                player_id=self._player_id,
-                slap=slap,
-            )
-
-        aim = self._aim(reading.palm, timestamp_ms / 1000)
+        midpoint = tuple(
+            (player.landmarks[THUMB_TIP][axis] + player.landmarks[INDEX_TIP][axis]) / 2
+            for axis in range(2)
+        )
+        raw_x, raw_y = to_game_area(midpoint, self.box)
+        aim = (
+            round(self._filter_x(min(max(raw_x, 0.0), 1.0), t), 4),
+            round(self._filter_y(min(max(raw_y, 0.0), 1.0), t), 4),
+        )
+        self._last_aim = aim
         fired_at = None
         just_slapped = self._last_slap_s is not None and t - self._last_slap_s < SLAP_SHOT_BLOCK_S
         if (
             reading.shot
             and not just_slapped
+            and self._trigger_calibration is None
             and (
                 self._last_shot_ms is None or timestamp_ms - self._last_shot_ms >= self.cooldown_ms
             )
         ):
             self._last_shot_ms = timestamp_ms
-            # The shot lands where the gun pointed before the thumb drop dragged the aim. It is
-            # reported separately so the live aim never jumps.
-            fired_at = self._recent_aims[0][1]
+            # A grab lands where the fingertips meet, without the old thumb-drop look-back.
+            fired_at = (min(max(raw_x, 0.0), 1.0), min(max(raw_y, 0.0), 1.0))
         return GestureFrame(
             tracking="ok" if reading.gun else "noPose",
             aim=aim,
@@ -612,7 +756,55 @@ class PlayerGun:
             duplicates=duplicates,
             player_id=self._player_id,
             slap=slap,
+            pinching=reading.pinching,
+            slide=slide,
         )
+
+    def _slide_on_moving(
+        self, player: TrackedHand, width: int, height: int, t: float
+    ) -> Slide | None:
+        """Open-hand sideways sweep: independent of palm orientation and slower than a slap."""
+        reading = player.reading
+        pts = to_points(player.landmarks, width, height)
+        # Only exclude a pinch/degenerate hand; a flat hand need not pass finger-by-finger
+        # extension tests. Detect movement using the centroid of all 21 landmarks.
+        opened = (
+            reading.gun
+            and not reading.pinching
+            and reading.pinch_distance is not None
+            and reading.pinch_distance > self.trigger.pinch_open_above
+        )
+        if not opened or self._slides_of != player.id:
+            self._slides.clear()
+            self._slide_outlines.clear()
+            self._slides_of = player.id
+        if not opened:
+            return None
+        centre = pts[:, :2].mean(axis=0) / width
+        self._slides.append((t, *centre))
+        self._slide_outlines.append([to_game_area(point, self.box) for point in player.landmarks])
+        while self._slides[0][0] < t - SLIDE_WINDOW_S:
+            self._slides.popleft()
+            self._slide_outlines.popleft()
+        first, last = self._slides[0], self._slides[-1]
+        dx, dy = last[1] - first[1], last[2] - first[2]
+        if (
+            last[0] - first[0] < SLIDE_MIN_DURATION_S
+            or abs(dx) < SLIDE_MIN_DISTANCE
+            or abs(dx) / max(last[0] - first[0], 0.001) < SLIDE_MIN_SPEED
+            or abs(dx) < abs(dy) * 1.2
+        ):
+            return None
+        travel = sum(
+            math.hypot(b[1] - a[1], b[2] - a[2])
+            for a, b in zip(self._slides, list(self._slides)[1:], strict=False)
+        )
+        if travel == 0 or math.hypot(dx, dy) / travel < SLIDE_MIN_DIRECTNESS:
+            return None
+        path = [to_game_area((p[1], p[2] * width / height), self.box) for p in self._slides]
+        outlines = list(self._slide_outlines)
+        direction = self._slap(t, dx)
+        return Slide(direction, path, 0.012, outlines) if direction else None
 
     def _slap_on_moving(self, player_id: int, palm: tuple[float, float], t: float) -> Slap | None:
         """A slap when the palm moved SLAP_MIN_DISTANCE within SLAP_WINDOW_S."""
@@ -643,7 +835,11 @@ class PlayerGun:
         self._palms.clear()
         if fast is not None:
             return self._slap(t, fast)
-        if motion is not None and motion.share >= SLAP_MIN_MOTION:
+        if (
+            motion is not None
+            and motion.share >= SLAP_MIN_MOTION
+            and motion.speed >= SLAP_RAW_MIN_SPEED
+        ):
             return self._slap(t, motion.dx)
         return None
 
@@ -653,7 +849,12 @@ class PlayerGun:
         if vanished is None or t - vanished[0] > SLAP_REAPPEAR_S:
             return None
         dx, dy = palm[0] - vanished[1], palm[1] - vanished[2]
-        if math.hypot(dx, dy) < SLAP_REAPPEAR_DISTANCE:
+        elapsed = t - vanished[0]
+        if (
+            math.hypot(dx, dy) < SLAP_REAPPEAR_DISTANCE
+            or elapsed <= 0
+            or math.hypot(dx, dy) / elapsed < SLAP_MIN_SPEED
+        ):
             return None
         return self._slap(t, dx)
 
@@ -661,63 +862,36 @@ class PlayerGun:
         if self._last_slap_s is not None and t - self._last_slap_s < SLAP_COOLDOWN_S:
             return None
         self._last_slap_s = t
+        self._slides.clear()
+        self._slide_outlines.clear()
+        self._vanished = None
         self._palms.clear()
         # The camera image is mirrored on screen: moving to the image's right is a slap left
         return "left" if dx > 0 else "right"
 
     def recenter(self) -> None:
-        """Calibrates the neutral position again, from the next moment the gun is held still."""
-        self._neutral = None
-        self._still.clear()
+        """Reset smoothing; fingertip aim is mapped directly through the camera box."""
         self._filter_x = OneEuroFilter(AIM_MIN_CUTOFF_HZ, AIM_BETA)
         self._filter_y = OneEuroFilter(AIM_MIN_CUTOFF_HZ, AIM_BETA)
-        self._recent_aims.clear()
 
     def calibrate_trigger(
         self, step: Literal["up", "down", "done", "reset"]
     ) -> tuple[TriggerThresholds | None, str | None]:
-        """Drives a trigger calibration: "up" and "down" collect the player's thumb in that
-        position, "done" applies the result (or keeps the current trigger and says why), "reset"
-        goes back to the default trigger. Returns the trigger in use and any problem."""
+        """Collect open (up) and pinched (down) samples, then apply the learned thresholds."""
+        if step in ("up", "done", "reset"):
+            self._tracks.reset_pinches()
         if step == "reset":
             self.trigger, self._trigger_calibration = DEFAULT_TRIGGER, None
             return self.trigger, None
         if step in ("up", "down"):
-            self._trigger_calibration = self._trigger_calibration or TriggerCalibration()
-            self._trigger_calibration.position = step
+            self._trigger_calibration = self._trigger_calibration or PinchCalibration()
+            self._trigger_calibration.start(step)
             return self.trigger, None
         if self._trigger_calibration is None:
-            return self.trigger, "Start with the thumb up"
+            return self.trigger, "Start with your index finger and thumb apart"
         thresholds, problem = self._trigger_calibration.result()
         self._trigger_calibration = None
         if thresholds is None:
             return self.trigger, problem
         self.trigger = thresholds
         return self.trigger, None
-
-    def _calibrate(self, reading: GunReading) -> bool:
-        """Collects the palm while the finger gun is held still; True once calibrated."""
-        if not reading.gun:
-            self._still.clear()
-            return False
-        self._still.append(reading.palm)
-        held = np.array(self._still)
-        if len(held) < CALIBRATION_FRAMES:
-            return False
-        if np.linalg.norm(held - held.mean(axis=0), axis=1).max() > CALIBRATION_STILL:
-            return False  # still moving: the window slides on
-        self._neutral = held.mean(axis=0)
-        return True
-
-    def _aim(self, palm: tuple[float, float], t: float) -> tuple[float, float]:
-        """Mirrored offset from the neutral position, scaled and smoothed; remembers it for the
-        shot look-back."""
-        dx, dy = np.array(palm) - self._neutral
-        raw_x = min(max(0.5 - AIM_GAIN * dx, 0.0), 1.0)
-        raw_y = min(max(0.5 + AIM_GAIN * GAME_ASPECT * dy, 0.0), 1.0)
-        aim = (round(self._filter_x(raw_x, t), 4), round(self._filter_y(raw_y, t), 4))
-        self._last_aim = aim
-        self._recent_aims.append((t, aim))
-        while self._recent_aims[0][0] < t - SHOT_AIM_LOOKBACK_S:
-            self._recent_aims.popleft()
-        return aim

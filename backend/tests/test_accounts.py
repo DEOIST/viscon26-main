@@ -134,7 +134,7 @@ def test_shipped_minigames_complete_first_two_years(client):
     # The real configuration: shooter is Year 1, blackjack is Year 2, both award credits.
     assert GAMES["year-1-slot"]["implemented"] is True
     assert GAMES["year-2-slot"]["implemented"] is True
-    assert [year["games"][0]["title"] for year in YEARS[:2]] == ["Basisprüfung", "Casino night"]
+    assert [year["games"][0]["title"] for year in YEARS[:2]] == ["Bug Bash", "Casino night"]
     headers = register(client)
     profile(client, headers)
     progress = client.post("/api/completions/year-1-slot", headers=headers).json()

@@ -16,10 +16,16 @@ from starlette.websockets import WebSocketDisconnect
 from app.config import settings
 from level1 import cv as cv_service
 from level1.config import cv_settings
-from level1.gesture import CALIBRATION_FRAMES, COCKED_BELOW_DEG, TRIGGER_MIN_SAMPLES, Hand
-from level1.tests.hands import make_hand
+from level1.gesture import (
+    CALIBRATION_FRAMES,
+    COCKED_BELOW_DEG,
+    PINCH_SETTLING_FRAMES,
+    TRIGGER_MIN_SAMPLES,
+    Hand,
+)
+from level1.tests.hands import make_hand, make_pinch_hand
 
-UP, DOWN = [make_hand(thumb_up=True)], [make_hand(thumb_up=False)]
+UP, DOWN = [make_pinch_hand()], [make_pinch_hand(0.1)]
 STILL = [UP] * CALIBRATION_FRAMES  # the player holds the gun still: the aim calibrates
 
 
@@ -185,10 +191,10 @@ def test_frames_turn_into_aim_tracking_and_landmarks(client: TestClient, detecto
         replies = _frames(ws, CALIBRATION_FRAMES + 1)
 
     trackings = [reply["tracking"] for reply in replies]
-    assert trackings == ["calibrating"] * (CALIBRATION_FRAMES - 1) + ["ok", "ok"]
+    assert trackings == ["ok"] * (CALIBRATION_FRAMES + 1)
     last = replies[-1]
     assert last["type"] == "frame"
-    assert last["aim"] == pytest.approx([0.5, 0.5])  # where the gun was held still
+    assert last["aim"] == pytest.approx([0.5132, 0.4751], abs=0.0001)  # mirrored fingertip midpoint
     assert last["firedAt"] is None
     assert len(last["landmarks"]) == 21
     assert last["thumbAngle"] < 32  # cocked
@@ -231,14 +237,14 @@ def test_recenter_calibrates_the_aim_again(client: TestClient, detectors):
         after = _frames(ws, CALIBRATION_FRAMES)
 
     assert reply == {"type": "recenter"}
-    assert after[0]["tracking"] == "calibrating" and after[-1]["tracking"] == "ok"
+    assert after[0]["tracking"] == "ok" and after[-1]["tracking"] == "ok"
 
 
 def test_trigger_calibration_over_the_stream(client: TestClient, detectors):
     # A small drop (camera frames aren't square, so these angles read a little larger, still
     # under the default 55 degrees): never fires until the trigger is calibrated
-    up, down = make_hand(thumb_degrees=10), make_hand(thumb_degrees=40)
-    held = TRIGGER_MIN_SAMPLES
+    up, down = make_pinch_hand(0.6), make_pinch_hand(0.35)
+    held = TRIGGER_MIN_SAMPLES + PINCH_SETTLING_FRAMES
     tryout = [[up]] * 3 + [[down]] * 3
     script = [[up]] * CALIBRATION_FRAMES + tryout + ([[up]] * held + [[down]] * held) * 2 + tryout
     detectors.append(ScriptedDetector(*script))
@@ -257,7 +263,9 @@ def test_trigger_calibration_over_the_stream(client: TestClient, detectors):
 
     assert not any(frame["firedAt"] for frame in before)
     assert done["type"] == "trigger" and done["ok"] is True and done["detail"] is None
-    assert done["thresholds"]["firedAboveDeg"] < 55
+    assert (
+        0.35 < done["thresholds"]["pinchClosedBelow"] < done["thresholds"]["pinchOpenAbove"] < 0.6
+    )
     assert any(frame["firedAt"] for frame in after)
 
 
@@ -570,7 +578,7 @@ def test_a_recording_saves_each_frame_with_the_engine_measurements(
     assert rows[0]["reply"]["fired_at"] is None and rows[1]["reply"]["fired_at"] is not None
     (hand,) = rows[1]["hands"]
     assert hand["player"] is True and hand["cocked"] is False and hand["shot"] is True
-    assert hand["hammer_angle"] > 55 and hand["swapped"] is False and len(hand["palm"]) == 2
+    assert hand["hammer_angle"] is not None and hand["swapped"] is False and len(hand["palm"]) == 2
     assert len(hand["reach"]) == 3 and len(hand["landmarks"]) == 21
     assert rows[1]["duplicates"] == []
 

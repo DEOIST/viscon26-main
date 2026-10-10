@@ -37,10 +37,10 @@ describe("trigger calibration", () => {
         ]);
     });
 
-    it("waits for the finger gun and pauses while it is out of view", () => {
+    it("waits for the hand and pauses while it is out of view", () => {
         const calibration = new TriggerCalibration();
         expect(calibration.update(5000, false)).toBeNull();
-        expect(calibration.instruction()).toMatch(/show your finger gun/);
+        expect(calibration.instruction()).toMatch(/show your palm/);
         expect(calibration.update(16, true)).toBe("up");
         // Time without the hand doesn't count toward the step
         expect(calibration.update(TRIGGER_STEPS[0].ms * 2, false)).toBeNull();

@@ -9,6 +9,7 @@ import { GAME_HEIGHT, GAME_WIDTH } from "../gameSize";
 import { boxForAspect, isSameBox } from "./box";
 import { cameraErrorMessage, closeMessage, cvStreamUrl } from "./cvStream";
 import type {
+    CvSlide,
     CvBoxMessage,
     CvRecenterMessage,
     CvRecordMessage,
@@ -25,12 +26,14 @@ import type { AimPoint, InputSource } from "./InputSource";
 export default class ServerHandInput implements InputSource {
     readonly mode = "camera";
     aim: AimPoint | null = null;
+    pinching = false;
     tracking: Tracking = "lost";
     landmarks: AimPoint[] | null = null;
     latencyMs: number | null = null; // round trip of the last frame, for the debug overlay
     recording = false; // the engine confirmed it saves this stream's frames
     private shots: AimPoint[] = [];
     private triggerReplies: CvTriggerReply[] = [];
+    private slides: CvSlide[] = [];
     private slaps: ("left" | "right")[] = [];
     private video: HTMLVideoElement | null = null;
     private stream: MediaStream | null = null;
@@ -72,7 +75,7 @@ export default class ServerHandInput implements InputSource {
         this.sendControl({ type: "recenter" });
     }
 
-    // Trigger calibration: the scene paces the steps, the engine measures the thumb.
+    // Trigger calibration: the scene paces the steps, the engine measures the fingertip gap.
     calibrateTrigger(step: CvTriggerMessage["step"]) {
         if (this.socket?.readyState !== WebSocket.OPEN) return;
         this.sendControl({ type: "trigger", step });
@@ -82,6 +85,12 @@ export default class ServerHandInput implements InputSource {
         const replies = this.triggerReplies;
         this.triggerReplies = [];
         return replies;
+    }
+
+    takeSlides(): CvSlide[] {
+        const slides = this.slides;
+        this.slides = [];
+        return slides;
     }
 
     takeSlaps(): ("left" | "right")[] {
@@ -151,11 +160,13 @@ export default class ServerHandInput implements InputSource {
         } else if (message.type === "frame") {
             this.latencyMs = performance.now() - this.sentAt;
             this.tracking = message.tracking;
+            this.pinching = message.pinching ?? false;
             this.aim = toAim(message.aim);
             this.landmarks =
                 message.landmarks?.map((point) => toAim(point)!) ?? null;
             if (message.firedAt) this.shots.push(toAim(message.firedAt)!);
             if (message.slap) this.slaps.push(message.slap);
+            if (message.slide) this.slides.push(message.slide);
             this.pacer.done();
         } else if (message.type === "record") {
             if (message.dir) console.info(`Recording frames to ${message.dir}`);

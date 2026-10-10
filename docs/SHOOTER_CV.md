@@ -1,18 +1,13 @@
-# Finger-gun shooter: computer-vision design
+# Level 1 computer vision
 
-This is the feature that wins or loses the demo. This document explains how we
-make "shoot with your bare hand" feel precise, fast and reliable on a laptop
-webcam in a noisy venue. Gameplay rules are in
-[GAME_DESIGN.md](GAME_DESIGN.md#minigame-2-finger-gun-shooter-basisprüfung);
-system context is in [ARCHITECTURE.md](ARCHITECTURE.md).
+For the current Bug Bash game, pinch calibration, whole-hand slaps and localized swipes,
+stream fields, controls, thresholds and verification status, see [BUG_BASH.md](BUG_BASH.md).
+That document is the authoritative description of the current local implementation.
 
-> **Status (2026-10-10): built (#13), as level 1.** The game lives in
-> `frontend/level1/` (mounted by the outer shell through `src/games/registry.ts`)
-> and its finger-detection engine in `backend/level1/` (registered in
-> `app/routers/__init__.py`). The shooter scene (warm-up, countdown, 60-second
-> round) is playable with the finger gun and with the mouse. Values marked "start value"
-> are starting points to tune at the venue; values marked "measured" come from
-> [Measurements](#measurements). [Not built yet](#not-built-yet) lists what is left.
+The sections below describe the original finger-gun shooter and its measurements. Keep
+them as historical reference; thumb-drop accuracy, crosshair behavior and original visuals
+are not claims about the current pinch/throw game. The MediaPipe deployment, frame
+validation and recording architecture remain relevant.
 
 ## Acceptance criteria (measured on the demo setup)
 

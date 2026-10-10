@@ -97,3 +97,12 @@ def make_hand(
     index_tip = _index_at_camera()[-1]  # also for a swapped hand: same palm, other labels
     wrist = (tip[0] - index_tip[0] * scale, tip[1] + index_tip[1] * scale)
     return tuple((wrist[0] + wx * scale, wrist[1] - wy * scale, wz * scale) for wx, wy, wz in world)
+
+
+def make_pinch_hand(gap: float = 1.0, **kwargs) -> Hand:
+    """A controlled tip gap in palm widths, independent of camera distance."""
+    hand = list(make_hand(middle=True, ring=True, pinky=True, **kwargs))
+    span = math.dist(hand[5][:2], hand[17][:2])
+    x, y, z = hand[8]
+    hand[4] = (x + gap * span, y, z)
+    return tuple(hand)

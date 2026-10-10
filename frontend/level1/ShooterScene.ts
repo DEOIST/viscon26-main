@@ -1,19 +1,24 @@
-// The finger-gun shooter ("Basisprüfung", docs/GAME_DESIGN.md). Exam questions fly at the player
-// with fake depth (depth.ts) down a dark corridor that reacts to every shot (Backdrop.ts); the
-// player aims and shoots through the finger-detection engine or the mouse (input/). Phases: trigger
-// calibration (camera only, triggerCalibration.ts), warm-up (three practice papers), countdown, a
-// 60-second round, then the score. The juice is part of the feature.
+// Bug Bash: pinch and throw bugs, slap burning fuses, and swat rare side interruptions.
+// Calibration and practice lead into a 60-second coding round.
 
 import { Scene } from "phaser";
 import Backdrop from "./Backdrop";
+import SlapWalkers from "./SlapWalkers";
+import { makeBug, makeCodeBomb, drawFuse } from "./CodeTargets";
 import { drawHandOverlay } from "./handOverlay";
-import { glideAim } from "./glide";
 import { floatText, muzzleFlash, shatter, textStyle } from "./effects";
-import { pickLine } from "../src/games/shared/minigame";
 import { GAME_HEIGHT, GAME_WIDTH } from "./gameSize";
 import {
+    GRAB_TRACKING_GRACE_MS,
+    GRAB_RADIUS_MULTIPLIER,
+    THROW_FLIGHT_MS,
+    THROW_MIN_DISTANCE,
+    THROW_MIN_SPEED,
+    THROW_MOTION_WINDOW_MS,
     APPROACH_SECONDS,
-    COFFEE_BONUS_SECONDS,
+    BUG_MISSED_PENALTY,
+    CODE_LOST_PENALTY,
+    INTERRUPTER_POINTS,
     COUNTDOWN_SECONDS,
     PRACTICE_MAX_SECONDS,
     PRACTICE_POINTS,
@@ -23,6 +28,8 @@ import {
     type TargetKind,
 } from "./config";
 import { project } from "./depth";
+import { swipeHits } from "./swipeHit";
+import type { CvSlide } from "./input/cvStream";
 import { hitTest } from "./hitTest";
 import { shooterScore, shotPoints } from "./score";
 import { pickTargetKind, spawnIntervalMs } from "./spawn";
@@ -49,14 +56,17 @@ interface Target {
     view: GameObjects.Container;
 }
 
+interface HeldObject {
+    target: Target | null; // null for the warm-up paper
+    view: GameObjects.Container;
+    origin: AimPoint;
+    samples: { x: number; y: number; t: number }[];
+    lostMs: number;
+    mode: "camera" | "mouse";
+}
+
 type Phase = "trigger" | "practice" | "countdown" | "playing" | "over";
 
-const BUILT_IN_QUESTIONS = [
-    "Prove it.",
-    "Is P = NP?",
-    "Integrate this.",
-    "Why?",
-];
 const PAPER = 0xfdfcf7;
 const HIT_FLASH = 0xf2c14e;
 const MISS_FLASH = 0xff4d4d;
@@ -71,6 +81,7 @@ const TARGET_COLORS: Record<TargetKind, number> = {
 export default class ShooterScene extends Scene {
     private readonly args: ShooterSceneArgs;
     private targets: Target[] = [];
+    private held: HeldObject | null = null;
     private nextId = 1;
     private points = 0;
     private hits = 0;
@@ -79,16 +90,15 @@ export default class ShooterScene extends Scene {
     private secondsLeft = ROUND_SECONDS;
     private elapsedMs = 0;
     private nextSpawnMs = 0;
-    private questionIndex = 0;
+    private savedCode = 0;
     private practiceIndex = 0;
     private practiceTarget: GameObjects.Container | null = null;
     private practiceTimer: Time.TimerEvent | null = null;
     private trigger: TriggerCalibration | null = null;
     private phase: Phase = "practice";
-    private lastLine: string | undefined;
     private backdrop!: Backdrop;
+    private slapWalkers!: SlapWalkers;
     private overlay!: GameObjects.Graphics;
-    private shownAim: AimPoint | null = null;
     private subtitle!: GameObjects.Text;
     private hud!: GameObjects.Text;
     private hint!: GameObjects.Text;
@@ -101,7 +111,15 @@ export default class ShooterScene extends Scene {
     }
 
     create() {
+        const canvas = this.game.canvas;
+        const previousCursor = canvas.style.cursor;
+        canvas.style.cursor = "none";
+        this.events.once("shutdown", () => {
+            canvas.style.cursor = previousCursor;
+        });
+        this.addFullscreenControl();
         this.backdrop = new Backdrop(this);
+        this.slapWalkers = new SlapWalkers(this);
         this.overlay = this.add.graphics().setDepth(2000);
         this.subtitle = this.add
             .text(GAME_WIDTH / 2, 20, "", textStyle(30, "#f5f5f5"))
@@ -139,7 +157,11 @@ export default class ShooterScene extends Scene {
             .setAlign("center")
             .setWordWrapWidth(GAME_WIDTH * 0.8)
             .setDepth(2002);
-        this.say("intro", `Basisprüfung time, ${this.args.playerName}!`);
+        this.subtitle.setText(`Bug Bash — ship it, ${this.args.playerName}!`);
+        // Mouse/keyboard fallback for the same slap action.
+        this.input.keyboard?.on("keydown-SPACE", () => {
+            if (this.phase === "playing") this.handleSlap("right");
+        });
         // T runs the trigger check again, but only before the round starts
         this.input.keyboard?.on("keydown-T", () => {
             if (this.phase === "practice") this.restartTriggerCalibration();
@@ -148,49 +170,104 @@ export default class ShooterScene extends Scene {
         else this.startPractice();
     }
 
+    private addFullscreenControl() {
+        const button = this.add
+            .text(
+                GAME_WIDTH - 18,
+                65,
+                "F  ⛶ Fullscreen",
+                textStyle(15, "#c5d8ef"),
+            )
+            .setOrigin(1, 0)
+            .setDepth(2003)
+            .setInteractive({ useHandCursor: true });
+        const toggle = () => {
+            if (this.scale.isFullscreen) this.scale.stopFullscreen();
+            else this.scale.startFullscreen();
+        };
+        const updateLabel = () =>
+            button.setText(
+                this.scale.isFullscreen
+                    ? "F  ⛶ Exit fullscreen"
+                    : "F  ⛶ Fullscreen",
+            );
+        const failed = () =>
+            floatText(
+                this,
+                GAME_WIDTH / 2,
+                130,
+                "Fullscreen unavailable in this browser",
+                "#ffc1a1",
+            );
+        const key = (event: KeyboardEvent) => {
+            const element = event.target as HTMLElement | null;
+            if (
+                event.repeat ||
+                event.ctrlKey ||
+                event.metaKey ||
+                event.altKey ||
+                element?.isContentEditable ||
+                element?.tagName === "INPUT" ||
+                element?.tagName === "TEXTAREA"
+            )
+                return;
+            event.preventDefault();
+            toggle();
+        };
+        button.on("pointerdown", toggle);
+        this.input.keyboard?.on("keydown-F", key);
+        this.scale.on("enterfullscreen", updateLabel);
+        this.scale.on("leavefullscreen", updateLabel);
+        this.scale.on("fullscreenfailed", failed);
+        this.scale.on("fullscreennotsupported", failed);
+        this.events.once("shutdown", () => {
+            this.input.keyboard?.off("keydown-F", key);
+            this.scale.off("enterfullscreen", updateLabel);
+            this.scale.off("leavefullscreen", updateLabel);
+            this.scale.off("fullscreenfailed", failed);
+            this.scale.off("fullscreennotsupported", failed);
+            if (this.scale.isFullscreen) this.scale.stopFullscreen();
+        });
+    }
+
     update(_time: number, delta: number) {
         const { input } = this.args;
         this.backdrop.update(delta, {
             streak: this.streak,
+            isAdvancing: this.phase === "playing",
             isFinalStretch:
                 this.phase === "playing" &&
                 this.secondsLeft <= FINAL_STRETCH_SECONDS,
         });
-        this.shownAim =
-            input.mode === "camera"
-                ? glideAim(this.shownAim, input.aim, delta)
-                : input.aim;
-        drawHandOverlay(this.overlay, input, this.shownAim);
+        if (this.phase === "playing") this.slapWalkers.update(delta);
+        drawHandOverlay(this.overlay, input, null);
         this.hint.setText(this.hintText());
         this.updateHud();
         const shots = this.args.input.takeShots(); // always drained, so none pile up
-        // Slaps are only shown for now (no game effect yet), in every phase
         for (const side of input.takeSlaps()) {
-            const x = GAME_WIDTH * (side === "left" ? 0.3 : 0.7);
-            floatText(
-                this,
-                x,
-                GAME_HEIGHT * 0.45,
-                `SLAP! ${side === "left" ? "⬅" : "➡"}`,
-                "#ff4d4d",
-            );
-            this.backdrop.pulse(x, GAME_HEIGHT * 0.45, MISS_FLASH, 0.8);
+            if (this.phase === "playing") this.handleSlap(side);
+        }
+        for (const slide of input.takeSlides()) {
+            if (this.phase === "playing")
+                this.handleSlap(slide.direction, slide);
         }
         if (this.phase === "trigger") {
             this.updateTriggerCalibration(delta, shots);
             return;
         }
         if (this.phase === "practice") {
+            this.updateHeld(delta);
             for (const shot of shots)
-                this.practiceShot(shot.x * GAME_WIDTH, shot.y * GAME_HEIGHT);
+                this.grab(shot.x * GAME_WIDTH, shot.y * GAME_HEIGHT);
             return;
         }
         if (this.phase !== "playing") return;
         this.elapsedMs += delta;
         if (this.elapsedMs >= this.nextSpawnMs) this.spawn();
         this.moveTargets(delta);
+        this.updateHeld(delta);
         for (const shot of shots)
-            this.shoot(shot.x * GAME_WIDTH, shot.y * GAME_HEIGHT);
+            this.grab(shot.x * GAME_WIDTH, shot.y * GAME_HEIGHT);
     }
 
     private startTriggerCalibration() {
@@ -216,18 +293,21 @@ export default class ShooterScene extends Scene {
             const x = shot.x * GAME_WIDTH;
             const y = shot.y * GAME_HEIGHT;
             muzzleFlash(this, x, y);
-            floatText(this, x, y, "BANG!", "#f2c14e");
+            floatText(this, x, y, "GRAB!", "#f2c14e");
             this.backdrop.pulse(x, y, HIT_FLASH, 0.6);
         }
         this.instruction.setText(trigger.instruction());
         if (!trigger.isFinished) return;
+        // Enter may skip while samples are being collected: end the server's collection too.
+        if (trigger.usedDefault && input.mode === "camera")
+            input.calibrateTrigger("done");
         this.instruction.setText("");
         if (trigger.usedDefault && input.mode === "camera")
             floatText(
                 this,
                 GAME_WIDTH / 2,
                 GAME_HEIGHT * 0.3,
-                "Standard trigger (T to try again)",
+                "Standard pinch (T to try again)",
                 "#ffffff",
             );
         this.trigger = null;
@@ -256,24 +336,12 @@ export default class ShooterScene extends Scene {
 
     private showPracticeTarget() {
         const point = PRACTICE_POINTS[this.practiceIndex];
-        const disc = this.add
-            .circle(0, 0, PRACTICE_RADIUS, PAPER, 0.9)
-            .setStrokeStyle(6, 0xf2c14e);
-        const label = this.add
-            .text(
-                0,
-                0,
-                `Practice\n${this.practiceIndex + 1} / ${PRACTICE_POINTS.length}`,
-                { ...textStyle(28, "#111318", "bold"), strokeThickness: 0 },
-            )
-            .setAlign("center")
-            .setOrigin(0.5);
-        this.practiceTarget = this.add
-            .container(point.x * GAME_WIDTH, point.y * GAME_HEIGHT, [
-                disc,
-                label,
-            ])
+        this.practiceTarget = makeBug(this)
+            .setPosition(point.x * GAME_WIDTH, point.y * GAME_HEIGHT)
             .setDepth(1000);
+        this.instruction.setText(
+            `Practice: grab and throw bug ${this.practiceIndex + 1} / ${PRACTICE_POINTS.length}`,
+        );
         this.tweens.add({
             targets: this.practiceTarget,
             scale: 1.08,
@@ -283,27 +351,8 @@ export default class ShooterScene extends Scene {
         });
     }
 
-    private practiceShot(x: number, y: number) {
-        muzzleFlash(this, x, y);
-        const target = this.practiceTarget;
-        const isHit =
-            target !== null &&
-            Math.hypot(x - target.x, y - target.y) <=
-                PRACTICE_RADIUS * target.scale;
-        if (!target || !isHit) {
-            this.backdrop.pulse(x, y, MISS_FLASH, 0.35);
-            return;
-        }
-        this.backdrop.pulse(target.x, target.y, HIT_FLASH, 0.9);
-        shatter(this, target.x, target.y, PAPER);
-        this.removePracticeTarget();
-        this.practiceIndex += 1;
-        if (this.practiceIndex < PRACTICE_POINTS.length)
-            this.showPracticeTarget();
-        else this.endPractice();
-    }
-
     private removePracticeTarget() {
+        if (this.held?.view === this.practiceTarget) this.held = null;
         if (!this.practiceTarget) return;
         this.tweens.killTweensOf(this.practiceTarget);
         this.practiceTarget.destroy();
@@ -313,11 +362,15 @@ export default class ShooterScene extends Scene {
     private endPractice() {
         if (this.phase !== "practice") return;
         this.removePracticeTarget();
+        this.instruction.setText("");
         this.phase = "countdown";
         this.startCountdown();
     }
 
     private startCountdown() {
+        this.subtitle.setText(
+            "Throw bugs. Slap or slide an open hand to save the code!",
+        );
         let remaining = COUNTDOWN_SECONDS;
         this.banner.setText(String(remaining));
         this.time.addEvent({
@@ -350,17 +403,18 @@ export default class ShooterScene extends Scene {
         if (this.phase !== "playing") return;
         this.secondsLeft -= 1;
         if (this.secondsLeft === Math.floor(ROUND_SECONDS / 2))
-            this.say("halfway", "Halfway there.");
+            this.subtitle.setText("Halfway to shipping. Keep the bugs out!");
         if (this.secondsLeft === FINAL_STRETCH_SECONDS)
-            this.say("boss", "Final stretch!");
+            this.subtitle.setText("Last push before the release!");
         if (this.secondsLeft <= 0) this.endRound();
     }
 
     private endRound() {
+        this.held = null;
         this.phase = "over";
-        this.banner.setText("Pens down!");
+        this.banner.setText("Build complete!");
         this.backdrop.pulse(GAME_WIDTH / 2, GAME_HEIGHT / 2, HIT_FLASH, 1);
-        this.say("end", "Time's up!");
+        this.subtitle.setText("Debugging shift complete.");
         this.time.delayedCall(1400, () =>
             this.args.finish({
                 score: shooterScore(this.points),
@@ -368,6 +422,8 @@ export default class ShooterScene extends Scene {
                     points: this.points,
                     hits: this.hits,
                     shots: this.shots,
+                    savedCode: this.savedCode,
+                    interruptions: this.slapWalkers.knockedOut,
                 },
             }),
         );
@@ -388,60 +444,97 @@ export default class ShooterScene extends Scene {
     }
 
     private makeView(kind: TargetKind): GameObjects.Container {
-        if (kind === "deadline") {
-            const card = this.add
-                .rectangle(0, 0, 210, 120, TARGET_COLORS.deadline)
-                .setStrokeStyle(4, 0xffffff);
-            const label = this.add
-                .text(0, 0, "DEADLINE\n23:59", textStyle(30, "#ffffff", "bold"))
-                .setOrigin(0.5)
-                .setAlign("center");
-            return this.add.container(0, 0, [card, label]);
-        }
-        if (kind === "coffee") {
-            const cup = this.add
-                .circle(0, 0, 64, TARGET_COLORS.coffee)
-                .setStrokeStyle(4, 0xf5e6d3);
-            const label = this.add
-                .text(
-                    0,
-                    0,
-                    `☕ +${COFFEE_BONUS_SECONDS}s`,
-                    textStyle(30, "#ffffff", "bold"),
-                )
-                .setOrigin(0.5);
-            return this.add.container(0, 0, [cup, label]);
-        }
-        const paper = this.add
-            .rectangle(0, 0, 240, 150, PAPER)
-            .setStrokeStyle(3, 0x1a1d24);
-        const label = this.add
-            .text(0, 0, this.nextQuestion(), {
-                ...textStyle(24, "#111318"),
-                strokeThickness: 0,
-                wordWrap: { width: 210 },
-                align: "center",
-            })
-            .setOrigin(0.5);
-        const view = this.add.container(0, 0, [paper, label]);
-        view.setRotation((Math.random() - 0.5) * 0.25);
-        return view;
+        return kind === "deadline" ? makeCodeBomb(this) : makeBug(this);
     }
 
-    private nextQuestion(): string {
-        const questions = this.args.dialogue?.questions?.length
-            ? this.args.dialogue.questions
-            : BUILT_IN_QUESTIONS;
-        const question = questions[this.questionIndex % questions.length];
-        this.questionIndex += 1;
-        return question;
+    private handleSlap(side: "left" | "right", slide?: CvSlide) {
+        const knockedOut = this.slapWalkers.slap(side, slide);
+        if (knockedOut) this.points += INTERRUPTER_POINTS;
+        const burning = this.targets.filter((target) => {
+            if (target.kind !== "deadline") return false;
+            if (!slide) return true;
+            const fire = target.view.getData("fire") as AimPoint;
+            return (
+                fire &&
+                swipeHits(
+                    slide,
+                    target.view.x + fire.x * target.view.scaleX,
+                    target.view.y + fire.y * target.view.scaleY,
+                    20 * target.view.scaleX,
+                )
+            );
+        });
+        for (const target of burning) {
+            this.targets = this.targets.filter(
+                (candidate) => candidate !== target,
+            );
+            const fuse = target.view.getData("fuse") as GameObjects.Graphics;
+            fuse.clear();
+            this.savedCode += 1;
+            const gained = shotPoints("deadline", this.streak);
+            this.points += gained;
+            this.streak += 1;
+            floatText(
+                this,
+                target.view.x,
+                target.view.y - 70,
+                `Code saved! +${gained}`,
+                "#9ff3c6",
+            );
+            this.tweens.add({
+                targets: target.view,
+                y: target.view.y - 60,
+                alpha: 0,
+                delay: 250,
+                duration: 400,
+                onComplete: () => target.view.destroy(),
+            });
+        }
+        if (burning.length || knockedOut)
+            this.backdrop.pulse(GAME_WIDTH / 2, GAME_HEIGHT / 2, 0x76d8ad, 0.7);
     }
 
     private moveTargets(delta: number) {
         for (const target of [...this.targets]) {
+            if (target === this.held?.target) continue;
             target.z -= delta / 1000 / APPROACH_SECONDS[target.kind];
             if (target.z <= 0) {
-                this.removeTarget(target, false); // it reached the player: gone, no penalty
+                const isCode = target.kind === "deadline";
+                const penalty = isCode ? CODE_LOST_PENALTY : BUG_MISSED_PENALTY;
+                this.points -= penalty;
+                this.streak = 0;
+                floatText(
+                    this,
+                    target.view.x,
+                    target.view.y,
+                    isCode
+                        ? `Code exploded! −${penalty}`
+                        : `Bug escaped! −${penalty}`,
+                    "#ff8a8a",
+                );
+                if (isCode) {
+                    shatter(this, target.view.x, target.view.y, 0xff862c);
+                    this.cameras.main.shake(160, 0.006);
+                    this.backdrop.pulse(
+                        target.view.x,
+                        target.view.y,
+                        MISS_FLASH,
+                        1,
+                    );
+                }
+                this.removeTarget(target, false);
+                continue;
+            }
+            if (target.kind === "deadline") {
+                target.view
+                    .setPosition(
+                        (0.27 + target.laneX * 0.59) * GAME_WIDTH,
+                        (0.26 + (target.nearY - 0.6) * 1.2) * GAME_HEIGHT,
+                    )
+                    .setScale(0.82)
+                    .setAlpha(1)
+                    .setDepth(1100);
+                drawFuse(target.view, 1 - target.z, this.time.now);
                 continue;
             }
             const view = project(target.laneX, target.nearY, target.z);
@@ -453,38 +546,183 @@ export default class ShooterScene extends Scene {
         }
     }
 
-    private shoot(x: number, y: number) {
-        this.shots += 1;
-        muzzleFlash(this, x, y);
-        const hitId = hitTest(
-            { x, y },
-            this.targets.map((target) => ({
-                id: target.id,
-                x: target.view.x,
-                y: target.view.y,
-                radius: TARGET_RADIUS * target.view.scaleX,
-                depth: target.view.depth,
-            })),
-        );
-        const target = this.targets.find((candidate) => candidate.id === hitId);
-        const gained = shotPoints(target?.kind ?? null, this.streak);
-        this.points += gained;
-        if (!target) {
-            this.streak = 0;
-            this.backdrop.pulse(x, y, MISS_FLASH, 0.45);
-            floatText(this, x, y, `${gained}`, "#ff8a8a");
-            if ((this.shots - this.hits) % 3 === 1) this.say("miss", "Missed!");
+    private grab(x: number, y: number) {
+        if (this.held) return;
+        if (this.phase === "practice") {
+            const view = this.practiceTarget;
+            if (
+                !view ||
+                Math.hypot(x - view.x, y - view.y) >
+                    PRACTICE_RADIUS * view.scaleX * GRAB_RADIUS_MULTIPLIER
+            )
+                return;
+            this.hold(view, null, x, y);
             return;
         }
-        this.hits += 1;
-        this.streak += 1;
-        this.backdrop.pulse(target.view.x, target.view.y, HIT_FLASH, 1);
-        if (target.kind === "coffee") this.secondsLeft += COFFEE_BONUS_SECONDS;
-        floatText(this, target.view.x, target.view.y, `+${gained}`, "#f2c14e");
-        this.cameras.main.shake(90, 0.004);
-        if (this.streak === 3 || this.streak % 6 === 0)
-            this.say("streak", "What a streak!");
-        this.removeTarget(target, true);
+        this.shots += 1;
+        const hitId = hitTest(
+            { x, y },
+            this.targets
+                .filter((target) => target.kind !== "deadline")
+                .map((target) => ({
+                    id: target.id,
+                    x: target.view.x,
+                    y: target.view.y,
+                    radius:
+                        TARGET_RADIUS *
+                        target.view.scaleX *
+                        GRAB_RADIUS_MULTIPLIER,
+                    depth: target.view.depth,
+                })),
+        );
+        const target = this.targets.find((candidate) => candidate.id === hitId);
+        if (!target) {
+            const gained = shotPoints(null, this.streak);
+            this.points += gained;
+            this.streak = 0;
+            floatText(this, x, y, "Nothing grabbed", "#ff8a8a");
+            return;
+        }
+        this.hold(target.view, target, x, y);
+    }
+
+    private hold(
+        view: GameObjects.Container,
+        target: Target | null,
+        x: number,
+        y: number,
+    ) {
+        this.tweens.killTweensOf(view);
+        view.setPosition(x, y).setAlpha(1).setDepth(1900);
+        this.held = {
+            view,
+            target,
+            origin: { x, y },
+            samples: [{ x, y, t: this.time.now }],
+            lostMs: 0,
+            mode: this.args.input.mode,
+        };
+        floatText(this, x, y - 80, "Grabbed! Move and release", "#f2c14e");
+    }
+
+    private handPoint(): AimPoint | null {
+        const input = this.args.input;
+        const hand = input.landmarks;
+        if (input.mode === "camera" && hand)
+            return {
+                x: ((hand[4].x + hand[8].x) * GAME_WIDTH) / 2,
+                y: ((hand[4].y + hand[8].y) * GAME_HEIGHT) / 2,
+            };
+        return input.aim
+            ? { x: input.aim.x * GAME_WIDTH, y: input.aim.y * GAME_HEIGHT }
+            : null;
+    }
+
+    private updateHeld(delta: number) {
+        const held = this.held;
+        if (!held) return;
+        const input = this.args.input;
+        if (input.mode !== held.mode) {
+            this.dropHeld();
+            return;
+        }
+        if (input.tracking !== "ok") {
+            held.lostMs += delta;
+            if (held.lostMs >= GRAB_TRACKING_GRACE_MS) this.dropHeld();
+            return;
+        }
+        held.lostMs = 0;
+        const point = this.handPoint();
+        if (point) {
+            held.view.setPosition(point.x, point.y);
+            held.samples.push({ ...point, t: this.time.now });
+            while (
+                held.samples.length > 2 &&
+                held.samples[1].t < this.time.now - THROW_MOTION_WINDOW_MS
+            )
+                held.samples.shift();
+        }
+        if (input.pinching) return;
+        const first = held.samples[0];
+        const last = held.samples[held.samples.length - 1];
+        let dx = last.x - first.x;
+        let dy = last.y - first.y;
+        const speed =
+            Math.hypot(dx, dy) / Math.max((last.t - first.t) / 1000, 0.001);
+        const travelX = last.x - held.origin.x;
+        const travelY = last.y - held.origin.y;
+        if (
+            speed < THROW_MIN_SPEED &&
+            Math.hypot(travelX, travelY) < THROW_MIN_DISTANCE
+        ) {
+            this.dropHeld();
+            return;
+        }
+        if (Math.hypot(dx, dy) < 5) {
+            dx = travelX;
+            dy = travelY;
+        }
+        this.throwHeld(dx, dy);
+    }
+
+    private dropHeld() {
+        const held = this.held;
+        if (!held) return;
+        this.held = null;
+        if (!held.target) {
+            const point = PRACTICE_POINTS[this.practiceIndex];
+            held.view
+                .setPosition(point.x * GAME_WIDTH, point.y * GAME_HEIGHT)
+                .setDepth(1000);
+        }
+        // Live targets resume their approach on the next frame.
+    }
+
+    private throwHeld(dx: number, dy: number) {
+        const held = this.held;
+        if (!held) return;
+        this.held = null;
+        const target = held.target;
+        if (target) {
+            this.targets = this.targets.filter(
+                (candidate) => candidate !== target,
+            );
+            const gained = shotPoints(target.kind, this.streak);
+            this.points += gained;
+            this.hits += 1;
+            this.streak += 1;
+            floatText(
+                this,
+                held.view.x,
+                held.view.y,
+                `Bug squashed! +${gained}`,
+                "#f2c14e",
+            );
+            if (this.streak === 3 || this.streak % 6 === 0)
+                this.subtitle.setText("Clean code. Great streak!");
+        } else {
+            this.practiceTarget = null;
+            this.practiceIndex += 1;
+        }
+        this.backdrop.pulse(held.view.x, held.view.y, HIT_FLASH, 0.8);
+        const length = Math.hypot(dx, dy) || 1;
+        const flight = GAME_WIDTH + GAME_HEIGHT;
+        this.tweens.add({
+            targets: held.view,
+            x: held.view.x + (dx / length) * flight,
+            y: held.view.y + (dy / length) * flight,
+            angle: held.view.angle + (dx < 0 ? -360 : 360),
+            scale: 0.15,
+            alpha: 0,
+            duration: THROW_FLIGHT_MS,
+            ease: "Quad.easeIn",
+            onComplete: () => held.view.destroy(),
+        });
+        if (!target) {
+            if (this.practiceIndex < PRACTICE_POINTS.length)
+                this.showPracticeTarget();
+            else this.endPractice();
+        }
     }
 
     private removeTarget(target: Target, isHit: boolean) {
@@ -503,36 +741,27 @@ export default class ShooterScene extends Scene {
         const { input } = this.args;
         if (input.mode === "mouse" && input.notice) return input.notice;
         if (input.mode === "camera" && input.tracking === "calibrating")
-            return "Hold your finger gun still, pointing at the centre";
+            return "Show your palm to the camera, index finger and thumb apart";
         if (input.mode === "camera" && input.tracking === "noPose")
-            return "Make a finger gun 👉  thumb up, drop it to shoot";
+            return "Face your palm toward the camera; pinch your index finger and thumb";
         if (input.mode === "camera" && input.tracking === "lost")
             return "Show your hand to the camera";
-        if (this.phase === "trigger") return "Enter skips the trigger check";
+        if (this.phase === "trigger") return "Enter skips the pinch check";
+        if (this.held)
+            return "Move your hand, then open your fingers to throw the bug";
         if (this.phase === "practice")
-            return "Warm-up: shoot the practice paper (Enter skips, T re-checks the trigger)";
+            return "Pinch a bug, move your hand and release to throw (Enter skips, T calibrates)";
+        if (this.phase === "playing")
+            return input.mode === "mouse"
+                ? "Drag bugs and release • SPACE saves code and swats interruptions"
+                : "Pinch + throw bugs • Slap or slide an open hand to save code";
         return "";
     }
 
     private updateHud() {
         const { input } = this.args;
-        const device =
-            input.mode === "camera"
-                ? `✋ ${input.latencyMs === null ? "…" : `${Math.round(input.latencyMs)} ms`}${input.recording ? "   ● REC (R to stop)" : ""}`
-                : "🖱 mouse";
         this.hud.setText(
-            `Points ${this.points}   Hits ${this.hits}/${this.shots}   ${Math.max(0, this.secondsLeft)} s   ${device}`,
+            `Score ${this.points}   Bugs ${this.hits}   Code saved ${this.savedCode}   KO ${this.slapWalkers.knockedOut}   ${Math.max(0, this.secondsLeft)}s   ${input.mode === "mouse" ? "SPACE = slap" : "✋"}`,
         );
-    }
-
-    private say(event: string, fallback: string) {
-        const line = pickLine(
-            this.args.dialogue,
-            event,
-            fallback,
-            this.lastLine,
-        );
-        this.lastLine = line;
-        this.subtitle.setText(line);
     }
 }

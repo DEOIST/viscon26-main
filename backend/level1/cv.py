@@ -155,17 +155,20 @@ class CvSession:
         self._detector = detector
         self._gun = PlayerGun()
         self.box = DEFAULT_BOX
+        self._gun.box = self.box
         self._recorder: Recorder | None = None
         self._started = time.monotonic()
         self._last_timestamp_ms = -1
         self._closed = False
         # For slaps that blur the hand away (gesture.Motion): a small grey copy of the last frame,
         # and the player's hand box (x0, y0, x1, y1 in 0..1) when it was last seen
+        self._motion_centre: tuple[float, float, float] | None = None
         self._previous_grey: np.ndarray | None = None
         self._hand_box: tuple[float, float, float, float] | None = None
 
     def set_box(self, box: Box) -> None:
         self.box = box
+        self._gun.box = box
 
     def set_cooldown(self, cooldown_ms: float) -> None:
         self._gun.cooldown_ms = cooldown_ms
@@ -221,6 +224,8 @@ class CvSession:
             thumb_angle=gesture.thumb_angle,
             processing_ms=round((time.perf_counter() - started) * 1000, 1),
             slap=gesture.slap,
+            pinching=gesture.pinching,
+            slide=asdict(gesture.slide) if gesture.slide else None,
         )
         if self._recorder:
             self._recorder.write(jpeg, (width, height), timestamp_ms, gesture, reply)
@@ -230,10 +235,12 @@ class CvSession:
         """Share of the area around the last hand that changed sharply since the last frame."""
         grey = rgb[::MOTION_STEP, ::MOTION_STEP].mean(axis=2)
         previous, self._previous_grey = self._previous_grey, grey
-        if previous is None or previous.shape != grey.shape or self._hand_box is None:
+        if previous is None or previous.shape != grey.shape:
+            self._motion_centre = None
             return None
         height, width = grey.shape
-        x0, y0, x1, y1 = self._hand_box
+        # Even before a back-facing hand has been recognized, watch the central camera area.
+        x0, y0, x1, y1 = self._hand_box or (0.3, 0.25, 0.7, 0.75)
         # The hand's box, widened by its own size each way: a slap leaves it within a frame
         w, h = x1 - x0, y1 - y0
         left, right = max(0, int((x0 - w) * width)), min(width, int((x1 + w) * width) + 1)
@@ -242,11 +249,21 @@ class CvSession:
             return None
         changed = np.abs(grey[top:bottom, left:right] - previous[top:bottom, left:right])
         changed = changed > MOTION_MIN_CHANGE
-        if not changed.any():
-            return Motion(share=0.0, dx=0.0)
-        columns = np.nonzero(changed)[1] + left
-        centre = (x0 + x1) / 2 * width
-        return Motion(share=float(changed.mean()), dx=float(columns.mean() - centre) / width)
+        if not changed.any() or float(changed.mean()) < 0.1:
+            self._motion_centre = None
+            return Motion(share=float(changed.mean()), dx=0.0)
+        rows, columns = np.nonzero(changed)
+        x, y = float((columns + left).mean()) / width, float((rows + top).mean()) / width
+        now = time.monotonic()
+        last = self._motion_centre
+        self._motion_centre = (now, x, y)
+        speed, dx = 0.0, 0.0
+        if last is not None and 0 < now - last[0] <= 0.15:
+            dx, dy = x - last[1], y - last[2]
+            distance = float(np.hypot(dx, dy))
+            if distance >= 0.02:
+                speed = distance / (now - last[0])
+        return Motion(share=float(changed.mean()), dx=dx, speed=speed)
 
     def close(self) -> None:
         global _active_sessions

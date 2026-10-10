@@ -1,6 +1,6 @@
 // The trigger calibration before the warm-up (docs/SHOOTER_CV.md → Trigger calibration), as a
 // pure state machine: the scene feeds it time, whether the hand is in view, the engine's replies
-// and shots, and shows its instruction. The engine measures the thumb; this only paces the steps.
+// and shots, and shows its instruction. The engine measures the fingertip gap; this only paces the steps.
 
 import {
     TRIGGER_MAX_ATTEMPTS,
@@ -11,7 +11,7 @@ import {
 import type { CvTriggerReply, TriggerStep } from "./input/cvStream";
 
 type State =
-    | { kind: "waiting" } // for the finger gun to be in view
+    | { kind: "waiting" } // for the hand to be in view
     | { kind: "step"; index: number; msLeft: number }
     | { kind: "computing" } // "done" sent, waiting for the engine
     | { kind: "failed"; detail: string; msLeft: number }
@@ -32,7 +32,7 @@ export class TriggerCalibration {
     }
 
     /** Advances time; returns a step to send to the engine, if any. Steps only run while the
-     * finger gun is in view, so a hand that drops out doesn't spoil the measurement. */
+     * hand is in view, so a hand that drops out doesn't spoil the measurement. */
     update(deltaMs: number, isHandReady: boolean): TriggerStep | null {
         const state = this.state;
         if (state.kind === "waiting") {
@@ -93,15 +93,15 @@ export class TriggerCalibration {
         const state = this.state;
         switch (state.kind) {
             case "waiting":
-                return "Trigger check: show your finger gun 👉 to the camera";
+                return "Pinch check: show your palm to the camera, fingers apart";
             case "step":
                 return TRIGGER_STEPS[state.index].text;
             case "computing":
-                return "Measuring your thumb…";
+                return "Measuring your pinch…";
             case "failed":
                 return `${state.detail}. Again in a moment…`;
             case "testing":
-                return `Calibrated! Try it: shoot ${TRIGGER_TEST_SHOTS - state.shots} more time${TRIGGER_TEST_SHOTS - state.shots === 1 ? "" : "s"}`;
+                return `Calibrated! Open then pinch to grab ${TRIGGER_TEST_SHOTS - state.shots} more time${TRIGGER_TEST_SHOTS - state.shots === 1 ? "" : "s"}`;
             case "finished":
                 return "";
         }
