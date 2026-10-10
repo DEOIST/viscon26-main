@@ -12,6 +12,7 @@ import type { AvatarLook } from "./avatar";
 import {
     BALL_GAP_MS,
     CHIP_VALUES,
+    CREDITS,
     DEALER_LINE_MS,
     HANDS,
     MIN_BET,
@@ -48,6 +49,7 @@ import type { DealerEvent } from "./lines";
 import {
     betOf,
     canDouble,
+    creditsOf,
     isOver,
     newDeck,
     newGame,
@@ -967,7 +969,10 @@ export default class BlackjackScene extends Scene {
                 this,
                 0,
                 52,
-                fill(T.gameOver.score, { score: final.score }),
+                fill(T.gameOver.credits, {
+                    credits: creditsOf(final.score),
+                    max: CREDITS,
+                }),
                 26,
                 "#f5c451",
             ),

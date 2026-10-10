@@ -6,6 +6,7 @@ import {
     ballsOn,
     betOf,
     canDouble,
+    creditsOf,
     dropCard,
     emptyBoard,
     isOver,
@@ -426,7 +427,7 @@ describe("doubling down", () => {
     });
 });
 
-describe("a game of five hands", () => {
+describe("a game of three hands", () => {
     const winHand = (state: State) => {
         const random = spread();
         const opening = play(state, {
@@ -462,25 +463,25 @@ describe("a game of five hands", () => {
         expect(newGame()).toMatchObject({ chips: 300, hand: 1 });
     });
 
-    it("ends after the fifth hand with the chips as the score", () => {
+    it("ends after the third hand with the chips as the score", () => {
         let state = bet(newGame(), 100);
-        for (let hand = 1; hand <= 5; hand++) {
+        for (let hand = 1; hand <= 3; hand++) {
             if (hand > 1) state = play(state, { type: "next" });
             state = winHand(state);
-            expect(isOver(state)).toBe(hand === 5);
+            expect(isOver(state)).toBe(hand === 3);
         }
         expect(result(state)).toEqual({
             score: 100,
-            stats: { bankroll: 800, hands: 5 },
+            stats: { bankroll: 600, hands: 3 },
         });
         expect(play(state, { type: "next" })).toBe(state);
     });
 
     it("scores finishing level as 50", () => {
-        const state = { ...newGame(), phase: "settled" as const, hand: 5 };
+        const state = { ...newGame(), phase: "settled" as const, hand: 3 };
         expect(result(state)).toEqual({
             score: 50,
-            stats: { bankroll: 300, hands: 5 },
+            stats: { bankroll: 300, hands: 3 },
         });
     });
 
@@ -497,6 +498,19 @@ describe("a game of five hands", () => {
         [2700, 100],
     ])("turns %i chips into a score of %i", (chips, score) => {
         expect(scoreOf(chips)).toBe(score);
+    });
+
+    // The game-over panel shows the score as the Year 2 slot's 60 ECTS, rounded like the shell.
+    it.each<[number, number]>([
+        [0, 0],
+        [25, 15],
+        [50, 30],
+        [62, 37],
+        [75, 45],
+        [99, 59],
+        [100, 60],
+    ])("turns a score of %i into %i credits", (score, credits) => {
+        expect(creditsOf(score)).toBe(credits);
     });
 
     it("ends early when the player can't cover the minimum bet", () => {

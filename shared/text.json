@@ -223,7 +223,7 @@
             "steps": [
                 {
                     "title": "Bet",
-                    "text": "Stack chips from your 300 stipend and press Deal: five hands to grow it.",
+                    "text": "Stack chips from your 300 stipend and press Deal: three hands to grow it.",
                     "alt": "Chips on the bet pile next to the Deal button"
                 },
                 {
@@ -515,7 +515,7 @@
             "chips": "You finished with {chips} chips",
             "gain": "+{diff} on the night",
             "loss": "{diff} on the night",
-            "score": "SCORE {score} / 100"
+            "credits": "CREDITS {credits} / {max}"
         },
         "feltRules": {
             "payout": "BLACKJACK · {yellows} YELLOW BEADS · PAYS 3 TO 2",
@@ -529,7 +529,7 @@
         },
         "tutorial": {
             "caption": "HOW TO PLAY  ·  {step} / {steps}",
-            "skip": "SKIP TUTORIAL",
+            "skip": "SKIP ALL",
             "back": "BACK",
             "next": "NEXT",
             "play": "PLAY",
@@ -576,7 +576,7 @@
         },
         "dealerLines": {
             "intro": [
-                "Welcome to casino night, {name}. Watch out for the red beads.",
+                "Welcome to Gauss Jack, {name}. Watch out for the red beads.",
                 "Place your bet. The curve is watching."
             ],
             "deal": ["Cards out, beads rolling.", "Let's see where they land."],
@@ -923,10 +923,10 @@
     "endings": {
         "quant": {
             "title": "Quant researcher in Zug",
-            "epilogue": "{name} took {department} to a hedge fund in Zug and now predicts markets with the same calm once reserved for casino night's probability curves. The models are stochastic, the bonus is not, and the blackboard has not been wiped since 2026.",
+            "epilogue": "{name} took {department} to a hedge fund in Zug and now predicts markets with the same calm once reserved for Gauss Jack's probability curves. The models are stochastic, the bonus is not, and the blackboard has not been wiped since 2026.",
             "alt": "A researcher filling a giant blackboard with formulas",
             "stamp": "Summa cum laude",
-            "caption": "Casino-night number skills found a new home on a very large blackboard.",
+            "caption": "Gauss Jack number skills found a new home on a very large blackboard.",
             "salary": "CHF 400k + a bonus nobody can explain",
             "housing": "A sunny flat in Zug, with room for a blackboard"
         },
@@ -987,7 +987,7 @@
         ],
         "blackjack": {
             "intro": [
-                "Welcome to casino night, {name}. Play chips only, so relax.",
+                "Welcome to Gauss Jack, {name}. Play chips only, so relax.",
                 "Place your bets. The curve is watching."
             ],
             "deal": [
