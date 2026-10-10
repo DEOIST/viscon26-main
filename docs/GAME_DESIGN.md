@@ -62,24 +62,32 @@ Departments (`DepartmentId` → label):
 | Id | Archetype | Flavor | Perk |
 |---|---|---|---|
 | `nerd` | Nerd | Lives in the HG library | Blackjack: shows a card-counting hint (Hi-Lo running count) |
-| `risk_taker` | Risk-taker | "Stipend? What stipend?" | Blackjack: starts with 1 200 CHF instead of 1 000 |
+| `risk_taker` | Risk-taker | "Stipend? What stipend?" | Blackjack: starts with 360 CHF instead of 300 |
 | `gamer` | Gamer | 300 APM, zero sleep | Shooter: targets 15 % larger |
 | `athlete` | ASVZ athlete | At the ETH gym at 7 am | Shooter: trigger re-arms 30 % faster |
 
 Perks only act inside the minigames. The scoring formulas stay the same
-(blackjack still scores against 1 000 CHF), so a perk is a real advantage. Game
+(blackjack still scores against 300 CHF), so a perk is a real advantage. Game
 owners tune the numbers after playtests.
 
 ## Minigame 1: Galton Blackjack ("Casino night")
 
-You bet your semester stipend of 1 000 chips at the casino. It is blackjack
+You bet your semester stipend of 300 chips at the casino. It is blackjack
 where every seat owns a Galton board (9 columns) instead of a hand: each drawn
 card turns its suit symbols into balls that fall through the pins into the
 board's columns. A normal curve is drawn over the columns. Going over it is the
-new "over 21"; landing on it three times is the new blackjack.
+new "over 21"; landing on it three times without going over is the new blackjack.
 
-- **Flow:** 10 hands, or until you can't cover the minimum bet of 10. Leaving
+- **Flow:** 5 hands, or until you can't cover the minimum bet of 10. Leaving
   through the shell's back button ends the round without a score.
+- **How to play:** every game opens with a how-to-play window over the table
+  (`Tutorial.ts`). Its five steps (placing a bet, cards dropping balls, the
+  colours around the curve, Hit / Stand / Double, how to win) each show a
+  screenshot of the table (`assets/tutorial/`) and a few lines of text, with
+  Next and Back, and Skip on every step but the last. The table waits
+  underneath, the dealer greets the player once the window is closed, and
+  each step is also sent to the screen-reader live region. The screenshots
+  are captures of the real table: retake them when its look changes.
 - **Bets:** click chips (1, 5, 10, 25, 50, 100, 500, 1000) onto the bet pile;
   click a chip on the pile to take it back. The next hand starts with the same bet.
 - **Deck:** 52 cards without Jokers, freshly shuffled every hand.
@@ -89,44 +97,58 @@ new "over 21"; landing on it three times is the new blackjack.
   under the curve (**green**), then the one the curve crosses on the column's
   centre line (**yellow**); every further ball is above it (**red**). Columns
   0–8 hold Y, GY, GGY, GGGGGY, GGGGGGY, GGGGGY, GGY, GY, Y.
-- **Opening deal:** two cards onto your board; one open card onto the dealer's
-  board plus one secret card kept face down.
+- **Opening deal:** a card onto your board, an open card onto the dealer's
+  board, a second card onto yours, then one secret card kept face down. The
+  deal stops at the card that decides a board (see "Deciding the hand").
 - **Your turn:** Hit, Stand, or Double (only right after the opening deal:
   doubles the bet, exactly one more card, then the dealer plays).
 - **Dealer's turn:** the secret card is revealed and dropped, then the dealer
   draws while it has fewer than 10 balls.
-- **Deciding the hand:** the first decisive ball wins. On your board a red ball
-  is a bust (bet lost) and the third yellow ball is a blackjack (instant win,
-  pays 3:2). On the dealer's board red means you win and three yellow means the
-  dealer wins. Otherwise more balls wins; equal counts push.
-- **Score:** `clamp(round(50 × chips / 1000), 0, 100)`: keep your money = 50,
+- **Deciding the hand:** a board is judged after every card, once all of that
+  card's balls are down. Any red ball is a bust, whatever else is on the board:
+  three yellow balls followed by a red one are a bust, not a blackjack. Three
+  yellow balls without a red one are a blackjack. The first decided board ends
+  the hand at once, also in the middle of the opening deal: your bust loses the
+  bet, your blackjack wins and pays 3:2, the dealer's bust pays you (even when
+  its open card does it) and the dealer's blackjack takes the bet. Otherwise
+  more balls wins; equal counts push.
+- **Score:** `clamp(round(50 × chips / 300), 0, 100)`: keep your money = 50,
   double it = 100, broke = 0. The result's `stats` are `bankroll` and `hands`.
+  The score follows `START_CHIPS`, so it stays anchored on the stipend. Over
+  five hands a flat bet of 50 ends between half and one and a half stipends
+  (score 25–75) about two times in three; a flat bet of 100 doubles the
+  stipend 14 % of the time and goes broke 22 % of the time.
 - **Dealer lines** (AI dialogue event keys): `intro`, `deal`, `playerBlackjack`,
   `playerBust`, `dealerBust`, `win`, `lose`, `push`, `broke`, and `cashOut`
-  (said when you finish the ten hands ahead). Without a dialogue pack the game
+  (said when you finish the last hand ahead). Without a dialogue pack the game
   uses its own lines (`frontend/level2/lines.ts`). The keys, the AI's speaker
   description and the fallback lines are in `backend/level2/dialogue.py`.
 - **Balance:** the curve (the expected stack of 26 balls, 1.2 times wider than
   the binomial the balls follow), the three yellows and the dealer's limit of
   10 were searched together by simulation for odds close to classic blackjack.
-  Two million hands through `rules.ts` (player hits below 12 balls, never
-  doubles):
+  That search let three yellow balls stand as a blackjack when a red ball
+  followed (2.5 % of hands). Now that any red ball busts, blackjacks are rarer
+  and the house edge is higher; the tunables were not searched again. Two
+  million hands through `rules.ts` (player hits below 12 balls, never doubles):
 
   | | Galton Blackjack | Classic blackjack |
   |---|---|---|
-  | House edge | 0.5 % | ~0.5 % |
-  | Player blackjack | 4.8 % | 4.75 % |
-  | Player loses | 49.4 % | ~49 % |
+  | House edge | 2.3 % | ~0.5 % |
+  | Player blackjack | 3.0 % | 4.75 % |
+  | Player loses | 49.9 % | ~49 % |
   | Dealer busts (when it plays) | 27 % | ~28 % |
-  | Wins / pushes | 46.5 % / 4.1 % | ~42 % / ~8.5 % |
+  | Wins / pushes | 46.0 % / 4.1 % | ~42 % / ~8.5 % |
 
-  Busts are more common than in classic blackjack (34 % of hands) and pushes
-  rarer, because ball counts spread wider than card totals.
+  Busts are more common than in classic blackjack (35 % of hands) and pushes
+  rarer, because ball counts spread wider than card totals. In about 2 % of
+  hands the dealer is bust on its open card.
 - **Code:** blackjack is level 2: the game in `frontend/level2/`, its server
   side in `backend/level2/`. The rules (`rules.ts`, with unit tests) decide every
   card, ball path, landing slot and colour, and emit an event log; the Phaser
   scene only plays it back. Board geometry and the curve are in `board.ts`,
-  tunables in `config.ts`. Cards are composed from the frame, number, symbol
+  tunables in `config.ts`. A column that holds more balls than fit under the
+  bars (ten or more, which only a bust board can have) is drawn packed tighter
+  (`restY` in `board.ts`), so no ball ends up among the pins. Cards are composed from the frame, number, symbol
   and people sheets, so each pip is its own sprite and can turn into a ball.
 - **Table:** 1000 units tall and as wide as the shared 16:9 canvas
   (`layout.ts`); the scene's camera zooms it onto the 1280 × 720 game canvas
@@ -234,7 +256,7 @@ isometric shooter art match:
 
 1. A judge enrolls (name, department, archetype, avatar): about 20 s.
 2. Campus: the advisor greets them by name and department ("the game knows me").
-3. Blackjack: up to ten hands (`HANDS` in `frontend/level2/config.ts` sets the length).
+3. Blackjack: up to five hands (`HANDS` in `frontend/level2/config.ts` sets the length).
 4. Shooter: calibration, then 60 s of finger-gun shooting. **This is the wow.**
 5. Graduation: open the diploma; the career and a personal epilogue are read aloud.
 
@@ -244,5 +266,5 @@ recorded video of a perfect run.
 ## Open questions
 
 - Final name of the game.
-- Shooter `PAR` and the blackjack hand count (10 today), after the first playtest.
+- Shooter `PAR` and the blackjack hand count (5 today), after the first playtest.
 - Whether the organizers allow AI-generated art (ask in the "Event facts" issue).

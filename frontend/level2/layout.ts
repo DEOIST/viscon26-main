@@ -90,33 +90,47 @@ export const PIPS: Partial<Record<Rank, [number, number][]>> = {
 
 export const BOARD_SCALE = 0.58;
 export const CARD_ON_BOARD = 0.62; // a drawn card covers the board's pins while it dissolves
-export const DECK_SCALE = 0.22;
-export const FAN_SCALE = 0.13;
+export const DECK_SCALE = 0.26; // the deck and the dealer's secret card
+export const FAN_SCALE = 0.165; // the cards already drawn, fanned out beside a board
+export const TRAY_SCALE = 0.48; // chip sheet frames are 200 px
+export const PILE_SCALE = 0.42;
 
 export type Point = { x: number; y: number };
 
 export const SEATS = {
     dealer: {
         board: { x: WIDTH - 170, y: 228 },
-        avatar: { x: 120, y: 118 },
+        avatar: { x: 236, y: 150 },
         fan: { x: WIDTH - 374, y: 330, dx: -40 },
         counter: { x: WIDTH - 170, y: 466 },
     },
     player: {
         board: { x: 190, y: 775 },
-        avatar: { x: WIDTH - 120, y: 822 },
-        fan: { x: 392, y: 660, dx: 40 },
+        avatar: { x: WIDTH - 236, y: 800 },
+        fan: { x: 392, y: 668, dx: 40 },
         counter: { x: 190, y: 510 },
     },
 } as const;
 
 export const BELT = { x: CENTER.x - 40, y: -470, radius: 680 }; // an arc curving up at both ends
 export const HAND_LABEL = { x: CENTER.x - 40, y: 42 };
-export const SPEECH = { x: 28, y: 258, width: 400 }; // the dealer's line, under their seat
-export const SECRET = { x: WIDTH - 400, y: 125 };
-export const DECK = { x: CENTER.x - 160, y: 530 };
-export const BET = { x: CENTER.x + 70, y: 540 };
-export const TRAY = { x: CENTER.x, y: 858, dx: 84, dy: 84, perRow: 4 };
+export const SPEECH = { x: 60, y: 292, width: 400 }; // the dealer's line, under their seat
+export const SECRET = { x: WIDTH - 400, y: 132 };
+export const DECK = { x: CENTER.x - 180, y: 505 };
+export const BET = { x: CENTER.x + 70, y: 525 };
+export const BET_LABEL_DY = 98; // under the pile
+export const WINNINGS_DX = 96; // the dealer's matching pile, beside the bet
+export const TRAY = { x: CENTER.x, y: 826, dx: 112, dy: 104, perRow: 4 };
 export const BUTTON_ROW = { x: CENTER.x, y: 900, dx: 164 };
-export const DEAL_BUTTON = { x: CENTER.x + 335, y: 900 };
+export const DEAL_BUTTON = { x: CENTER.x + 350, y: 878 };
 export const CONTINUE_BUTTON = { x: CENTER.x, y: 628 };
+
+// The how-to-play window, measured from its centre (the table's): a screenshot fitted into
+// `shot` on the left, the step's text in a column on the right, the controls along the bottom.
+export const TUTORIAL = {
+    width: 1500,
+    height: 820,
+    shot: { x: -370, y: -10, width: 680, height: 600 },
+    text: { x: 10, y: -340, width: 690 },
+    controls: { y: 345, skipX: -710, backX: 405, nextX: 610 },
+};

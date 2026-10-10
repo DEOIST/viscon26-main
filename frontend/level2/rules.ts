@@ -1,8 +1,8 @@
 // Galton Blackjack rules as pure functions. Every player owns a Galton board; each drawn card
 // drops one ball per suit symbol through its pins. Balls are green under the board's normal
 // curve, yellow where it crosses them and red above it. A red ball busts, enough yellow balls
-// make a blackjack, otherwise more balls wins. Ten hands from 1000 chips; the chips left
-// decide the score.
+// without a red one make a blackjack, otherwise more balls wins. HANDS hands from START_CHIPS
+// chips; the chips left decide the score.
 //
 // All randomness comes in through actions, and every outcome is decided here. The scene only
 // animates the `events` of the current hand, in order.
@@ -96,13 +96,17 @@ export type Board = {
     columns: number[]; // balls per column
     balls: number;
     yellow: number;
-    event: "bust" | "blackjack" | null; // decided by the first decisive ball
+    red: number;
+    // Judged on every ball that has landed: one red ball busts the board whatever else is on
+    // it, so yellow balls only make a blackjack while there is no red one.
+    event: "bust" | "blackjack" | null;
 };
 
 export const emptyBoard = (): Board => ({
     columns: Array(COLUMNS).fill(0),
     balls: 0,
     yellow: 0,
+    red: 0,
     event: null,
 });
 
@@ -115,20 +119,21 @@ function dropBall(
     const slot = board.columns[column];
     const color = slotColor(column, slot);
     const yellow = board.yellow + (color === "yellow" ? 1 : 0);
-    const event =
-        board.event ??
-        (color === "red"
-            ? "bust"
-            : color === "yellow" && yellow === BLACKJACK_YELLOWS
-              ? "blackjack"
-              : null);
+    const red = board.red + (color === "red" ? 1 : 0);
+    const event = red
+        ? "bust"
+        : yellow >= BLACKJACK_YELLOWS
+          ? "blackjack"
+          : null;
     const columns = board.columns.map((n, i) => (i === column ? n + 1 : n));
     return {
-        board: { columns, balls: board.balls + 1, yellow, event },
+        board: { columns, balls: board.balls + 1, yellow, red, event },
         ball: { path, column, slot, color },
     };
 }
 
+// A card always drops all its balls, so `event` is the verdict on the whole card: three yellow
+// balls followed by a red one are a bust.
 export function dropCard(
     board: Board,
     card: Card,
@@ -187,6 +192,9 @@ export type Action =
     | { type: "next" };
 
 const emptySide = (): Side => ({ board: emptyBoard(), plays: [] });
+
+// Who gets the opening cards, in order; the dealer's secret card follows.
+const OPENING: Who[] = ["player", "dealer", "player"];
 
 export function newGame(): State {
     return {
@@ -273,11 +281,15 @@ function settle(s: State, outcome: Outcome, reason: Reason): State {
     };
 }
 
-// After every player card: a decided board ends the hand.
-function checkPlayer(s: State): State {
-    const event = s.player.board.event;
-    if (event === "bust") return settle(s, "lose", "bust");
-    if (event === "blackjack") return settle(s, "blackjack", "blackjack");
+// After every card: a decided board ends the hand at once, whoever's it is. So the dealer is
+// bust the moment a red ball is on its board, also when that is its open card.
+function check(s: State): State {
+    const mine = s.player.board.event;
+    if (mine === "bust") return settle(s, "lose", "bust");
+    if (mine === "blackjack") return settle(s, "blackjack", "blackjack");
+    const dealer = s.dealer.board.event;
+    if (dealer === "bust") return settle(s, "win", "dealer-bust");
+    if (dealer === "blackjack") return settle(s, "lose", "dealer-blackjack");
     return s;
 }
 
@@ -297,13 +309,12 @@ function dealerPlays(s: State, random: () => number): State {
     )
         s = draw(s, "dealer", random);
 
-    const dealer = s.dealer.board;
-    if (dealer.event === "bust") return settle(s, "win", "dealer-bust");
-    if (dealer.event === "blackjack")
-        return settle(s, "lose", "dealer-blackjack");
+    s = check(s);
+    if (s.phase === "settled") return s;
     const mine = s.player.board.balls;
-    if (mine > dealer.balls) return settle(s, "win", "more");
-    return mine < dealer.balls
+    const dealer = s.dealer.board.balls;
+    if (mine > dealer) return settle(s, "win", "more");
+    return mine < dealer
         ? settle(s, "lose", "fewer")
         : settle(s, "push", "equal");
 }
@@ -323,22 +334,22 @@ export function play(s: State, action: Action): State {
         case "deal": {
             if (s.phase !== "betting" || betOf(s) < MIN_BET) return s;
             let next: State = { ...s, phase: "player", deck: action.deck };
-            next = draw(next, "player", action.random);
-            next = draw(next, "dealer", action.random);
-            next = draw(next, "player", action.random);
+            for (const who of OPENING) {
+                next = check(draw(next, who, action.random));
+                if (next.phase === "settled") return next; // decided mid-deal
+            }
             const [secret, ...deck] = next.deck;
-            next = {
+            return {
                 ...next,
                 secret,
                 deck,
                 events: [...next.events, { type: "secret", card: secret }],
             };
-            return checkPlayer(next);
         }
 
         case "hit":
             if (s.phase !== "player") return s;
-            return checkPlayer(draw(s, "player", action.random));
+            return check(draw(s, "player", action.random));
 
         case "stand":
             return s.phase === "player" ? dealerPlays(s, action.random) : s;
@@ -350,7 +361,7 @@ export function play(s: State, action: Action): State {
                 "player",
                 action.random,
             );
-            const checked = checkPlayer(doubled);
+            const checked = check(doubled);
             return checked.phase === "settled"
                 ? checked
                 : dealerPlays(checked, action.random);

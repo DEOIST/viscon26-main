@@ -283,7 +283,7 @@
     },
     "meta": {
         "app": "poker-cards/build.py",
-        "image": "people.png",
+        "image": "people.svg",
         "format": "RGBA8888",
         "size": {
             "w": 976,

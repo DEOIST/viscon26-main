@@ -47,7 +47,7 @@ export function builtInLines(
         ],
         cashOut: [
             "Leaving ahead of the house. That is rare.",
-            "Ten hands and still in profit. Respect.",
+            "Last hand played and still in profit. Respect.",
         ],
     };
 }
