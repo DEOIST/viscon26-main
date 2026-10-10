@@ -41,5 +41,5 @@ export function Placeholder({ onExit }: MinigameProps) {
 export const minigameRegistry: Record<string, ComponentType<MinigameProps>> = {
     "year-1-slot": DestinationPreview,
     "year-2-slot": DestinationPreview,
-    "year-3-slot": Placeholder,
+    "year-3-slot": DestinationPreview,
 };
