@@ -75,9 +75,9 @@ jobs:
         # The registry rate-limits anonymous pulls per IP and runners share IPs, so a
         # "toomanyrequests" here says nothing about the PR. Retry before failing the check.
         run: |
-          for attempt in 1 2 3 4; do
+          for attempt in 1 2 3 4 5; do
             docker compose pull --ignore-buildable && exit 0
-            [ "$attempt" -lt 4 ] && sleep $((attempt * 15))
+            [ "$attempt" -lt 5 ] && sleep $((attempt * 20))
           done
           exit 1
       - name: Build and start the stack
