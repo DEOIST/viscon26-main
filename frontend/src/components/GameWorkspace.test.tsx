@@ -12,6 +12,7 @@ afterEach(cleanup);
 
 function setup(selected = false) {
     const onOpen = vi.fn();
+    const onEditCharacter = vi.fn();
     const view = render(
         <GameWorkspace
             player={{ ...defaultPlayer, name: "Ada" }}
@@ -28,10 +29,25 @@ function setup(selected = false) {
             onGraduate={vi.fn()}
             onAccount={vi.fn()}
             onScoreboard={vi.fn()}
+            onEditCharacter={onEditCharacter}
         />,
     );
-    return { view, onOpen };
+    return { view, onOpen, onEditCharacter };
 }
+
+it("opens the character builder from the profile picture, but not mid-game", () => {
+    const { onEditCharacter, view } = setup();
+    const portraits = screen.getAllByRole("button", { name: "Edit character" });
+    fireEvent.click(portraits[0]);
+    expect(onEditCharacter).toHaveBeenCalledOnce();
+
+    view.unmount();
+    setup(true);
+    for (const portrait of screen.getAllByRole("button", {
+        name: "Edit character",
+    }))
+        expect(portrait.hasAttribute("disabled")).toBe(true);
+});
 
 it("browses locked years with keyboard and selectors without allowing launch", () => {
     const { onOpen } = setup();

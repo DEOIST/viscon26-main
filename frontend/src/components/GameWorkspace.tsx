@@ -26,6 +26,7 @@ interface GameWorkspaceArgs {
     onGraduate(): void;
     onAccount(): void;
     onScoreboard(): void;
+    onEditCharacter(): void;
 }
 
 export default function GameWorkspace(args: GameWorkspaceArgs) {
@@ -84,9 +85,16 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
     const studentRecord = (
         <>
             <div className={styles.studentIdentity}>
-                <div className={styles.portrait}>
+                <button
+                    type="button"
+                    className={styles.portrait}
+                    title="Edit character"
+                    aria-label="Edit character"
+                    disabled={args.busy || !!args.selectedGame}
+                    onClick={args.onEditCharacter}
+                >
                     <Avatar character={args.player.character} />
-                </div>
+                </button>
                 <h1>{args.player.name}</h1>
                 <span className={styles.department}>D-INFK</span>
                 <small>
