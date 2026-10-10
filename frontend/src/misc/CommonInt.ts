@@ -131,3 +131,14 @@ export interface CvFrame {
     thumbDistance: number | null; // metres, for the debug overlay
     processingMs: number;
 }
+
+// Control messages the browser sends on /api/cv/stream (CvBoxMessage, CvSettingsMessage in
+// schemas.py; the engine answers a bad one with {type: "error", detail}).
+export interface CvBoxMessage {
+    type: "box";
+    box: [number, number, number, number]; // mirrored camera image 0..1; each side ≥ 0.1
+}
+export interface CvSettingsMessage {
+    type: "settings";
+    cooldownMs: number; // 0–2000
+}

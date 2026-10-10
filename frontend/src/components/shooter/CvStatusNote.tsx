@@ -6,6 +6,13 @@ import styles from "./CvStatusNote.module.css";
 export default function CvStatusNote() {
     const status = useApi(apiGetCvStatus);
 
+    if (!window.isSecureContext)
+        return (
+            <p className={styles.note}>
+                The camera only works on https:// or localhost, so you'll play
+                with the mouse here.
+            </p>
+        );
     if (status.loading && status.data === null)
         return <p className={styles.note}>Checking the finger tracker…</p>;
     if (status.data?.available)

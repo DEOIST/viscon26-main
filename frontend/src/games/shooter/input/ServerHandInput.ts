@@ -4,10 +4,15 @@
 
 import FramePacer from "./FramePacer";
 import { FALLBACK_FRAME_MS, FRAME_WIDTH, JPEG_QUALITY } from "../config";
-import { GAME_HEIGHT, GAME_WIDTH } from "../../shared/createGame";
+import { GAME_HEIGHT, GAME_WIDTH } from "../../shared/gameSize";
 import { boxForAspect, isSameBox } from "./box";
 import { cameraErrorMessage, closeMessage, cvStreamUrl } from "./cvStream";
-import type { GamePoint, Tracking } from "../../../misc/CommonInt";
+import type {
+    CvBoxMessage,
+    CvSettingsMessage,
+    GamePoint,
+    Tracking,
+} from "../../../misc/CommonInt";
 import type { Box } from "./box";
 import type { CvMessage } from "./cvStream";
 import type { AimPoint, InputSource } from "./InputSource";
@@ -38,7 +43,12 @@ export default class ServerHandInput implements InputSource {
         this.parent = parent;
         this.cooldownMs = cooldownMs;
         this.onFailure = onFailure;
-        void this.start();
+    }
+
+    // Separate from the constructor: a failure can be reported synchronously (no camera API on
+    // an insecure origin), and the owner must already hold this input when it is.
+    start() {
+        void this.run();
     }
 
     takeShots(): AimPoint[] {
@@ -53,7 +63,7 @@ export default class ServerHandInput implements InputSource {
         this.stopCamera();
     }
 
-    private async start() {
+    private async run() {
         try {
             if (!navigator.mediaDevices?.getUserMedia)
                 throw new Error("the camera needs https:// or localhost");
@@ -67,6 +77,11 @@ export default class ServerHandInput implements InputSource {
                 audio: false,
             });
             if (this.isDestroyed) return this.stopCamera();
+            // Unplugged, or the permission revoked: stopping it ourselves doesn't fire "ended".
+            for (const track of this.stream.getVideoTracks())
+                track.addEventListener("ended", () =>
+                    this.fail("the camera was disconnected"),
+                );
             this.video = createVideo(this.stream);
             this.parent.prepend(this.video);
             await this.video.play();
@@ -119,18 +134,17 @@ export default class ServerHandInput implements InputSource {
               )
             : box;
         if (!isSameBox(fitted, box)) {
-            this.socket?.send(JSON.stringify({ type: "box", box: fitted }));
+            this.sendControl({ type: "box", box: fitted });
             return;
         }
         this.placeVideo(box);
         if (this.cooldownMs !== null)
-            this.socket?.send(
-                JSON.stringify({
-                    type: "settings",
-                    cooldownMs: this.cooldownMs,
-                }),
-            );
+            this.sendControl({ type: "settings", cooldownMs: this.cooldownMs });
         this.pacer.ready();
+    }
+
+    private sendControl(message: CvBoxMessage | CvSettingsMessage) {
+        this.socket?.send(JSON.stringify(message));
     }
 
     // Tell the pacer about every new camera frame for as long as this camera runs.

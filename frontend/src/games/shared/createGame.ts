@@ -1,6 +1,7 @@
 // Phaser setup shared by every minigame. The only place that creates a Phaser.Game.
 
 import { AUTO, Game, Scale } from "phaser";
+import { GAME_HEIGHT, GAME_WIDTH } from "./gameSize";
 import type { Scene } from "phaser";
 import type {
     MinigameHandle,
@@ -8,9 +9,9 @@ import type {
     MinigameResult,
 } from "./minigame";
 
-// Logical resolution; Phaser scales it to fit the container and letterboxes the rest.
-export const GAME_WIDTH = 1280;
-export const GAME_HEIGHT = 720;
+// Logical resolution (gameSize.ts); Phaser scales it to fit the container and letterboxes the
+// rest. Re-exported so scenes keep importing it from here.
+export { GAME_HEIGHT, GAME_WIDTH };
 
 export function createGame(parent: HTMLElement, scene: Scene): Game {
     return new Game({

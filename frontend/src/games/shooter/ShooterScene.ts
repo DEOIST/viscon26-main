@@ -16,14 +16,13 @@ import {
     PRACTICE_POINTS,
     PRACTICE_RADIUS,
     ROUND_SECONDS,
-    SPAWN_EVERY_MS_END,
-    SPAWN_EVERY_MS_START,
     TARGET_RADIUS,
     type TargetKind,
 } from "./config";
 import { HORIZON_Y, project } from "./depth";
 import { hitTest } from "./hitTest";
 import { shooterScore, shotPoints } from "./score";
+import { pickTargetKind, spawnIntervalMs } from "./spawn";
 import type { GameObjects } from "phaser";
 import type { MinigameResult } from "../shared/minigame";
 import type SwitchableInput from "./input/SwitchableInput";
@@ -261,14 +260,9 @@ export default class ShooterScene extends Scene {
     }
 
     private spawn() {
-        const progress = Math.min(1, this.elapsedMs / (ROUND_SECONDS * 1000));
-        const interval =
-            SPAWN_EVERY_MS_START +
-            (SPAWN_EVERY_MS_END - SPAWN_EVERY_MS_START) * progress;
-        this.nextSpawnMs = this.elapsedMs + interval;
-        const roll = Math.random();
-        const kind: TargetKind =
-            roll < 0.7 ? "question" : roll < 0.9 ? "deadline" : "coffee";
+        const progress = this.elapsedMs / (ROUND_SECONDS * 1000);
+        this.nextSpawnMs = this.elapsedMs + spawnIntervalMs(progress);
+        const kind = pickTargetKind(Math.random());
         this.targets.push({
             id: this.nextId++,
             kind,
@@ -295,7 +289,12 @@ export default class ShooterScene extends Scene {
                 .circle(0, 0, 64, TARGET_COLORS.coffee)
                 .setStrokeStyle(4, 0xf5e6d3);
             const label = this.add
-                .text(0, 0, "☕ +3s", textStyle(30, "#ffffff", "bold"))
+                .text(
+                    0,
+                    0,
+                    `☕ +${COFFEE_BONUS_SECONDS}s`,
+                    textStyle(30, "#ffffff", "bold"),
+                )
                 .setOrigin(0.5);
             return this.add.container(0, 0, [cup, label]);
         }

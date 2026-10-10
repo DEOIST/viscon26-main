@@ -32,6 +32,11 @@ export const APPROACH_SECONDS: Record<TargetKind, number> = {
     coffee: 5,
 };
 
+export const SPAWN_SHARES: Record<TargetKind, number> = {
+    question: 0.7,
+    deadline: 0.2,
+    coffee: 0.1,
+}; // sums to 1
 export const SPAWN_EVERY_MS_START = 1400;
 export const SPAWN_EVERY_MS_END = 550; // the spawn rate rises over the round
 export const TARGET_RADIUS = 80; // hit radius in game pixels at scale 1

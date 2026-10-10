@@ -13,10 +13,12 @@ export default class SwitchableInput implements InputSource {
 
     constructor(parent: HTMLElement, cooldownMs: number | null) {
         this.parent = parent;
-        this.current = new ServerHandInput(parent, cooldownMs, (reason) =>
+        const camera = new ServerHandInput(parent, cooldownMs, (reason) =>
             this.useMouse(`Mouse mode: ${reason}`),
         );
+        this.current = camera;
         window.addEventListener("keydown", this.handleKey);
+        camera.start();
     }
 
     get mode() {
