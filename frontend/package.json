@@ -10,10 +10,10 @@
         "build": "node build.js --prod",
         "typecheck": "tsc --noEmit",
         "format": "prettier --write .",
-        "check": "tsc --noEmit && prettier --check ."
+        "check": "tsc --noEmit && prettier --check . && vitest run",
+        "test": "vitest run"
     },
     "dependencies": {
-        "@mediapipe/tasks-vision": "^1.1.0",
         "phaser": "^4.2.1",
         "react": "^19.3.0",
         "react-dom": "^19.3.0"
@@ -23,6 +23,7 @@
         "@types/react-dom": "^19.3.0",
         "esbuild": "^0.28.2",
         "prettier": "^3.9.9",
-        "typescript": "^7.0.2"
+        "typescript": "^7.0.2",
+        "vitest": "^5.0.3"
     }
 }

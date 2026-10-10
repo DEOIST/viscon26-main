@@ -1,3 +1,4 @@
+import CvStatusNote from "./CvStatusNote";
 import Layout from "../common/Layout";
 import MinigamePage from "../common/MinigamePage";
 import MissingRun from "../common/MissingRun";
@@ -14,7 +15,8 @@ export default function App() {
                     runId={runId}
                     game="shooter"
                     title="Basisprüfung"
-                    instructions="Exam questions are coming for you. Make a finger gun, aim with your index finger and drop your thumb to shoot. (For now: click the targets with the mouse.)"
+                    instructions="Exam questions fly at you for 60 seconds. Make a finger gun: index finger out, thumb up. Aim with your fingertip and drop your thumb to shoot. Deadlines are worth more, coffee buys time."
+                    introExtra={<CvStatusNote />}
                     mount={mountShooter}
                 />
             ) : (

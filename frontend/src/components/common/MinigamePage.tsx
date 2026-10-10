@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import MinigameHost from "./MinigameHost";
 import MissingRun from "./MissingRun";
 import {
@@ -20,6 +20,7 @@ interface MinigamePageArgs {
     game: GameId;
     title: string;
     instructions: string;
+    introExtra?: ReactNode; // e.g. the shooter's camera and engine status
     mount: MountMinigame;
 }
 
@@ -85,6 +86,7 @@ export default function MinigamePage(args: MinigamePageArgs) {
             {phase === "intro" && (
                 <div className={styles.panel}>
                     <p>{args.instructions}</p>
+                    {args.introExtra}
                     <button
                         className={styles.primary}
                         onClick={handleStart}

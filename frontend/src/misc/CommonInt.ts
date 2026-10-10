@@ -108,3 +108,26 @@ export interface Epilogue {
     text: string;
     source: AiSource;
 }
+
+// --- cv (finger-detection engine, issue #13) ---
+
+export type Tracking = "ok" | "noPose" | "lost";
+export type GamePoint = [number, number]; // [x, y] in the game area, 0..1
+
+export interface CvStatus {
+    available: boolean;
+    reason: string | null; // why it isn't available
+    activeSessions: number;
+    maxSessions: number;
+}
+
+// One processed camera frame from /api/cv/stream (WebSocket, see backend/app/routers/cv.py).
+export interface CvFrame {
+    type: "frame";
+    tracking: Tracking;
+    aim: GamePoint | null;
+    firedAt: GamePoint | null; // set on the frame a shot fires
+    landmarks: GamePoint[] | null; // 21 points for drawing the hand; may lie outside 0..1
+    thumbDistance: number | null; // metres, for the debug overlay
+    processingMs: number;
+}

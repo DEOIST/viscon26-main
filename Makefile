@@ -3,12 +3,12 @@ PY := backend/.venv/bin
 URL ?= http://localhost:8000
 .DEFAULT_GOAL := help
 
-.PHONY: install dev dev-frontend dev-backend build test check format prod prod-logs prod-down smoke redis ai-check help
+.PHONY: install dev dev-frontend dev-backend build test check format prod prod-logs prod-down smoke redis ai-check cv-check help
 
 help:
 	@echo "make install     npm install + backend venv"
 	@echo "make dev         frontend watcher + backend autoreload → http://localhost:8000"
-	@echo "make check       typecheck, prettier, ruff, pytest (run before every push)"
+	@echo "make check       typecheck, prettier, vitest, ruff, pytest (run before every push)"
 	@echo "make format      prettier --write + ruff fix/format"
 	@echo "make test        backend tests only"
 	@echo "make build       minified production frontend build"
@@ -18,6 +18,7 @@ help:
 	@echo "make smoke       end-to-end check of a running app (URL=... to target another)"
 	@echo "make redis       optional local Redis on 127.0.0.1:6379 (dev works without it)"
 	@echo "make ai-check    check every OpenAI key, free (LIVE=1: one tiny call per key)"
+	@echo "make cv-check    stream a hand photo to a running finger-detection engine (URL=...)"
 
 install:
 	cd frontend && npm install
@@ -42,7 +43,7 @@ test:
 
 # Run before every push.
 check:
-	cd frontend && npx tsc --noEmit && npx prettier --check .
+	cd frontend && npx tsc --noEmit && npx prettier --check . && npx vitest run
 	cd backend && .venv/bin/ruff check . && .venv/bin/ruff format --check . && .venv/bin/pytest -q
 
 format:
@@ -71,3 +72,7 @@ redis:
 # Checks the keys in backend/.env without spending credits. LIVE=1 adds one 16-token call per key.
 ai-check:
 	cd backend && .venv/bin/python -m tools.ai_check $(if $(LIVE),--live,)
+
+# End-to-end check of the finger-detection engine on a running server: no camera, no credits.
+cv-check:
+	cd backend && .venv/bin/python -m tools.cv_check $(URL)
