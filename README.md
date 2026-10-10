@@ -42,7 +42,7 @@ A single gimmick holds attention for a minute, though. A story holds it for the 
 <table>
 <tr>
 <td width="33%" valign="top"><img src="docs/readme/shooter-hand-tracking.png" alt="Year 1, the Basisprüfung: a tracked hand aims at exam questions and deadlines" /><br/><b>Year 1: Basisprüfung</b><br/>A first-person shooting gallery played with a webcam finger gun. Exam questions, deadlines and coffee cups fly out of an endless exam hall. A three-shot warm-up teaches the gesture without any instructions.</td>
-<td width="33%" valign="top"><img src="docs/readme/blackjack-table.jpg" alt="Year 2, Casino night: Galton Blackjack table" /><br/><b>Year 2: Casino night</b><br/>Galton Blackjack, a blackjack variant we invented around the normal distribution. Every card turns into balls that fall through a Galton board. Overshoot the curve and you bust; land on it three times and it's blackjack. The odds were tuned over two million simulated hands to match the real game.</td>
+<td width="33%" valign="top"><img src="docs/readme/blackjack-table.jpg" alt="Year 2, Probability Class - Gauss Jack: Galton Blackjack table" /><br/><b>Year 2: Probability Class - Gauss Jack</b><br/>Galton Blackjack, a blackjack variant we invented around the normal distribution. Every card turns into balls that fall through a Galton board. Overshoot the curve and you bust; land on it three times and it's blackjack. The odds were tuned over two million simulated hands to match the real game.</td>
 <td width="33%" valign="top"><img src="docs/readme/thesis-defense.png" alt="Year 3, Thesis defense: a four-lane rhythm game in front of a professor committee" /><br/><b>Year 3: Thesis defense</b><br/>A four-lane rhythm game against a three-professor committee. Theory, proofs, experiments and critique arrive on the beat. Survive the professor's meltdown, land the final QED chord, and receive an ETH grade from 1 to 6.</td>
 </tr>
 </table>
@@ -71,7 +71,7 @@ Graduation closes the loop: a personalised diploma with your avatar, your depart
 </tr>
 <tr>
 <td><img src="docs/readme/shooter-warmup.png" alt="Shooter warm-up: a practice paper and a tracked hand" /><br/><sub><b>Basisprüfung warm-up.</b> Three practice targets teach the gesture while the engine calibrates to the player's resting hand.</sub></td>
-<td><img src="docs/readme/blackjack-bust.jpg" alt="Galton Blackjack: a red ball above the curve means bust" /><br/><sub><b>Casino night.</b> A ball that stacks above the curve turns red and ends the hand.</sub></td>
+<td><img src="docs/readme/blackjack-bust.jpg" alt="Galton Blackjack: a red ball above the curve means bust" /><br/><sub><b>Gauss Jack.</b> A ball that stacks above the curve turns red and ends the hand.</sub></td>
 </tr>
 <tr>
 <td><img src="docs/readme/thesis-verdict.png" alt="Thesis defense verdict: Summa cum laude, ETH grade 6.00, 100 percent accuracy" /><br/><sub><b>Thesis verdict.</b> Accuracy, maximum combo and an ETH grade, from "major revisions required" up to summa cum laude.</sub></td>

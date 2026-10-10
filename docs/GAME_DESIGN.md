@@ -76,7 +76,7 @@ Perks only act inside the minigames. The scoring formulas stay the same
 (blackjack still scores against 300 CHF), so a perk is a real advantage. Game
 owners tune the numbers after playtests.
 
-## Minigame 1: Galton Blackjack ("Casino night")
+## Minigame 1: Galton Blackjack ("Probability Class - Gauss Jack")
 
 You bet your semester stipend of 300 chips at the casino. It is blackjack
 where every seat owns a Galton board (9 columns) instead of a hand: each drawn
@@ -84,13 +84,14 @@ card turns its suit symbols into balls that fall through the pins into the
 board's columns. A normal curve is drawn over the columns. Going over it is the
 new "over 21"; landing on it three times without going over is the new blackjack.
 
-- **Flow:** 5 hands, or until you can't cover the minimum bet of 10. Leaving
+- **Flow:** 3 hands, or until you can't cover the minimum bet of 10. Leaving
   through the shell's back button ends the round without a score.
 - **How to play:** every game opens with a how-to-play window over the table
   (`Tutorial.ts`). Its five steps (placing a bet, cards dropping balls, the
   colours around the curve, Hit / Stand / Double, how to win) each show a
   screenshot of the table (`assets/tutorial/`) and a few lines of text, with
-  Next and Back, and Skip on every step but the last. The table waits
+  Next and Back, and a **SKIP ALL** button on every step but the last that
+  closes the window and starts the game. The table waits
   underneath, the dealer greets the player once the window is closed, and
   each step is also sent to the screen-reader live region. The wording is
   `blackjack.tutorial` in `shared/text.json`. The screenshots are captures of
@@ -122,9 +123,13 @@ new "over 21"; landing on it three times without going over is the new blackjack
 - **Score:** `clamp(round(50 × chips / 300), 0, 100)`: keep your money = 50,
   double it = 100, broke = 0. The result's `stats` are `bankroll` and `hands`.
   The score follows `START_CHIPS`, so it stays anchored on the stipend. Over
-  five hands a flat bet of 50 ends between half and one and a half stipends
-  (score 25–75) about two times in three; a flat bet of 100 doubles the
-  stipend 14 % of the time and goes broke 22 % of the time.
+  three hands a flat bet of 50 almost always (98 %) ends between half and one
+  and a half stipends (score 25–75); a flat bet of 100 doubles the stipend
+  10 % of the time and goes broke 12 % of the time (simulated through
+  `rules.ts`, player hits below 12 balls, never doubles).
+- **Game over:** the panel shows the chips, the gain or loss, and the score as
+  the credits the Year 2 slot awards: `CREDITS x / 60`, rounded like the
+  shell's ECTS (`creditsOf` in `rules.ts`, `CREDITS` in `config.ts`).
 - **Dealer lines** (AI dialogue event keys): `intro`, `deal`, `playerBlackjack`,
   `playerBust`, `dealerBust`, `win`, `lose`, `push`, `broke`, and `cashOut`
   (said when you finish the last hand ahead). Without a dialogue pack the game
@@ -346,7 +351,7 @@ isometric shooter art match:
 
 1. A judge enrolls (name, department, archetype, avatar): about 20 s.
 2. Campus: the advisor greets them by name and department ("the game knows me").
-3. Blackjack: up to five hands (`HANDS` in `frontend/level2/config.ts` sets the length).
+3. Blackjack: up to three hands (`HANDS` in `frontend/level2/config.ts` sets the length).
 4. Shooter: calibration, then 60 s of finger-gun shooting. **This is the wow.**
 5. Graduation: open the diploma; the career and a personal epilogue are read aloud.
 

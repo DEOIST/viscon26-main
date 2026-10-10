@@ -5,7 +5,7 @@
 // and the house edge is about 2.3 %; the odds are in GAME_DESIGN.md.)
 
 export const START_CHIPS = 300; // the semester stipend
-export const HANDS = 5;
+export const HANDS = 3;
 export const MIN_BET = 10;
 export const CHIP_VALUES = [1, 5, 10, 25, 50, 100, 500, 1000];
 export const DEALER_STANDS_AT = 10; // balls
@@ -19,6 +19,10 @@ export const CURVE = { balls: 26, spread: 1.2 };
 
 // The contract's 0-100 score: finishing with START_CHIPS scores this, twice as many scores 100.
 export const SCORE_AT_START_CHIPS = 50;
+
+// The ECTS of the game's Year 2 slot (shared/game-config.json): the game-over panel shows the
+// score as the credits the shell will award for it.
+export const CREDITS = 60;
 
 // Animation timings.
 export const BALL_GAP_MS = 110; // between balls leaving one card

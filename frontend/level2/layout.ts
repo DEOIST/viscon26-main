@@ -132,5 +132,5 @@ export const TUTORIAL = {
     height: 820,
     shot: { x: -370, y: -10, width: 680, height: 600 },
     text: { x: 10, y: -340, width: 690 },
-    controls: { y: 345, skipX: -710, backX: 405, nextX: 610 },
+    controls: { y: 345, skipX: -600, backX: 405, nextX: 610 },
 };
