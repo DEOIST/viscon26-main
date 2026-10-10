@@ -18,8 +18,7 @@ export interface HealthStatus {
 // --- runs ---
 
 export type GameId = "blackjack" | "shooter";
-export type EndingId =
-    "c_level" | "big_tech" | "phd" | "mcdonalds" | "unemployed";
+export type EndingId = "quant" | "phd" | "masters" | "mcdonalds" | "homeless";
 export type Pronouns = "she" | "he" | "they";
 export type DepartmentId =
     | "arch"

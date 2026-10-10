@@ -41,9 +41,9 @@ export const GAMES: Record<GameId, { title: string; tagline: string }> = {
 };
 
 export const ENDING_TITLES: Record<EndingId, string> = {
-    c_level: "C-level executive",
-    big_tech: "Big-tech engineer in Zürich",
-    phd: "Eternal PhD student",
+    quant: "Quant researcher in Zug",
+    phd: "PhD student at ETH, year 7",
+    masters: "Master's student at ETH (again)",
     mcdonalds: "McDonald's at Zürich HB",
-    unemployed: "Unemployed in a 6-person WG",
+    homeless: "Homeless in Zürich",
 };

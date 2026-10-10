@@ -7,11 +7,11 @@ from app.schemas import Ending, EndingId, GameId
 
 # Best first: (ending, lowest average score that earns it, career title).
 ENDING_TIERS: tuple[tuple[EndingId, int, str], ...] = (
-    ("c_level", 85, "C-level executive"),
-    ("big_tech", 65, "Big-tech engineer in Zürich"),
-    ("phd", 45, "Eternal PhD student"),
+    ("quant", 85, "Quant researcher in Zug"),
+    ("phd", 65, "PhD student at ETH, year 7"),
+    ("masters", 45, "Master's student at ETH (again)"),
     ("mcdonalds", 25, "McDonald's at Zürich HB"),
-    ("unemployed", 0, "Unemployed in a 6-person WG"),
+    ("homeless", 0, "Homeless in Zürich"),
 )
 
 

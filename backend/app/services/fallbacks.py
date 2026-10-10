@@ -46,30 +46,30 @@ _SCENE_LINES: dict[DialogueScene, dict[str, tuple[str, ...]]] = {
 }
 
 _EPILOGUES: dict[EndingId, str] = {
-    "c_level": (
-        "{name} left {department} and became a C-level executive within a year. {name} now "
-        'flies to Davos, says "synergy" without irony and calls the casino night "strategic '
-        'risk management". ETH sends its regards, and a donation request.'
-    ),
-    "big_tech": (
-        "{name} took {department} straight to a big-tech office in Zürich: free lunch, a nap "
-        "pod and three reorganisations per quarter. {name} still dreams of the Basisprüfung, but "
-        "now gets paid to attend meetings about meetings."
+    "quant": (
+        "{name} took {department} to a hedge fund in Zug and now predicts markets with the same "
+        "confidence once reserved for counting cards at casino night. The models are "
+        "stochastic, the bonus is not, and the blackboard has not been wiped since 2026."
     ),
     "phd": (
         "{name} stayed in {department} for a PhD. It is year seven, the supervisor wants "
         '"one more paper", the coffee machine knows {name} by name, and the thesis is '
-        '"basically done".'
+        '"basically done". The doctoral hat is already being glued together from pizza boxes.'
+    ),
+    "masters": (
+        "{name} finished the bachelor in {department} and walked straight back up the steps of "
+        "the main building for a Master's. Same lecture halls, same Mensa queue, new excuse: "
+        '"the job market will be better in two years".'
     ),
     "mcdonalds": (
         "{name} graduated in {department} and now runs the fastest fryer at the McDonald's at "
         "Zürich HB. The throughput is legendary, and the diploma hangs proudly next to the "
         "ice-cream machine that never works."
     ),
-    "unemployed": (
-        "{name} graduated in {department} and is still looking for a job, and for a flat. The "
-        'six-person WG is cozy, the CV is long, and the LinkedIn headline says "open to '
-        'opportunities". Any day now.'
+    "homeless": (
+        "{name} graduated in {department} and lost the Zürich housing lottery: 400 applications, "
+        "zero viewings. {name} now lives between the Polyterrasse and the night tram, holding "
+        "a cardboard CV that says HELP, and still answers every email within the hour."
     ),
 }
 
@@ -86,7 +86,7 @@ def dialogue_lines(run: Run, scene: DialogueScene) -> dict[str, list[str]]:
 
 
 def epilogue_text(run: Run) -> str:
-    ending_id: EndingId = run.ending.id if run.ending else "unemployed"
+    ending_id: EndingId = run.ending.id if run.ending else "homeless"
     return _fill(_EPILOGUES[ending_id], run)
 
 

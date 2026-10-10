@@ -44,7 +44,7 @@ class PublicConfig(CamelModel):
 # --- runs ---
 
 GameId = Literal["blackjack", "shooter"]
-EndingId = Literal["c_level", "big_tech", "phd", "mcdonalds", "unemployed"]
+EndingId = Literal["quant", "phd", "masters", "mcdonalds", "homeless"]
 Pronouns = Literal["she", "he", "they"]
 DepartmentId = Literal[
     "arch", "baug", "biol", "bsse", "chab", "erdw", "gess", "hest",

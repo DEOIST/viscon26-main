@@ -168,11 +168,15 @@ every boundary has a pytest case.
 
 | Average | Ending id | Career | Epilogue tone |
 |---|---|---|---|
-| 85–100 | `c_level` | C-level executive | Absurd success, private jet to Davos |
-| 65–84 | `big_tech` | Big-tech engineer in Zürich | Free lunch, endless reorgs |
-| 45–64 | `phd` | Eternal PhD student | Year 7, "one more paper" |
+| 85–100 | `quant` | Quant researcher in Zug | Card counting was a transferable skill, unexplainable bonus |
+| 65–84 | `phd` | PhD student at ETH, year 7 | Pizza-box doctoral hat, "one more paper" |
+| 45–64 | `masters` | Master's student at ETH (again) | Left the main building for 4 minutes, enrolled again |
 | 25–44 | `mcdonalds` | McDonald's at Zürich HB | Best fries throughput in the canton |
-| 0–24 | `unemployed` | Unemployed in a 6-person WG | Still looking for a flat |
+| 0–24 | `homeless` | Homeless in Zürich | Lost the housing lottery, cardboard CV |
+
+The diploma (`components/graduation/Diploma.tsx`) shows each ending's photo from
+`frontend/src/assets/endings/`, a fake Latin grade stamp, salary and housing
+jokes, the two scores, the epilogue and the share of graduates with the same fate.
 
 All of this is parody: no real company logos anywhere (UI or generated art),
 and no official ETH logo.

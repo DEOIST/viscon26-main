@@ -8,7 +8,7 @@ Guidance for Claude Code **and for every teammate** working in this repository. 
 
 ## What this is
 
-**ETH Life** (working title), our VIScon 2026 game. You create an ETH student (name, pronouns, department, archetype, avatar), play two minigames, and your scores decide your career at graduation: C-level executive, big-tech engineer, eternal PhD, McDonald's or unemployed. The minigames are **Blackjack** ("Casino night") and a **webcam finger-gun shooter** ("Basisprüfung"): you aim with your index finger and drop your thumb to shoot, tracked live by our server (MediaPipe, level 1). The shooter is the feature we win with. OpenAI writes the story around your character: advisor and dealer lines, a personal epilogue, and a narrator voice.
+**ETH Life** (working title), our VIScon 2026 game. You create an ETH student (name, pronouns, department, archetype, avatar), play two minigames, and your scores decide your career at graduation: quant researcher, eternal PhD, Master's student (again), McDonald's or homeless in Zürich. The minigames are **Blackjack** ("Casino night") and a **webcam finger-gun shooter** ("Basisprüfung"): you aim with your index finger and drop your thumb to shoot, tracked live by our server (MediaPipe, level 1). The shooter is the feature we win with. OpenAI writes the story around your character: advisor and dealer lines, a personal epilogue, and a narrator voice.
 
 **The demo flow that must work on judging day:** enroll → Year 1: the shooter with the camera (level 1) → Year 2: casino night (blackjack) → graduation reveal, read aloud. The years and their games are set in `shared/game-config.json`; `src/minigames/DestinationGame.tsx` maps each year's slot to its game.
 
