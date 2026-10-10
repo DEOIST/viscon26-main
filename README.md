@@ -13,7 +13,7 @@ Create a student, survive the **Basisprüfung** by shooting exam questions out o
 ![FastAPI](https://img.shields.io/badge/FastAPI-Python%203.12-009688?logo=fastapi&logoColor=white)
 ![Redis 8](https://img.shields.io/badge/Redis-8-DC382D?logo=redis&logoColor=white)
 ![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-362%20passing-2EA043)
+![Tests](https://img.shields.io/badge/tests-395%20passing-2EA043)
 
 <img src="docs/readme/shooter-gameplay.gif" width="820" alt="The finger-gun shooter: a tracked hand skeleton aims a crosshair at exam questions and deadlines flying out of a neon exam hall" />
 
@@ -34,7 +34,7 @@ Around that moment we built a whole (very unofficial) degree:
 | 🧑‍🎓 **Make it yours** | Build a student in the character creator. Take a photo and the game picks your colours: skin tone is measured on your device, hair and eyes by a vision model. |
 | 🔫 **Year 1: Basisprüfung** | The finger-gun shooter, with hand tracking on our own server (MediaPipe), a neon hand skeleton, combos and a warm-up that teaches the gesture in three shots. |
 | 🎰 **Year 2: Casino night** | **Galton Blackjack.** Every card becomes balls that fall through a Galton board. Overshoot the normal curve and you bust; land on it three times and it's blackjack. We tuned it with a simulation until the odds matched real blackjack. |
-| 🏆 **Graduate** | Earn ECTS, climb the scoreboard and keep your degree across devices with an account. You can also play as a guest. |
+| 🏆 **Graduate** | Earn ECTS, open your diploma and climb the scoreboard. No sign-up and no password: every browser gets an anonymous player ID. |
 
 > **The 10-second judge test:** hold up a finger gun. The skeleton snaps onto your hand, the crosshair follows your finger, and the first paper shatters. That's the moment we built everything else around.
 
@@ -44,11 +44,11 @@ Around that moment we built a whole (very unofficial) degree:
 
 <table>
 <tr>
-<td width="50%"><img src="docs/readme/landing.png" alt="Landing page: ETH Simulator, big ambitions, very little free time" /><br/><sub><b>Admissions open.</b> Start as a guest in one click, no account needed.</sub></td>
+<td width="50%"><img src="docs/readme/landing.png" alt="Landing page: ETH Simulator, big ambitions, very little free time" /><br/><sub><b>Admissions open.</b> One click to start. No account, no password.</sub></td>
 <td width="50%"><img src="docs/readme/character-builder.png" alt="Character builder with a live student ID preview" /><br/><sub><b>Meet your future self.</b> Live student-ID preview, colour presets, and an optional photo assist.</sub></td>
 </tr>
 <tr>
-<td><img src="docs/readme/acceptance-letter.png" alt="Personalised acceptance letter" /><br/><sub><b>You're in.</b> A personalised acceptance letter from the Office of Questionable Decisions.</sub></td>
+<td><img src="docs/readme/admission-flow.gif" alt="Animated admission: the student ID is issued, then the acceptance letter types itself out" /><br/><sub><b>You're in.</b> Your student ID is issued, then the acceptance letter types itself out. It's skippable and respects <code>prefers-reduced-motion</code>.</sub></td>
 <td><img src="docs/readme/campus-hub.png" alt="Degree hub with years, ECTS progress and the next minigame" /><br/><sub><b>The degree hub.</b> Three years, 180 ECTS. Each year unlocks once the last one is done.</sub></td>
 </tr>
 <tr>
@@ -60,8 +60,8 @@ Around that moment we built a whole (very unofficial) degree:
 <td><img src="docs/readme/blackjack-bust.jpg" alt="Galton Blackjack: a red ball above the curve means bust" /><br/><sub><b>Bust!</b> A ball stacks above the curve and turns red. The dealer has a line for that.</sub></td>
 </tr>
 <tr>
-<td><img src="docs/readme/scoreboard.png" alt="Student scoreboard dialog" /><br/><sub><b>Scoreboard.</b> The top 100 accounts, ranked by ECTS.</sub></td>
-<td><img src="docs/readme/light-theme.png" alt="The degree hub in the light theme" /><br/><sub><b>Light and dark themes</b>, keyboard accessible, with a skip link and ARIA labels throughout.</sub></td>
+<td><img src="docs/readme/diploma.png" alt="The game diploma: Diploma of determined survival with avatar, ECTS and completed years" /><br/><sub><b>Your diploma.</b> The "Diploma of determined survival", with your avatar, ECTS, years and minigames.</sub></td>
+<td><img src="docs/readme/scoreboard.png" alt="Student scoreboard dialog" /><br/><sub><b>Scoreboard.</b> The top 100 players, ranked by ECTS. Light and dark themes, a skip link and ARIA labels throughout.</sub></td>
 </tr>
 </table>
 
@@ -78,8 +78,8 @@ Around that moment we built a whole (very unofficial) degree:
 |---|---|
 | **Originality** | Shooting with a bare-hand finger gun, no controller and no install. Blackjack rebuilt around the normal distribution, the one curve every ETH student meets in their first year. |
 | **Technical depth** | A real-time computer-vision pipeline over a WebSocket, with our own gesture recognizer that copes with MediaPipe's failure modes. A simulation-balanced game. An AI gateway that cannot spend credits by accident. Details in the [engineering deep dive](#engineering-deep-dive). |
-| **Completeness** | Onboarding → character → Year 1 → Year 2 → scoreboard all work end to end, with guest mode, accounts and a production Docker stack. Every screenshot in this README comes from the running app. |
-| **Quality** | 362 automated tests (232 backend, 130 frontend), four required CI checks, CD to GHCR, and hardening against malformed camera frames that would otherwise crash the server. |
+| **Completeness** | Onboarding → character → admission → Year 1 → Year 2 → diploma → scoreboard all work end to end, with server-side progress for anonymous players and a production Docker stack. Every screenshot in this README comes from the running app. |
+| **Quality** | 395 automated tests (244 backend, 151 frontend), four required CI checks, CD to GHCR, and hardening against malformed camera frames that would otherwise crash the server. |
 | **Design** | One visual language from landing page to casino table, light and dark themes, accessible controls, and a "juicy" shooter: muzzle flash, shattering papers, a backdrop that reacts to every shot. |
 
 ---
@@ -103,16 +103,16 @@ flowchart LR
 
     subgraph Server["FastAPI (one origin, one uvicorn worker)"]
         direction TB
-        API["/api routers<br/>accounts · runs · leaderboard<br/>story · avatar · health"]
+        API["/api routers<br/>players · runs · leaderboard<br/>story · avatar · health · config"]
         CV["/api/cv/stream WebSocket<br/>MediaPipe HandLandmarker<br/>+ gesture.py"]
         AI["app/ai.py<br/>the only OpenAI gateway"]
     end
 
-    PG[("PostgreSQL 17<br/>users · sessions<br/>profiles · progress")]
+    PG[("PostgreSQL 17<br/>players · profiles<br/>completions")]
     RD[("Redis 8<br/>runs · leaderboard<br/>AI cache · budget")]
     OAI(["OpenAI<br/>vision · text · TTS<br/>moderation"])
 
-    Shell -- "fetch /api (cookie + CSRF)" --> API
+    Shell -- "fetch /api (anonymous player UUID)" --> API
     L1 <-- "binary JPEG ⇄ JSON aim/shots" --> CV
     API --> PG
     API --> RD
@@ -242,11 +242,15 @@ flowchart LR
 - **Privacy by design in the photo assist.** Skin tone is measured *in the browser* from three skin patches inside the face oval, using CIE L\* lightness (webcam colour casts make hue unreliable). One still of at most 512 px is sent, only on an explicit click, to pick hair and eye colours from the presets. It costs about $0.0002 per photo and is never stored or logged.
 - **Story engine.** Advisor dialogue packs (Structured Outputs), a personal epilogue and rector-voiced TTS narration are built and tested behind the same gateway, with free name moderation in `live` mode.
 
-### 6. Accounts done properly
+### 6. Progress without sign-up friction
 
-- Passwords hashed with **Argon2** (`pwdlib`). Logins for unknown users still verify against a dummy hash, so response timing doesn't reveal which usernames exist.
-- **Opaque session tokens**, stored only as an HMAC-SHA256 hash, in `HttpOnly`, `SameSite=Lax` cookies (`Secure` in production). Sessions rotate on login and register.
-- **CSRF protection.** Every state-changing request needs an `X-CSRF-Token` header that matches the session, compared in constant time (`hmac.compare_digest`).
+At a booth, a login form costs players. Each browser gets a random **player UUID** in `localStorage`, and the server keys profiles, completions and graduation by it ([#27](https://github.com/DEOIST/viscon26-main/pull/27)).
+
+- **The server enforces the rules.** A year unlocks only when every game in the earlier years is complete. Placeholders can't award ECTS. Graduation needs all three years. A display name never grants access to a run.
+- **Safe under concurrency.** Completions and graduation take a per-player row lock (`SELECT … FOR UPDATE`) and are idempotent, so double clicks and retries can't double-award ECTS.
+- **Zero-downtime migration.** An additive migration copies the earlier account records into the new tables without touching the old ones.
+- **Credit-spending guard.** The vision endpoint rejects requests whose `Origin` isn't on the allow-list, so another site can't spend our OpenAI budget through a player's browser.
+- **Diploma preview.** `GRADUATION_PREVIEW` (exposed at `GET /api/config`) lets the booth show the diploma early. It's UI-only and never completes games or changes results.
 - `Cache-Control: no-store` on every API response, `X-Content-Type-Options: nosniff`, and no Swagger UI or OpenAPI schema in production. Redis and Postgres outages return a readable 503, not a stack trace.
 
 ---
@@ -255,11 +259,11 @@ flowchart LR
 
 | Layer | Choice | Why |
 |---|---|---|
-| Outer shell | **React 19 + TypeScript**, Vite, Redux Toolkit | Menus, onboarding and the hub are classic UI. The degree state lives in one store, persisted for guests and synced to the server for accounts |
+| Outer shell | **React 19 + TypeScript**, Vite, Redux Toolkit | Menus, onboarding and the hub are classic UI. The degree state lives in one store, mirrored to the server by an anonymous player ID |
 | Game engine | **Phaser 4** (WebGL, Canvas fallback) | One 2D engine for both games. The shooter fakes depth with projection, scale, draw order and haze, so it needs no 3D engine and no extra GPU load next to the camera |
 | Computer vision | **MediaPipe HandLandmarker** (Python), Pillow, NumPy | 21 landmarks per hand at about 10 ms per frame on a CPU, with our own geometry on top |
 | Backend | **FastAPI** + Pydantic v2 | A typed contract, mirrored in TypeScript (`schemas.py` ↔ `CommonInt.ts`), with camelCase on the wire |
-| Accounts | **PostgreSQL 17**, SQLAlchemy 2, Argon2 | Relational data (users, sessions, profiles, completions) |
+| Player progress | **PostgreSQL 17**, SQLAlchemy 2 | Relational data (players, profiles, completions) with row-level locks |
 | Game data & cache | **Redis 8** (AOF) | Runs, a sorted-set leaderboard, the AI cache, the daily budget and dead-key flags |
 | AI | **OpenAI** (vision, Structured Outputs, TTS, moderation) | Backend only, cached and capped, with a fallback for everything |
 | Tests | pytest, fakeredis, pytest-socket · vitest, Testing Library, jsdom | Zero network and zero credits, by construction |
@@ -284,8 +288,8 @@ flowchart LR
 
 | | |
 |---|---|
-| **Backend tests** | 232 passing (accounts, runs, endings, leaderboard, story, AI gateway, moderation, CV contract, gesture replays, real-model checks) |
-| **Frontend tests** | 130 passing across 18 files (blackjack rules, depth projection, hit tests, scoring, spawn, `FramePacer`, `SwitchableInput` lifecycle, character builder, progression) |
+| **Backend tests** | 244 passing (players, runs, endings, leaderboard, story, AI gateway, moderation, CV contract, gesture replays, real-model checks) |
+| **Frontend tests** | 151 passing across 23 files (blackjack rules, depth projection, hit tests, scoring, spawn, `FramePacer`, `SwitchableInput` lifecycle, character builder, admission flow, diploma, progression) |
 | **Protected `main`** | Every change goes through a PR with four required checks, squash-merged ([docs/BRANCH_RULES.md](docs/BRANCH_RULES.md)) |
 | **Testing the camera without a camera** | In a headless browser, Playwright swaps `getUserMedia` for a canvas stream of a hand photo, so the real pipeline (WebSocket, MediaPipe, gesture engine, scene) runs end to end. The GIF at the top was recorded this way |
 
@@ -298,8 +302,8 @@ Interactive docs at `http://localhost:8000/docs` in development (disabled in pro
 | Area | Endpoints |
 |---|---|
 | Health | `GET /api/health` (no dependencies) · `GET /api/db-health` |
-| Accounts | `GET /api/session` · `POST /api/register` · `POST /api/login` · `POST /api/logout` · `GET`/`PUT /api/profile` · `GET /api/progress` · `POST /api/completions/{game_id}` · `POST /api/graduation` · `GET /api/scoreboard` |
-| Avatar AI | `POST /api/avatar/suggestion` (CSRF-protected, one still) |
+| Players | `GET`/`PUT /api/players/{id}` · `POST /api/players/{id}/completions/{game_id}` · `POST /api/players/{id}/graduation` · `GET /api/scoreboard` · `GET /api/config` |
+| Avatar AI | `POST /api/avatar/suggestion` (Origin-checked, one still) |
 | Computer vision | `GET /api/cv/status` · `WS /api/cv/stream` |
 | Runs and story | `POST /api/runs` · `GET /api/runs/{id}` · `POST …/scores` · `POST …/graduate` · `POST …/dialogue` · `POST …/epilogue` · `POST …/epilogue/speech` · `GET /api/leaderboard` · `GET /api/leaderboard/endings` |
 
@@ -322,7 +326,7 @@ make check                            # tsc, prettier, vitest, ruff, pytest. Run
 make smoke                            # read-only end-to-end probe of a running app
 ```
 
-`make dev` needs Postgres for accounts: `docker compose up -d db` starts one on `127.0.0.1:5433`, which the backend's defaults already point at (or set `DATABASE_URL`). Redis is optional in development: without `REDIS_URL` the backend uses an in-process fakeredis. `AI_MODE` defaults to `off`, so running the game never spends OpenAI credits. Set it in `backend/.env` (see [`backend/.env.example`](backend/.env.example)).
+`make dev` needs Postgres for player progress: `docker compose up -d db` starts one on `127.0.0.1:5433`, which the backend's defaults already point at (or set `DATABASE_URL`). Redis is optional in development: without `REDIS_URL` the backend uses an in-process fakeredis. `AI_MODE` defaults to `off`, so running the game never spends OpenAI credits. Set it in `backend/.env` (see [`backend/.env.example`](backend/.env.example)).
 
 **Demo tips:** light from the front, hand 40–80 cm from the camera, thumb pointing at the ceiling. Press **C** to recalibrate the aim, **M** to switch to the mouse, and **Enter** to skip the warm-up.
 
@@ -347,8 +351,8 @@ docs/                    Game design, architecture, CV deep dive, stack, decisio
 
 ## What's next
 
-- **Year 3.** The third minigame slot is wired into the hub and waiting for its game (the shell shows it as locked).
-- **The story in the new shell.** The advisor dialogue, AI epilogue and rector narration are built and tested in the backend. The next step is mounting them in the new shell's graduation flow.
+- **Year 3.** The third minigame slot is wired into the hub and waiting for its game. Today it holds a preview component that awards no ECTS.
+- **The story in the new shell.** The advisor dialogue, AI epilogue and rector narration are built and tested in the backend. The next step is adding the AI epilogue and narration to the new diploma screen.
 - **Archetype perks.** The Gamer and ASVZ-athlete perks already exist in the shooter's config and the engine's `settings` message. Next we expose archetypes in the character builder.
 - **Per-player box calibration** for the hand skeleton (the protocol message already exists), plus sound and hit-stop for the shooter.
 
