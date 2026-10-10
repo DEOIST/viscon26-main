@@ -326,6 +326,12 @@ make check                            # tsc, prettier, vitest, ruff, pytest. Run
 make smoke                            # read-only end-to-end probe of a running app
 ```
 
+**On the VIScon VM:** the managed address (`https://18.hackathon.ethz.ch`) doesn't support WebSockets, so the camera stream fails there and Bug Bash falls back to the mouse. Set the team page's ingress mode to **Custom** (server port 443, protocol HTTPS), open the ports with `sudo ufw allow 80,443/tcp`, and add Caddy for HTTPS on the direct address:
+
+```bash
+docker compose -f compose.yaml -f compose.direct.yaml up -d --build   # → https://18-direct.viscon-hackathon.ch
+```
+
 `make dev` needs Postgres for player progress: `docker compose up -d db` starts one on `127.0.0.1:5433`, which the backend's defaults already point at (or set `DATABASE_URL`). Redis is optional in development: without `REDIS_URL` the backend uses an in-process fakeredis. `AI_MODE` defaults to `off`, so running the game never spends OpenAI credits. Set it in `backend/.env` (see [`backend/.env.example`](backend/.env.example)).
 
 **Demo tips:** light from the front, hand 40–80 cm from the camera, thumb pointing at the ceiling. Press **C** to recalibrate the aim, **M** to switch to the mouse, and **Enter** to skip the warm-up.

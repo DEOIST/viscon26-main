@@ -21,7 +21,10 @@ export default defineConfig(({ mode }) => {
                     ws: true, // level 1's camera stream: WebSocket /api/cv/stream
                 },
             },
-            allowedHosts: ['18.hackathon.ethz.ch'],
+            allowedHosts: [
+                "18.hackathon.ethz.ch",
+                "18-direct.viscon-hackathon.ch",
+            ],
         },
         test: {
             environment: "jsdom",
