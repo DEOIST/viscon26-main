@@ -123,7 +123,7 @@
     },
     "meta": {
         "app": "poker-cards/build.py",
-        "image": "gaussian.png",
+        "image": "gaussian.svg",
         "format": "RGBA8888",
         "size": {
             "w": 1516,
