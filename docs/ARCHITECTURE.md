@@ -226,6 +226,15 @@ interface CvFrame {
     thumbDistance: number | null; // metres
     processingMs: number;
 }
+// client → server control messages on the stream
+interface CvBoxMessage {
+    type: "box";
+    box: [number, number, number, number]; // mirrored camera image 0..1, each side ≥ 0.1
+}
+interface CvSettingsMessage {
+    type: "settings";
+    cooldownMs: number; // 0–2000
+}
 ```
 
 ### Endpoints
@@ -243,7 +252,7 @@ interface CvFrame {
 | Narration | `POST /api/runs/{run_id}/epilogue/speech` | `generate_epilogue_speech` | `apiGenerateEpilogueSpeech` | 200 `audio/mpeg` · 404 · 409 no epilogue yet · 503 narrator unavailable |
 | Health | `GET /api/health` | `get_health` (exists) | `apiGetHealth` | 200; touches no dependency |
 | Finger-detection status | `GET /api/cv/status` | `get_cv_status` | `apiGetCvStatus` | 200 `CvStatus` |
-| Finger-detection stream | WebSocket `/api/cv/stream` | `stream_cv` | `ServerHandInput` (`games/shooter/input/`) | JPEG frames in, `CvFrame` out; closes 1013 busy, 1011 unavailable, 4000 idle |
+| Finger-detection stream | WebSocket `/api/cv/stream` | `stream_cv` | `ServerHandInput` (`games/shooter/input/`) | JPEG frames and `CvBoxMessage`/`CvSettingsMessage` in, `CvFrame` out; closes 1013 busy, 1011 unavailable, 4000 idle; limits in SHOOTER_CV.md → The engine |
 
 Routers: `routers/runs.py` (prefix `/runs`), `routers/leaderboard.py` (prefix
 `/leaderboard`), `routers/story.py` (prefix `/runs`, tag `story`),
@@ -420,7 +429,7 @@ cannot spend them, by construction:
 | Story features | pytest with `FakeAI` | A cache hit doesn't call `FakeAI` again (assert the call count); fallback content when `FakeAI` raises; 404 and 409 rules |
 | Endings | pytest | Every tier boundary: 24/25, 44/45, 64/65, 84/85 |
 | Finger detection | pytest | Gesture rules on synthetic hands; the WebSocket contract with a scripted detector; the real model on a photo (skipped without the model) |
-| Pure frontend logic | vitest (in `make check`) | Shooter depth, hit test, score, `cvStream`, `FramePacer`; next: blackjack rules, `run.ts` |
+| Frontend logic | vitest (in `make check`) | Shooter depth, hit test, score, spawn, box fitting, `cvStream`, `FramePacer`, and the input lifecycle against a fake camera and WebSocket; next: blackjack rules, `run.ts` |
 | Docker smoke | `scripts/smoke.sh` | Read-only GETs only, never a story POST. CI has no keys, so no AI call can happen |
 | Performance (game) | Real browser on the demo laptop and the weakest team laptop, camera on | Game frame rate. Never in a browser on the VM or in CI: neither has a GPU, so the browser falls back to software rendering and the numbers mean nothing |
 | Performance (CV) | `make cv-check URL=<server>` | Engine time and round trip per frame against the server the demo will use |
@@ -443,6 +452,8 @@ announce it to the team first.
 | OpenAI down, out of credit, or no keys | Pre-written dialogue and epilogue (templated), pre-generated narration mp3 |
 | Camera denied, busy or missing; finger-detection engine busy, unavailable or idle | Mouse mode, a short message with the reason, the round continues |
 | Hand lost mid-round | Crosshair hidden, "Show your hand to the camera" |
+| Camera unplugged mid-round | Mouse mode at once, with the reason |
+| A malicious frame or message on the CV stream | Refused with an error message; the stream and the server keep running (SHOOTER_CV.md → The engine) |
 | Saving a score fails | The result stays on screen with **Retry**; we never navigate away with an unsaved score |
 | Redis down | API answers 503 with a readable message; pages show "Campus is closed, try again in a moment" |
 | WebGL unavailable | Phaser falls back to Canvas in both games; gameplay never depends on WebGL-only effects (glow, filters) |

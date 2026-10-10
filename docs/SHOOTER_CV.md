@@ -89,22 +89,26 @@ hand skeleton, hit test at firedAt, effects
 maxSessions}`. It starts a detector once per process to prove that MediaPipe,
 its system libraries and the model all work (~2 s the first time; only success
 is remembered, so a failed start is retried). The shooter intro screen calls it,
-which also warms the engine up.
+which also warms the engine up. In development the reason names the error (for
+example a missing `.so` file); in production it points to the server log, which
+has the full traceback (`make prod-logs`).
 
 WebSocket `/api/cv/stream` (`routers/cv.py`, `input/cvStream.ts`):
 
 | Direction | Message | Answer |
 |---|---|---|
 | server → client | `{"type": "ready", "box": [x0, y0, x1, y1]}` once the session's detector is loaded | |
-| client → server | binary JPEG frame, at most `CV_MAX_FRAME_BYTES` (200 KB) | `{"type": "frame", ...CvFrame}` |
-| client → server | `{"type": "box", "box": [x0, y0, x1, y1]}`, 0 ≤ x0 < x1 ≤ 1, same for y | `{"type": "ready", "box": [...]}` |
-| client → server | `{"type": "settings", "cooldownMs": 175}`, 0–2000 (the athlete perk) | the same message |
+| client → server | binary JPEG frame (JPEG only), at most `CV_MAX_FRAME_BYTES` (200 KB), each side ≤ 1280 px | `{"type": "frame", ...CvFrame}` |
+| client → server | `{"type": "box", "box": [x0, y0, x1, y1]}` (`CvBoxMessage`): 0 ≤ x0 < x1 ≤ 1, same for y, each side at least 0.1 | `{"type": "ready", "box": [...]}` |
+| client → server | `{"type": "settings", "cooldownMs": 175}` (`CvSettingsMessage`): 0–2000, the athlete perk | the same message |
 | server → client | `{"type": "error", "detail": "..."}` for a bad frame or message; the stream continues | |
 
-Close codes: **1013** engine busy (all `CV_MAX_SESSIONS` slots taken), **1011**
-engine unavailable (no model, or MediaPipe can't start; the reason says which),
-**4000** no frames for `CV_IDLE_TIMEOUT_SECONDS`. The client turns every close
-into mouse mode with a readable reason (`closeMessage`).
+Control messages are validated by their schemas in `app/schemas.py` (JSON
+numbers only: no booleans, NaN or infinity) and may be at most 1024 characters
+long. Close codes: **1013** engine busy (all `CV_MAX_SESSIONS` slots taken),
+**1011** engine unavailable (no model, or MediaPipe can't start), **4000** no
+camera frames for `CV_IDLE_TIMEOUT_SECONDS` (control messages don't count). The
+client turns every close into mouse mode with a readable reason (`closeMessage`).
 
 ```ts
 // frontend/src/misc/CommonInt.ts (mirrors backend/app/schemas.py)
@@ -146,21 +150,33 @@ interface CvFrame {
 - **The model** (`hand_landmarker.task`, float16, 7.8 MB) is downloaded by the
   frontend build into the git-ignored `frontend/public/models/` (CI rejects
   files over 5 MB), copied to `dist/static/models/`, and read by the server from
-  `CV_MODEL_PATH` (default: that file in `frontend/dist`). The Docker image
-  gets it through the frontend build stage.
+  `CV_MODEL_PATH` (default: that file in `frontend/dist`). Its SHA-256 is pinned
+  in `build.js`: a file on disk that fails the check is downloaded again, and a
+  download that fails it stops the build. The Docker image gets the model
+  through the frontend build stage.
 - **System libraries.** In `python:3.14-slim` MediaPipe needs `libxcb1`,
   `libgl1`, `libglib2.0-0` (to import OpenCV) and `libegl1`, `libgles2` (when a
-  detector starts), even though the server never opens a window. Without them
-  `/api/cv/status` reports the missing `.so` file. `MPLCONFIGDIR=/tmp/matplotlib`
+  detector starts), even though the server never opens a window; the x86_64
+  and arm64 wheels need the same ones. Without them the engine reports itself
+  unavailable and the log names the missing `.so` file. `MPLCONFIGDIR=/tmp/matplotlib`
   gives matplotlib (pulled in by MediaPipe) a writable cache, because `appuser`
   has no home directory.
 - **Concurrency.** Decoding and detection run in the threadpool
   (`run_in_threadpool`), and MediaPipe releases the GIL, so players don't block
   each other or the rest of the API: four parallel players got the same median
   round trip as one (measured).
-- **Limits.** `CV_MAX_FRAME_BYTES` per message, `MAX_FRAME_PIXELS` (1280×960)
-  checked from the image header before decoding, Pillow's decompression-bomb
-  guard mapped to "Frame too large", `CV_MAX_SESSIONS`, `CV_IDLE_TIMEOUT_SECONDS`.
+- **Limits** (the stream is open to anyone who can load the page):
+  - frames: JPEG only (every other Pillow parser is attack surface),
+    `CV_MAX_FRAME_BYTES`, and each side at most 1280 px and 1280×960 px in
+    total, checked from the header before decoding. **A side of 32767 px or more
+    aborts OpenCV inside MediaPipe, a native crash that kills the whole server
+    process**, so the side limit is checked again right before the detector
+    runs. Pillow's decompression-bomb guard maps to "Frame too large" too;
+  - control messages: at most 1024 characters, because they are parsed on the
+    event loop; every WebSocket message is capped at 1 MiB by uvicorn
+    (`--ws-max-size` in the Dockerfile; keep it above `CV_MAX_FRAME_BYTES`);
+  - `CV_MAX_SESSIONS` slots, freed after `CV_IDLE_TIMEOUT_SECONDS` without a
+    camera frame. A slot is always returned, even if a detector fails to close.
 - **Privacy.** Frames live only in memory while one is processed; nothing
   writes them to disk or to the log.
 
@@ -212,19 +228,27 @@ hand to the camera", when no hand is visible.
 2. **Box:** a comfortable region of the camera image (default x 0.2–0.8,
    y 0.15–0.75, in mirrored coordinates) maps to the whole game area, so small
    hand movements cover the screen and the player never reaches the image
-   edges, where tracking degrades.
+   edges, where tracking degrades. The engine can't know the camera's shape, so
+   the browser fits the box to it (`input/box.ts`): it keeps the width and the
+   centre and gives the box the game area's 16:9 shape in camera pixels. For
+   the usual 4:3 camera that is y 0.225–0.675; otherwise the video would look
+   a third too wide.
 3. **Same box for the video:** `ServerHandInput.placeVideo` scales and positions
    the mirrored video so that the box fills the game area. The crosshair then
    sits exactly on the on-screen fingertip (verified: the skeleton overlays the
    hand in the video), while movements stay small.
 4. Clamp to 0..1, then a **One-Euro filter** per axis (Casiez et al., 2012):
    smooth when the hand is slow, responsive when it is fast. Start values:
-   `min_cutoff = 1.2`, `beta = 0.02`, `d_cutoff = 1.0`.
+   `min_cutoff = 1.2` Hz, `beta = 8`, `d_cutoff = 1.0` Hz. The speed is in
+   game-area widths per second, so `beta` is far larger than the 0.02 of
+   pixel-based examples, which would leave the crosshair 12 % of the screen
+   behind a hand moving one width per second (`beta = 8`: about 1 %).
 5. The engine answers at camera rate (~30 Hz); the scene draws the latest aim
    at 60 fps without easing.
 
-The box can be changed per stream (`{"type": "box"}`), but nothing does that
-yet: see [Not built yet](#not-built-yet).
+The fitted box is sent once as `{"type": "box"}` before the first frame.
+Per-player calibration would use the same message: see
+[Not built yet](#not-built-yet).
 
 ## Trigger: the thumb hammer
 
@@ -254,7 +278,8 @@ index tip (8) distance instead. Same pipeline, same hysteresis; only
 |---|---|
 | Hand out of view ≤ 300 ms | The last aim stays (grey); pose and trigger reset, so no shot fires on the way back |
 | Hand out of view > 300 ms | Crosshair hidden, "Show your hand to the camera" |
-| Camera denied, busy or missing | Mouse mode with the reason, the round continues |
+| Camera denied, busy or missing; page not on `https://` or `localhost` | Mouse mode with the reason, the round continues; the intro screen warns about the origin |
+| Camera unplugged or its permission revoked mid-round | Mouse mode at once (the track's `ended` event) |
 | Engine busy (1013), unavailable (1011) or the connection lost | Mouse mode with the reason |
 | No frames for 20 s, e.g. a hidden tab (4000) | The server frees the slot; the client switches to mouse mode |
 | Operator presses `M` | Mouse mode for the rest of the round |
@@ -343,8 +368,11 @@ soon as an answer arrived; now the camera is the limit.
   `test_cv_mediapipe.py` (the real model on `tests/fixtures/pointing_up.jpg`,
   a MediaPipe test image, Apache-2.0; skipped when the model hasn't been
   downloaded).
-- **vitest** (`make check`): `depth`, `hitTest`, `score`, `cvStream`,
-  `FramePacer`.
+- **vitest** (`make check`): `depth`, `hitTest`, `score`, `spawn`, `box`,
+  `cvStream`, `FramePacer`, and `SwitchableInput.test.ts`, which runs the whole
+  input lifecycle against a fake browser (camera, video, WebSocket): fallback
+  on an insecure origin, an unplugged camera or a busy engine, the box
+  handshake, `M`, and destroy during start-up.
 - **`make cv-check [URL=https://host]`** streams the photo to a running server
   and prints the engine time and round trip. Use it on the VM before the demo.
 - **The browser without a camera:** replace `navigator.mediaDevices.getUserMedia`
@@ -374,10 +402,11 @@ soon as an answer arrived; now the camera is the limit.
 
 ## Not built yet
 
-- **Per-player box calibration.** The warm-up teaches the gesture but keeps the
-  default box. With the AR overlay the default box already puts the crosshair on
-  the fingertip; calibrate only if playtests show players at unusual distances
-  or positions struggling. The protocol is ready (`{"type": "box"}`).
+- **Per-player box calibration.** The warm-up teaches the gesture; the box is
+  the default one, fitted to the camera's shape. With the AR overlay that
+  already puts the crosshair on the fingertip; calibrate only if playtests show
+  players at unusual distances or positions struggling. The protocol is ready
+  (`{"type": "box"}`).
 - Recording and replaying landmark streams (`?record=1`, a `ReplayInput`), and
   a debug overlay with joint angles and the thumb distance (the HUD shows the
   round trip only).
@@ -389,6 +418,6 @@ soon as an answer arrived; now the camera is the limit.
 | Owner | Files |
 |---|---|
 | Shooter vision (engine) | `backend/app/services/gesture.py`, `services/cv.py`, `routers/cv.py`, their tests, `backend/tools/cv_check.py`, the Dockerfile's system libraries |
-| Shooter vision (client) | `games/shooter/input/*` (`ServerHandInput`, `FramePacer`, `SwitchableInput`, `MouseInput`, `cvStream.ts`) |
-| Shooter game | `games/shooter/ShooterScene.ts`, `depth.ts`, `hitTest.ts`, `score.ts`, `effects.ts`, `handOverlay.ts`, `config.ts` |
+| Shooter vision (client) | `games/shooter/input/*` (`ServerHandInput`, `FramePacer`, `box.ts`, `SwitchableInput`, `MouseInput`, `cvStream.ts`) |
+| Shooter game | `games/shooter/ShooterScene.ts`, `depth.ts`, `hitTest.ts`, `score.ts`, `spawn.ts`, `effects.ts`, `handOverlay.ts`, `config.ts` |
 | Shell | `components/shooter/App.tsx`, `CvStatusNote.tsx`: intro, engine status, result and saving the score (`MinigamePage`) |

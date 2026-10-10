@@ -151,14 +151,16 @@ The tree shows the target. *(planned)* marks parts that don't exist yet.
 │       │   └── common/           components shared by 2+ pages (Layout, MinigameHost, MinigamePage,
 │       │                         Avatar, MissingRun; LegiCard, Typewriter planned)
 │       ├── games/                WebGL inner shell: plain TS + Phaser. No React, no fetch.
-│       │   ├── shared/           minigame.ts (the MountMinigame contract), createGame.ts (Phaser setup)
+│       │   ├── shared/           minigame.ts (the MountMinigame contract), createGame.ts (Phaser setup),
+│       │   │                     gameSize.ts (GAME_WIDTH/HEIGHT, usable without Phaser)
 │       │   ├── blackjack/        Phaser 4, 2D: index.ts (mountBlackjack), rules.ts + rules.test.ts,
 │       │   │                     BlackjackScene.ts, config.ts, assets/
 │       │   └── shooter/          Phaser 4, fake-depth 2D: index.ts (mountShooter), ShooterScene.ts,
-│       │       │                 depth.ts, hitTest.ts, score.ts (+ tests), effects.ts, handOverlay.ts,
-│       │       │                 config.ts
+│       │       │                 depth.ts, hitTest.ts, score.ts, spawn.ts (+ tests), effects.ts,
+│       │       │                 handOverlay.ts, config.ts
 │       │       └── input/        InputSource.ts, ServerHandInput.ts (camera → /api/cv/stream),
-│       │                         FramePacer.ts, cvStream.ts (+ tests), MouseInput.ts, SwitchableInput.ts
+│       │                         FramePacer.ts, box.ts, cvStream.ts, SwitchableInput.ts (+ tests),
+│       │                         MouseInput.ts
 │       ├── assets/               generated art (webp) and fallback narration (mp3) (planned)
 │       ├── misc/
 │       │   ├── CommonInt.ts      EVERY API/domain type (mirrors backend/app/schemas.py)
@@ -364,7 +366,7 @@ Inside the image the paths mirror the repo (`/app/backend`, `/app/frontend/dist`
 
 ### Testing: zero credits
 - **pytest** runs with fakeredis, `FakeAI` and the network blocked (pytest-socket, in `pyproject.toml`). A test that needs the real API is not a test; it is a manual check you announce to the team.
-- **vitest** (in `make check`, not yet in CI) covers pure frontend logic only: the shooter's `depth`, `hitTest`, `score`, `cvStream`, `FramePacer`; `rules.ts` and `run.ts` next.
+- **vitest** (in `make check`, not yet in CI) covers frontend logic without a browser: the shooter's `depth`, `hitTest`, `score`, `spawn`, `box`, `cvStream`, `FramePacer`, and the input lifecycle against a fake camera and WebSocket (`SwitchableInput.test.ts`); `rules.ts` and `run.ts` next. Code that unit tests import must not import Phaser (it needs a real `window`): take sizes from `games/shared/gameSize.ts`.
 - **CV tests** drive the WebSocket with a scripted detector (`tests/test_cv.py`); `tests/test_cv_mediapipe.py` runs the real model on a photo and skips when the model hasn't been downloaded. No camera needed anywhere.
 - **The smoke test only sends GETs**, so it can never trigger an OpenAI call.
 - The full strategy is in [ARCHITECTURE.md → Testing strategy](docs/ARCHITECTURE.md#testing-strategy-zero-credits-by-default).
@@ -385,7 +387,7 @@ The full rules are in [docs/BRANCH_RULES.md](docs/BRANCH_RULES.md) (humans) and 
 
 - **The frontend build does not typecheck.** esbuild strips types without checking them. Run `npx tsc --noEmit` (included in `make check`).
 - **Data in development resets on every backend reload** unless you run a real Redis: with an empty `REDIS_URL` the backend uses an in-process fakeredis, and `uvicorn --reload` restarts the process on every Python save. Use `make redis` and set `REDIS_URL` in `backend/.env` when you need persistence locally.
-- **The production container runs one uvicorn worker.** Fine for us; with all state in Redis more workers would be safe, but in-process stores (the starter's `items` dict, fakeredis) are per process.
+- **The production container runs one uvicorn worker.** Fine for us; with all state in Redis more workers would be safe, but in-process state is per process: fakeredis, and the finger-detection engine's session count, so `--workers 2` would allow twice `CV_MAX_SESSIONS` camera players and twice the CPU.
 - **`/docs` (Swagger UI) is not exposed in production.**
 - **You must refresh the browser** after a rebuild (no HMR). Responses are sent `Cache-Control: no-cache`, so a normal refresh is enough.
 - **`/{page_name}` is a catch-all** for single-segment paths. `mount_frontend(app)` must stay the **last** line in `main.py`, after every router.
@@ -394,7 +396,8 @@ The full rules are in [docs/BRANCH_RULES.md](docs/BRANCH_RULES.md) (humans) and 
 - **The camera only works on a secure origin:** `https://...` or `http://localhost`. `http://<vm-ip>:8000` will never get a camera; use HTTPS or an SSH tunnel to localhost (see ARCHITECTURE.md → Deployment).
 - **Browsers block audio until the user clicks on that page.** A click on the previous page doesn't count after a full page load, so the graduation reveal starts with a click (**Open your diploma**) before the narration plays.
 - **The hand model (`hand_landmarker.task`, 7.8 MB) must never be committed:** CI rejects files over 5 MB. The build downloads it into `frontend/public/models/` (git-ignored); if the download fails the build still succeeds, `/api/cv/status` reports the engine unavailable and the shooter falls back to the mouse. `make smoke` fails in that case, on purpose: a production image must have a working engine.
-- **MediaPipe needs system libraries even on a server without a screen** (`libxcb1`, `libgl1`, `libglib2.0-0`, `libegl1`, `libgles2` in the Dockerfile). A missing one shows up in `/api/cv/status` as the missing `.so` file, not at import time.
+- **MediaPipe needs system libraries even on a server without a screen** (`libxcb1`, `libgl1`, `libglib2.0-0`, `libegl1`, `libgles2` in the Dockerfile). A missing one shows up when a detector starts, not at import time: `/api/cv/status` reports the engine unavailable (with the missing `.so` file in development; in production the log has it).
+- **Never let an unchecked image reach MediaPipe.** A frame with a side of 32767 px or more aborts OpenCV inside it: a native crash that kills the whole server process, not an exception. `decode_frame` (JPEG only, each side ≤ 1280 px) and a guard in `MediaPipeDetector.detect` prevent it; keep both.
 - **Game FPS depends on the player's laptop; finger detection depends on the server.** WebGL runs in the browser, so never judge game performance in a browser on the VM or in CI (no GPU, software rendering). The engine runs on the server's CPU: measure it with `make cv-check URL=...` against the server the demo uses.
 - **The shooter uploads one ~10 KB JPEG per camera frame** (2–4 Mbit/s per player) and waits for each answer, so the network round trip is part of the aim's latency. The best demo setup is `make prod` on the demo laptop itself.
 - **OpenAI calls never happen in tests or CI,** and only in development when you set `AI_MODE=live`. If you see real calls in a test run, stop and fix the test.
