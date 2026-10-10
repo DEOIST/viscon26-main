@@ -8,7 +8,7 @@ Guidance for Claude Code **and for every teammate** working in this repository. 
 
 ## What this is
 
-**ETH Life** (working title), our VIScon 2026 game. You create an ETH student (name, pronouns, department, archetype, avatar), play two minigames, and your scores decide your career at graduation: C-level executive, big-tech engineer, eternal PhD, McDonald's or unemployed. The minigames are **Blackjack** ("Casino night") and a **webcam finger-gun shooter** ("Basisprüfung"): you aim with your index finger and drop your thumb to shoot, tracked live in the browser. The shooter is the feature we win with. OpenAI writes the story around your character: advisor and dealer lines, a personal epilogue, and a narrator voice.
+**ETH Life** (working title), our VIScon 2026 game. You create an ETH student (name, pronouns, department, archetype, avatar), play two minigames, and your scores decide your career at graduation: C-level executive, big-tech engineer, eternal PhD, McDonald's or unemployed. The minigames are **Blackjack** ("Casino night") and a **webcam finger-gun shooter** ("Basisprüfung"): you aim with your index finger and drop your thumb to shoot, tracked live by our server (MediaPipe, #13). The shooter is the feature we win with. OpenAI writes the story around your character: advisor and dealer lines, a personal epilogue, and a narrator voice.
 
 **The demo flow that must work on judging day:** enroll → campus → blackjack → shooter with the camera → graduation reveal, read aloud.
 
@@ -19,9 +19,9 @@ Guidance for Claude Code **and for every teammate** working in this repository. 
 | [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md) | The finger-gun computer vision |
 | [docs/STACK.md](docs/STACK.md) | Versions, what to add, what we rejected and why |
 
-> **Status:** the foundation is built (#12): API contract, Redis, OpenAI plumbing, Phaser and MediaPipe in the build, and every page as a working skeleton. Both minigames are still **placeholders** for their tracks. Anything marked *(planned)* below does not exist until its PR lands ([build status](docs/ARCHITECTURE.md#build-status)).
+> **Status:** the foundation is built (#12): API contract, Redis, OpenAI plumbing, Phaser in the build, and every page as a working skeleton. The **shooter** and its finger-detection engine are built (#13); **blackjack** is still a placeholder. Anything marked *(planned)* below does not exist until its PR lands ([build status](docs/ARCHITECTURE.md#build-status)).
 
-Stack: **React + TypeScript** outer shell bundled by **esbuild**; a WebGL inner shell for the minigames: **Phaser 4** for both (blackjack, and the shooter, which fakes depth with isometric 2D art); **MediaPipe** hand tracking in the browser; a **FastAPI** backend with **Redis** (no Redux, no client-side store); and **OpenAI** called only from the backend. FastAPI serves both the JSON API and the built frontend from **one origin**, so there is no CORS, no proxy and no API base URL.
+Stack: **React + TypeScript** outer shell bundled by **esbuild**; a WebGL inner shell for the minigames: **Phaser 4** for both (blackjack, and the shooter, which fakes depth with isometric 2D art); **MediaPipe** hand tracking in the backend (Python, fed over a WebSocket); a **FastAPI** backend with **Redis** (no Redux, no client-side store); and **OpenAI** called only from the backend. FastAPI serves both the JSON API and the built frontend from **one origin**, so there is no CORS, no proxy and no API base URL.
 
 ## Architecture: read this first
 
@@ -34,7 +34,7 @@ Browser GET /blackjack?run=abc
   → src/pages/blackjack.tsx           mountPage(App)
   → src/components/blackjack/App.tsx  React outer shell: intro, MinigameHost, result screen, navigation
   → src/games/blackjack/index.ts      mountBlackjack(): Phaser 4 inner shell (2D, WebGL canvas)
-  (/shooter works the same way: games/shooter/index.ts mountShooter() = Phaser isometric scene + MediaPipe)
+  (/shooter works the same way: games/shooter/index.ts mountShooter() = Phaser scene + camera client)
 
 Browser fetch POST /api/runs/abc/scores
   → app/routers/runs.py               HTTP layer (validation, status codes)
@@ -43,14 +43,16 @@ Browser fetch POST /api/runs/abc/scores
   ← JSON (camelCase)                  typed on the client by src/misc/CommonInt.ts
 
 Story endpoints: app/routers/story.py → app/services/story.py → app/ai.py → OpenAI (keys only on the server)
+Finger detection: WebSocket /api/cv/stream → app/routers/cv.py → app/services/cv.py (MediaPipe)
+                  → app/services/gesture.py (pose, aim, shots) → JSON back to the shooter
 ```
 
 - **Navigation** is plain `<a href="/other-page">` or `window.location.href` (a full page load). Pass state between pages through the query string: the run id is `?run=<id>`, built and read only through `misc/run.ts`. **Do not add `react-router`.**
 - **Two shells, one seam.** React owns everything around a round (menus, character creator, hub, overlays, saving, navigation). Phaser 4 owns the round itself, in both minigames. They meet only through the `MountMinigame` contract in `games/shared/minigame.ts`. Pages never import Phaser; `games/` never fetches, never navigates and never imports React.
 - **No client-side store (no Redux).** Every navigation is a full page load, which wipes in-memory state. The character and the run live on the server; each page loads them through the API.
-- **Computer vision runs in the browser.** MediaPipe tracks the hand on the device; video frames never reach the backend. Details in [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md).
+- **Computer vision runs on the server (#13).** The shooter streams small JPEG frames over a WebSocket to `/api/cv/stream`; MediaPipe finds the hand and `services/gesture.py` turns it into aim and shots. Frames are analysed in memory and never stored. Details in [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md).
 - **Secrets stay on the server.** Only `backend/app/ai.py` talks to OpenAI.
-- **Code shared between pages** (React, `misc/`, common components) is split into `dist/pages/chunks/` by esbuild automatically. Phaser is imported only by the two game pages, so esbuild puts it in one shared chunk that `/blackjack` and `/shooter` reuse from the cache, and only `/shooter` downloads MediaPipe.
+- **Code shared between pages** (React, `misc/`, common components) is split into `dist/pages/chunks/` by esbuild automatically. Phaser is imported only by the two game pages, so esbuild puts it in one shared chunk that `/blackjack` and `/shooter` reuse from the cache.
 - **Routing is automatic on both sides.** The build turns every `src/pages/<name>.tsx` into `dist/<name>.html`, and FastAPI serves `/<name>` → `dist/<name>.html`. Adding a page needs no backend change.
 
 ## Setup and commands
@@ -60,7 +62,7 @@ Requirements: **Node >= 26.5** (`frontend/.nvmrc`; run `nvm install` in `fronten
 ```bash
 make install    # npm install + create backend/.venv + pip install
 make dev        # frontend watcher + backend autoreload → http://localhost:8000
-make check      # typecheck + prettier check + ruff + pytest. RUN BEFORE EVERY PUSH.
+make check      # typecheck + prettier check + vitest + ruff + pytest. RUN BEFORE EVERY PUSH.
 make format     # prettier --write + ruff fix/format
 make test       # backend tests only
 make build      # minified production frontend build
@@ -71,6 +73,7 @@ make smoke      # read-only end-to-end check of a running app (URL=http://host:p
 
 make redis      # optional: a real Redis on 127.0.0.1:6379 (dev works without it, see "Gotchas")
 make ai-check   # verify every OpenAI key and model; free (LIVE=1 adds a 16-token call per key)
+make cv-check   # stream a hand photo to a running finger-detection engine (URL=https://host for the VM)
 
 # planned
 make art        # generate art and fallback narration offline. SPENDS CREDITS; asks first
@@ -85,6 +88,7 @@ node build.js            # dev build into dist/
 node build.js -w         # dev build + watch (rebuilds on save, picks up new/removed pages)
 node build.js --prod     # minified build
 npx tsc --noEmit         # typecheck. The build does NOT do this.
+npx vitest run           # frontend unit tests (pure logic)
 npx prettier --write .
 
 # Backend (from backend/)
@@ -135,7 +139,7 @@ The tree shows the target. *(planned)* marks parts that don't exist yet.
 │   ├── template.html             HTML shell for every page ({{page}}, {{css}} placeholders)
 │   ├── package.json  tsconfig.json  .prettierrc  .nvmrc
 │   ├── public/                   copied verbatim to dist/static/ → served at /static/<file>
-│   │   └── models/               hand_landmarker.task, downloaded by the build, git-ignored
+│   │   └── models/               hand_landmarker.task: downloaded by the build, git-ignored, read by the server
 │   ├── types/assets.d.ts         ambient declarations for *.module.css / images. NO domain types.
 │   ├── dist/                     build output (gitignored, never edit)
 │   └── src/
@@ -150,10 +154,11 @@ The tree shows the target. *(planned)* marks parts that don't exist yet.
 │       │   ├── shared/           minigame.ts (the MountMinigame contract), createGame.ts (Phaser setup)
 │       │   ├── blackjack/        Phaser 4, 2D: index.ts (mountBlackjack), rules.ts + rules.test.ts,
 │       │   │                     BlackjackScene.ts, config.ts, assets/
-│       │   └── shooter/          Phaser 4, isometric 2D: index.ts (mountShooter), ShooterScene.ts,
-│       │       │                 hitTest.ts (+ test), config.ts, assets/
-│       │       └── input/        InputSource.ts, HandInput.ts, gesture.ts (+ test), MouseInput.ts,
-│       │                         ReplayInput.ts, fixtures/
+│       │   └── shooter/          Phaser 4, fake-depth 2D: index.ts (mountShooter), ShooterScene.ts,
+│       │       │                 depth.ts, hitTest.ts, score.ts (+ tests), effects.ts, handOverlay.ts,
+│       │       │                 config.ts
+│       │       └── input/        InputSource.ts, ServerHandInput.ts (camera → /api/cv/stream),
+│       │                         FramePacer.ts, cvStream.ts (+ tests), MouseInput.ts, SwitchableInput.ts
 │       ├── assets/               generated art (webp) and fallback narration (mp3) (planned)
 │       ├── misc/
 │       │   ├── CommonInt.ts      EVERY API/domain type (mirrors backend/app/schemas.py)
@@ -178,12 +183,14 @@ The tree shows the target. *(planned)* marks parts that don't exist yet.
     │   ├── ai.py                 the only OpenAI gateway: AI_MODE, key failover, cap
     │   ├── prompts.py            all prompt text and structured-output schemas
     │   ├── routers/__init__.py   api_router (prefix /api), includes each feature router
-    │   ├── routers/<feature>.py  HTTP layer for one feature: health · runs · leaderboard · story
-    │   └── services/<feature>.py data + business logic for one feature (+ endings.py, fallbacks.py)
-    ├── tools/                    ai_check.py (generate_art.py planned); not shipped in the image
+    │   ├── routers/<feature>.py  HTTP layer for one feature: health · runs · leaderboard · story · cv
+    │   └── services/<feature>.py data + business logic for one feature (+ endings.py, fallbacks.py,
+    │                             gesture.py)
+    ├── tools/                    ai_check.py, cv_check.py (generate_art.py planned); not in the image
     └── tests/
         ├── conftest.py           `client` fixture (FastAPI TestClient); + fakeredis, FakeAI,
         │                         network blocked
+        ├── hands.py, fixtures/   synthetic hands and a real hand photo for the CV tests
         └── test_<feature>.py
 ```
 
@@ -273,7 +280,7 @@ APP_PORT=9000 docker compose up --build -d   # publish on another host port
 How the image is built ([Dockerfile](Dockerfile)):
 
 1. **Stage `frontend`** (`node:26-alpine`): `npm ci`, then `node build.js --prod` (minified, production React, no source maps).
-2. **Runtime stage** (`python:3.14-slim`): installs **only** `backend/requirements.txt`, copies `backend/app/` and the built `frontend/dist/`, runs as a non-root user, and starts `uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1`.
+2. **Runtime stage** (`python:3.14-slim`): installs five system libraries MediaPipe needs ([SHOOTER_CV.md → The engine](docs/SHOOTER_CV.md#the-engine-server)) and **only** `backend/requirements.txt`, copies `backend/app/` and the built `frontend/dist/`, runs as a non-root user, and starts `uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1`.
 
 Both base images are pulled from `public.ecr.aws/docker/library/`, AWS's mirror of the Docker Official Images (same digests as Docker Hub), because Docker Hub rate-limits anonymous pulls per IP and shared IPs (CI runners, the event network) hit that limit. Use the same prefix for any new service image, e.g. `public.ecr.aws/docker/library/redis:8-alpine`, and don't add a `# syntax=` line to the Dockerfile (it pulls from Docker Hub).
 
@@ -282,7 +289,7 @@ Inside the image the paths mirror the repo (`/app/backend`, `/app/frontend/dist`
 - **Configuration:** `compose.yaml` loads `backend/.env` if it exists (optional) and always forces `ENVIRONMENT=production`. Put production secrets in that `.env` on the server, never in the image. `.dockerignore` keeps every `.env` out of the build context.
 - **OpenAI keys:** on the VM they live in the server `.env` (`~/app/.env` with CD, `backend/.env` in a manual clone) as `OPENAI_API_KEYS` with `AI_MODE=live`, never in GitHub. CD doesn't need them. Full rules: [ARCHITECTURE.md → Where the API keys live](docs/ARCHITECTURE.md#where-the-api-keys-live).
 - **Redis**: service `redis` (`public.ecr.aws/docker/library/redis:8-alpine`, AOF on, named volume `redis-data`), reachable only inside the Compose network. **Never add a `ports:` entry for it.** `app` gets `REDIS_URL=redis://redis:6379/0`.
-- **Camera:** the shooter needs a secure origin (HTTPS or `localhost`). Options in [ARCHITECTURE.md → Deployment](docs/ARCHITECTURE.md#deployment).
+- **Camera and finger detection:** the shooter needs a secure origin (HTTPS or `localhost`), and the finger-detection engine runs in this container: about one CPU core per camera player, capped by `CV_MAX_SESSIONS` (default 4). Measure a deployed server with `make cv-check URL=...`. Options in [ARCHITECTURE.md → Deployment](docs/ARCHITECTURE.md#deployment).
 - **CD:** after CI passes on `main`, [.github/workflows/cd.yml](.github/workflows/cd.yml) pushes the image to `ghcr.io/<owner>/<repo>:latest` and `:<sha>`. When the repo variables `DEPLOY_HOST`/`DEPLOY_USER` (optional `DEPLOY_PORT`) and the secret `DEPLOY_SSH_KEY` are set, it also deploys over SSH using [compose.prod.yaml](compose.prod.yaml) (runs the published image, reads `~/app/.env` on the server) and smoke-tests the live URL. Roll back on the server with `IMAGE=ghcr.io/<owner>/<repo> TAG=<older sha> docker compose -f compose.prod.yaml up -d`.
 - **Health:** the container has a `HEALTHCHECK` on `GET /api/health`; `docker compose ps` shows `healthy` once it is up. Keep that endpoint cheap and dependency-free (it must not touch Redis or OpenAI).
 - **Adding a runtime dependency** = add it to `backend/requirements.txt` (dev-only tools go in `requirements-dev.txt`, which the image does not install). Frontend deps are picked up from `package-lock.json` via `npm ci`, so commit the lockfile.
@@ -325,19 +332,19 @@ Inside the image the paths mirror the repo (`/app/backend`, `/app/frontend/dist`
 ### Game code (`frontend/src/games/`, Phaser)
 - **One folder per minigame, one engine for all: Phaser 4.** Blackjack is plain 2D; the shooter fakes depth with isometric art (see [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md)). No 3D engine. `index.ts` exports only the mount function (`mountBlackjack`, `mountShooter`).
 - **Scenes are classes**, one per file, filename = class name (`BlackjackScene.ts`, `ShooterScene.ts`, both extend `Phaser.Scene`). This is the one place where classes are the norm.
-- **Pure logic is separate.** Rules, scoring and gesture math live in plain `.ts` files without engine imports, so they can be unit-tested. Scenes render and route input.
+- **Pure logic is separate.** Rules, scoring and depth math live in plain `.ts` files without engine imports, so they can be unit-tested (the gesture math lives in the backend, `services/gesture.py`). Scenes render and route input.
 - **Tunables** (thresholds, timings, sizes, perk values, quality settings) are `UPPER_SNAKE_CASE` constants in the game's `config.ts`.
-- **Boundaries:** no React, no `fetch`/`apiClient`, no navigation inside `games/`. Talk to the outside only through `MinigameOptions` (`character`, `dialogue`, `onFinish`). Only `components/common/MinigameHost.tsx` calls a mount function; only `games/shared/createGame.ts` creates a `Phaser.Game`.
+- **Boundaries:** no React, no `fetch`/`apiClient`, no navigation inside `games/`. Talk to the outside only through `MinigameOptions` (`character`, `dialogue`, `onFinish`). The one exception is the shooter's camera stream (`input/ServerHandInput.ts` → `/api/cv/stream`): it is part of the input device, like the camera it reads. Only `components/common/MinigameHost.tsx` calls a mount function; only `games/shared/createGame.ts` creates a `Phaser.Game`.
 - **Fake-depth budget (shooter):** fixed view, isometric sprites in one texture atlas, at most ~50 active sprites pooled in a `Group`, depth = scale + draw order + haze, no real-time lighting, glow only on `sharp`. Gameplay must also work in Phaser's Canvas fallback. See [docs/SHOOTER_CV.md](docs/SHOOTER_CV.md).
-- **Assets:** import them (hashed URLs) and pass the URLs to Phaser's loader. The MediaPipe runtime files are the exception: they are served from `/static/mediapipe/` and `/static/models/`.
-- **Cleanup:** `destroy()` must stop the game loop, timers, input listeners and the camera, and destroy the Phaser game (`game.destroy(true)` also removes the canvas). Calling it twice must be safe.
+- **Assets:** import them (hashed URLs) and pass the URLs to Phaser's loader. The hand model is the exception: the build downloads it to `/static/models/`, where the server's engine reads it.
+- **Cleanup:** `destroy()` must stop the game loop, timers, input listeners, the camera and the shooter's WebSocket, and destroy the Phaser game (`game.destroy(true)` also removes the canvas). Calling it twice must be safe.
 
 ### Backend (Python / FastAPI)
 - **PEP 8 naming:** `snake_case` functions/variables/modules, `PascalCase` classes, `UPPER_SNAKE_CASE` constants. The `XWHid` class names are an intentional exception (allowed in ruff config).
 - **Type-hint every function** signature. Annotate route handlers with their return type (`-> Item`, `-> list[Item]`). FastAPI uses it as the response model, so no `response_model=` is needed.
 - **Layering:** routers handle HTTP (status codes, `HTTPException`, request parsing); services handle data and logic, with no FastAPI imports and no knowledge of HTTP. Routers never touch storage directly.
 - **One router module + one service module per feature**, same filename (`routers/widgets.py` ↔ `services/widgets.py`). Pure helper modules without a router (`services/endings.py`, `services/fallbacks.py`) are fine.
-- **`def` vs `async def`:** use plain `def` unless the handler actually `await`s something (async HTTP client, async DB driver). FastAPI runs `def` handlers in a threadpool; a blocking call inside `async def` freezes the whole server. The Redis and OpenAI clients are synchronous, so handlers stay `def`.
+- **`def` vs `async def`:** use plain `def` unless the handler actually `await`s something (async HTTP client, async DB driver). FastAPI runs `def` handlers in a threadpool; a blocking call inside `async def` freezes the whole server. The Redis and OpenAI clients are synchronous, so handlers stay `def`. WebSocket handlers must be `async def`: run blocking work (decoding, MediaPipe) through `run_in_threadpool`, as `routers/cv.py` does.
 - **Errors:** raise `HTTPException(status.HTTP_404_NOT_FOUND, "Widget not found")` with the named `status` constants and a human-readable `detail`. The frontend shows `detail` as the error message.
 - **Validation** lives in the schema (`Field(min_length=1, max_length=200)`), not in handler `if`s.
 - **Config:** add new settings as fields on `Settings` in `app/config.py` and document them in `.env.example`. Read them via `from app.config import settings`. Never use `os.environ` directly, and never commit secrets.
@@ -357,7 +364,8 @@ Inside the image the paths mirror the repo (`/app/backend`, `/app/frontend/dist`
 
 ### Testing: zero credits
 - **pytest** runs with fakeredis, `FakeAI` and the network blocked (pytest-socket, in `pyproject.toml`). A test that needs the real API is not a test; it is a manual check you announce to the team.
-- **vitest** *(planned)* covers pure frontend logic only (`rules.ts`, `gesture.ts`, `run.ts`).
+- **vitest** (in `make check`, not yet in CI) covers pure frontend logic only: the shooter's `depth`, `hitTest`, `score`, `cvStream`, `FramePacer`; `rules.ts` and `run.ts` next.
+- **CV tests** drive the WebSocket with a scripted detector (`tests/test_cv.py`); `tests/test_cv_mediapipe.py` runs the real model on a photo and skips when the model hasn't been downloaded. No camera needed anywhere.
 - **The smoke test only sends GETs**, so it can never trigger an OpenAI call.
 - The full strategy is in [ARCHITECTURE.md → Testing strategy](docs/ARCHITECTURE.md#testing-strategy-zero-credits-by-default).
 
@@ -385,10 +393,10 @@ The full rules are in [docs/BRANCH_RULES.md](docs/BRANCH_RULES.md) (humans) and 
 - **`StrictMode` double-invokes effects in development.** Effects must be idempotent; `useApi` already handles cancellation. A minigame is mounted, destroyed and mounted again: `destroy()` must really release the Phaser game and the camera.
 - **The camera only works on a secure origin:** `https://...` or `http://localhost`. `http://<vm-ip>:8000` will never get a camera; use HTTPS or an SSH tunnel to localhost (see ARCHITECTURE.md → Deployment).
 - **Browsers block audio until the user clicks on that page.** A click on the previous page doesn't count after a full page load, so the graduation reveal starts with a click (**Open your diploma**) before the narration plays.
-- **The hand model (`hand_landmarker.task`, 7.8 MB) must never be committed:** CI rejects files over 5 MB. The build downloads it into `frontend/public/models/` (git-ignored); if the download fails the build still succeeds and the shooter falls back to the mouse.
-- **MediaPipe's `detectForVideo` is synchronous** and runs on the main thread, sharing the GPU with the Phaser scene. If frames drop, follow the performance ladder in SHOOTER_CV.md before anything clever.
-- **Game FPS depends on the player's laptop, not on the VM.** WebGL and hand tracking run in the browser; the VM only serves files. Never judge game performance on the VM or in CI: neither has a GPU, so browsers there fall back to software rendering. Use the `?debug=1` overlay on real laptops with the camera on.
-- **The shooter page downloads about 20 MB on its first visit** (MediaPipe wasm + hand model), much more than either engine. Responses are gzip-compressed (`main.py`); preloading it during the intro screen is the shooter track's job.
+- **The hand model (`hand_landmarker.task`, 7.8 MB) must never be committed:** CI rejects files over 5 MB. The build downloads it into `frontend/public/models/` (git-ignored); if the download fails the build still succeeds, `/api/cv/status` reports the engine unavailable and the shooter falls back to the mouse. `make smoke` fails in that case, on purpose: a production image must have a working engine.
+- **MediaPipe needs system libraries even on a server without a screen** (`libxcb1`, `libgl1`, `libglib2.0-0`, `libegl1`, `libgles2` in the Dockerfile). A missing one shows up in `/api/cv/status` as the missing `.so` file, not at import time.
+- **Game FPS depends on the player's laptop; finger detection depends on the server.** WebGL runs in the browser, so never judge game performance in a browser on the VM or in CI (no GPU, software rendering). The engine runs on the server's CPU: measure it with `make cv-check URL=...` against the server the demo uses.
+- **The shooter uploads one ~10 KB JPEG per camera frame** (2–4 Mbit/s per player) and waits for each answer, so the network round trip is part of the aim's latency. The best demo setup is `make prod` on the demo laptop itself.
 - **OpenAI calls never happen in tests or CI,** and only in development when you set `AI_MODE=live`. If you see real calls in a test run, stop and fix the test.
 - Pages deleted from `src/pages/` are removed from `dist/` on the next rebuild. If the watcher acts strangely after big file moves, restart it (it wipes `dist/` on startup).
 
@@ -397,7 +405,7 @@ The full rules are in [docs/BRANCH_RULES.md](docs/BRANCH_RULES.md) (humans) and 
 - **Git: [AGENTS.md](AGENTS.md) is binding.** Never commit on or push to `main`, work only on an owned task branch, stop at a reviewable PR, and never merge unless explicitly asked to merge that PR. Don't add AI attribution to commits, PRs, issues or code.
 - **Never spend OpenAI credits.** Don't run anything that calls OpenAI (`AI_MODE=live`, `make art`, `make ai-check LIVE=1`, scripts or tests with real keys) unless the user explicitly asks for it in that message. Every automated test must pass with no keys and no network.
 - **Never read, print or write real keys.** Don't display the contents of any `.env` file (laptop or server); put only variable names in `.env.example`.
-- **Respect the boundaries:** Phaser only under `games/`; network only through `apiClient.ts`; OpenAI only through `app/ai.py`; Redis only through `app/db.py`; camera frames never leave the browser; no client-side store (no Redux).
+- **Respect the boundaries:** Phaser only under `games/`; network only through `apiClient.ts`; OpenAI only through `app/ai.py`; Redis only through `app/db.py`; camera frames go only to `/api/cv/stream` and are never stored or logged; no client-side store (no Redux).
 - Follow the conventions above exactly. Match the surrounding code over your own defaults (`args` not `props`, function declarations, CSS Modules, no `var`).
 - After any frontend change run `cd frontend && npx tsc --noEmit`; after any backend change run `cd backend && .venv/bin/pytest -q`. Before saying you're done, run `make check` and report the result honestly.
 - When adding an endpoint, do all four steps of "Add an API endpoint" plus a test, in one go, and add it to the contract table in `docs/ARCHITECTURE.md`.

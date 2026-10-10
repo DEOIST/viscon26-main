@@ -12,7 +12,8 @@ from one origin, shipped as one Docker image. We add four things on top:
 
 1. **Phaser 4**, the 2D WebGL engine for both minigames; the shooter fakes
    depth with isometric art instead of using a 3D engine;
-2. **MediaPipe** hand tracking in the browser, for the shooter's controls;
+2. **MediaPipe** hand tracking in the backend (Python), for the shooter's
+   controls (#13);
 3. **Redis**, for runs, the Hall of Fame and AI caching;
 4. **OpenAI**, called only from the backend.
 
@@ -25,14 +26,14 @@ that both game pages share.
 | Layer | Choice | Version | Why |
 |---|---|---|---|
 | Outer shell | React + TypeScript | React 19.3, TS 7 | Existing. Menus, the character creator, the hub and overlays are classic UI |
-| Bundler | esbuild multi-page build (`frontend/build.js`) | 0.28 | Existing and fast. Per-page bundles keep each engine and MediaPipe off pages that don't use them |
+| Bundler | esbuild multi-page build (`frontend/build.js`) | 0.28 | Existing and fast. Per-page bundles keep Phaser off pages that don't use it |
 | Inner shell, both minigames | **Phaser** (2D, WebGL renderer with Canvas fallback) | 4.2 | A complete 2D game framework: scenes, sprites, tweens, particles, text, input, audio. A card game is mostly UI, and Phaser builds that fastest; the shooter fakes depth with isometric sprites (scale, draw order, haze), so it needs no second engine. Phaser's official React template runs Phaser 4 with React 19 |
-| Hand tracking | **`@mediapipe/tasks-vision`**, HandLandmarker | 1.1 | 21 hand landmarks per frame on the GPU in the browser: no server work, no API cost, no video leaves the laptop |
+| Hand tracking | **`mediapipe`** (Python), HandLandmarker, with **Pillow** and **NumPy** | 1.1 / 12.3 / 2.5 | 21 hand landmarks per frame on the server's CPU (9–20 ms per 320 px frame), streamed over a WebSocket; one tested engine in Python, no API cost. Needs five system libraries in the slim image (SHOOTER_CV.md → The engine) |
 | Backend | FastAPI + Pydantic | 0.142 / 2.13 | Existing. One origin, a typed contract |
 | Database | **Redis** (`redis:8-alpine`) with **redis-py** | server 8, client 8.1 | Runs as JSON, a sorted-set leaderboard, the AI cache and budget counters; AOF on a named volume. No client-side store (no Redux): every page is a full page load |
 | AI | **OpenAI** Python SDK (Responses, Audio, Images, Moderations) | 3.27 | Dialogue and epilogue with Structured Outputs, narration, offline art |
 | Backend tests | pytest + fakeredis + pytest-socket | 9.1 / 2.39 / 0.8 | No Redis server needed; network blocked, so tests cannot spend credits |
-| Frontend tests | vitest *(planned)* | 5.0 | Pure logic only: blackjack rules, gesture detection |
+| Frontend tests | vitest (in `make check`, not yet in CI) | 5.0 | Pure logic only: the shooter's depth, hit test, score, stream protocol and frame pacing; blackjack rules next |
 | Runtime | Node ≥ 26.5, Python ≥ 3.12 (the image uses 3.14) | | Existing (`frontend/.nvmrc`, `Dockerfile`) |
 
 ## Measured download sizes
@@ -43,24 +44,22 @@ small probe entries on 2026-10-09. The real pages will differ a little.
 | What | Minified | Gzipped | Loaded on |
 |---|---|---|---|
 | Phaser 4.2, minimal game (Phaser hardly tree-shakes) | 1 362 KB | 360 KB | `/blackjack`, `/shooter` (one shared chunk, cached after the first game) |
-| `@mediapipe/tasks-vision` JavaScript | 151 KB | 45 KB | `/shooter` |
-| MediaPipe wasm runtime (one variant is loaded) + hand model | 12.4 MB + 7.8 MB | served as static files | `/shooter` |
 
-The MediaPipe runtime is the heaviest download in the app, far more than the
-engine. Serve it compressed and preload it on the shooter intro screen (see
-ARCHITECTURE.md → Deployment).
+Since #13 the browser loads no MediaPipe at all (it was 151 KB of JavaScript
+plus a 12.4 MB wasm runtime and the 7.8 MB model). The model stays on the
+server; the shooter uploads one ~10 KB JPEG per camera frame instead.
 
 ## To add (in the PR that first needs it, not before)
 
 | Package | Where | Priority | For |
 |---|---|---|---|
-| `phaser@^4.2.1` | frontend dependencies | must | Blackjack and the shooter |
-| `@mediapipe/tasks-vision@^1.1.0` | frontend dependencies | must | Finger-gun tracking |
-| `redis>=8.1` | `backend/requirements.txt` | must | Storage |
-| `openai>=3.27` | `backend/requirements.txt` | must | Story, narration, art |
-| `fakeredis>=2.39` | `backend/requirements-dev.txt` | must | Tests and Redis-free development |
-| `pytest-socket>=0.8` | `backend/requirements-dev.txt` | must | Blocks the network in tests: credit safety |
-| `vitest@^5` | frontend devDependencies | should | Pure logic tests. Adding it to CI changes `ci.yml`, which needs an explicit OK |
+| `phaser@^4.2.1` | frontend dependencies | must | Blackjack and the shooter (added in #12) |
+| `mediapipe>=1.1`, `pillow>=12`, `numpy>=2` | `backend/requirements.txt` | must | The finger-detection engine (added in #13) |
+| `redis>=8.1` | `backend/requirements.txt` | must | Storage (added in #12) |
+| `openai>=3.27` | `backend/requirements.txt` | must | Story, narration, art (added in #12) |
+| `fakeredis>=2.39` | `backend/requirements-dev.txt` | must | Tests and Redis-free development (added in #12) |
+| `pytest-socket>=0.8` | `backend/requirements-dev.txt` | must | Blocks the network in tests: credit safety (added in #12) |
+| `vitest@^5` | frontend devDependencies | should | Pure logic tests (added in #13, run by `make check`). Adding it to CI changes `ci.yml`, which needs an explicit OK |
 | `motion@^14` | frontend dependencies | could | Ending reveal and page transitions |
 | `canvas-confetti@^1.9` | frontend dependencies | could | Confetti for the C-level ending |
 
@@ -78,7 +77,8 @@ Follow "Add a dependency" in [CLAUDE.md](../CLAUDE.md): tell the team, commit th
 | Raw WebGL (hand-written renderer) | Matrices, shaders, lighting, picking, particles and text by hand. A local spike (`agent/fixed-camera-3d`) renders and passes its browser checks, but it is a scene, not a game, and every game feature would still be ours to write |
 | React Three Fiber | Puts React into the render loop and breaks the rule that `games/` never imports React; moot without a 3D engine |
 | PixiJS | A renderer only; we would hand-roll scenes, tweens and audio |
-| Computer vision on the server (Python, OpenCV) | Video over the network means lag on every shot, server load and a privacy problem |
+| MediaPipe in the browser (`@mediapipe/tasks-vision`) | Our first plan, replaced by the backend engine in #13: a 20 MB first download, the hand model sharing the GPU and main thread with Phaser, and gesture logic in TypeScript instead of next to the team's Python. Its advantage, no network in the loop, is what the server setup has to earn back (SHOOTER_CV.md → Why on the server) |
+| Hand-written OpenCV vision (skin colour, contours) | Fragile under venue lighting; MediaPipe's landmark model is far more robust and gives 3D points |
 | MediaPipe GestureRecognizer | Has no finger-gun gesture and adds a classifier; raw landmarks plus our own geometry are simpler and tunable |
 | redis-om | Needs Redis Stack features we don't use; plain keys, JSON strings and one sorted set cover everything |
 | Calling OpenAI from the browser | Would expose the keys to anyone who opens the page |
