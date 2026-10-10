@@ -19,6 +19,13 @@ class CvStatus(CamelModel):
     max_sessions: int
 
 
+class CvSlide(CamelModel):
+    direction: Literal["left", "right"]
+    path: list[tuple[float, float]]
+    radius: float  # fraction of game width
+    outlines: list[list[tuple[float, float]]] = Field(default_factory=list)
+
+
 class CvFrame(CamelModel):
     """One processed camera frame, sent over /api/cv/stream. Points are [x, y] in the game
     area (0..1, mirrored like the video); landmarks may lie outside 0..1."""
@@ -29,7 +36,10 @@ class CvFrame(CamelModel):
     fired_at: tuple[float, float] | None  # set on the frame a shot fires
     landmarks: list[tuple[float, float]] | None  # 21 points, for drawing the hand
     thumb_angle: float | None  # degrees from straight up (cocked < 32, fires > 55), for tuning
+    slide: CvSlide | None = None
+    pinching: bool = False  # held pinch; reopens only above the calibrated open threshold
     processing_ms: float
+    slap: Literal["left", "right"] | None = None  # set on the frame a slap is recognised
 
 
 # Client → server control messages on /api/cv/stream. JSON numbers only (no booleans, NaN or
@@ -74,7 +84,33 @@ class CvRecenterMessage(CamelModel):
     type: Literal["recenter"]
 
 
+class CvTriggerMessage(CamelModel):
+    """Trigger calibration (docs/SHOOTER_CV.md → Trigger calibration): "up" and "down" collect
+    the player's thumb in that position, "done" applies the result, "reset" restores the
+    default trigger."""
+
+    type: Literal["trigger"]
+    step: Literal["up", "down", "done", "reset"]
+
+
+class CvTriggerThresholds(CamelModel):
+    cocked_below_deg: float
+    fired_above_deg: float
+    upright_above: float
+    folded_below: float
+    pinch_open_above: float = 0.65
+    pinch_closed_below: float = 0.3
+
+
+class CvTriggerReply(CamelModel):
+    type: Literal["trigger"] = "trigger"
+    step: Literal["up", "down", "done", "reset"]
+    ok: bool  # False when "done" couldn't tell up from down; the previous trigger stays
+    detail: str | None  # why not, for the player
+    thresholds: CvTriggerThresholds  # the trigger in use after this step
+
+
 CvControlMessage = Annotated[
-    CvBoxMessage | CvSettingsMessage | CvRecordMessage | CvRecenterMessage,
+    CvBoxMessage | CvSettingsMessage | CvRecordMessage | CvRecenterMessage | CvTriggerMessage,
     Field(discriminator="type"),
 ]

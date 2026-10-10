@@ -8,6 +8,13 @@ import type { Box } from "./box";
 export type Tracking = "ok" | "noPose" | "lost" | "calibrating";
 export type GamePoint = [number, number]; // [x, y] in the game area, 0..1
 
+export interface CvSlide {
+    direction: "left" | "right";
+    path: GamePoint[];
+    radius: number; // contact tolerance, fraction of game width
+    outlines?: GamePoint[][]; // full tracked hand on each swept frame
+}
+
 // One processed camera frame from /api/cv/stream.
 export interface CvFrame {
     type: "frame";
@@ -16,7 +23,10 @@ export interface CvFrame {
     firedAt: GamePoint | null; // set on the frame a shot fires
     landmarks: GamePoint[] | null; // 21 points for drawing the hand; may lie outside 0..1
     thumbAngle: number | null; // degrees from straight up (cocked < 32, fires > 55), for tuning
+    slide?: CvSlide | null;
+    pinching?: boolean; // held pinch, false after reopening
     processingMs: number;
+    slap: "left" | "right" | null; // set on the frame a slap is recognised
 }
 
 // Control messages the browser sends; the engine answers a bad one with {type: "error", detail}.
@@ -31,6 +41,27 @@ export interface CvSettingsMessage {
 export interface CvRecenterMessage {
     type: "recenter"; // calibrate the aim's neutral position again
 }
+// Trigger calibration: "up"/"down" collect fingers apart / pinched, "done" applies the result,
+// "reset" restores the default trigger.
+export type TriggerStep = "up" | "down" | "done" | "reset";
+export interface CvTriggerMessage {
+    type: "trigger";
+    step: TriggerStep;
+}
+export interface CvTriggerReply {
+    type: "trigger";
+    step: TriggerStep;
+    ok: boolean; // false when "done" couldn't tell open from pinched; the previous trigger stays
+    detail: string | null; // why not, for the player
+    thresholds: {
+        cockedBelowDeg: number;
+        firedAboveDeg: number;
+        uprightAbove: number;
+        foldedBelow: number;
+        pinchOpenAbove?: number;
+        pinchClosedBelow?: number;
+    };
+}
 export interface CvRecordMessage {
     type: "record";
     on: boolean; // development servers only: saves the frames to backend/captures/
@@ -41,6 +72,7 @@ export type CvMessage =
     | { type: "settings"; cooldownMs: number }
     | { type: "record"; on: boolean; dir: string | null } // dir: where the server saves frames
     | { type: "recenter" }
+    | CvTriggerReply
     | { type: "error"; detail: string }
     | CvFrame;
 

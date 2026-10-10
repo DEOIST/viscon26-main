@@ -1,18 +1,13 @@
-# Finger-gun shooter: computer-vision design
+# Level 1 computer vision
 
-This is the feature that wins or loses the demo. This document explains how we
-make "shoot with your bare hand" feel precise, fast and reliable on a laptop
-webcam in a noisy venue. Gameplay rules are in
-[GAME_DESIGN.md](GAME_DESIGN.md#minigame-2-finger-gun-shooter-basisprüfung);
-system context is in [ARCHITECTURE.md](ARCHITECTURE.md).
+For the current Bug Bash game, pinch calibration, whole-hand slaps and localized swipes,
+stream fields, controls, thresholds and verification status, see [BUG_BASH.md](BUG_BASH.md).
+That document is the authoritative description of the current local implementation.
 
-> **Status (2026-10-10): built (#13), as level 1.** The game lives in
-> `frontend/level1/` (mounted by the outer shell through `src/games/registry.ts`)
-> and its finger-detection engine in `backend/level1/` (registered in
-> `app/routers/__init__.py`). The shooter scene (warm-up, countdown, 60-second
-> round) is playable with the finger gun and with the mouse. Values marked "start value"
-> are starting points to tune at the venue; values marked "measured" come from
-> [Measurements](#measurements). [Not built yet](#not-built-yet) lists what is left.
+The sections below describe the original finger-gun shooter and its measurements. Keep
+them as historical reference; thumb-drop accuracy, crosshair behavior and original visuals
+are not claims about the current pinch/throw game. The MediaPipe deployment, frame
+validation and recording architecture remain relevant.
 
 ## Acceptance criteria (measured on the demo setup)
 
@@ -104,6 +99,7 @@ WebSocket `/api/cv/stream` (`backend/level1/router.py`, `input/cvStream.ts`):
 | client → server | binary JPEG frame (JPEG only), at most `CV_MAX_FRAME_BYTES` (200 KB), each side ≤ 1280 px | `{"type": "frame", ...CvFrame}` |
 | client → server | `{"type": "box", "box": [x0, y0, x1, y1]}` (`CvBoxMessage`): 0 ≤ x0 < x1 ≤ 1, same for y, each side at least 0.1 | `{"type": "ready", "box": [...]}` |
 | client → server | `{"type": "settings", "cooldownMs": 175}` (`CvSettingsMessage`): 0–2000, the athlete perk | the same message |
+| client → server | `{"type": "trigger", "step": "up" \| "down" \| "done" \| "reset"}` (`CvTriggerMessage`): trigger calibration, see below | `{"type": "trigger", "step", "ok", "detail", "thresholds"}` (`CvTriggerReply`): the trigger in use; `ok: false` with a reason when "done" couldn't tell up from down |
 | server → client | `{"type": "error", "detail": "..."}` for a bad frame or message; the stream continues | |
 
 Control messages are validated by their schemas in `backend/level1/schemas.py` (JSON
@@ -357,6 +353,30 @@ Players drop the thumb two ways, and the trigger watches both:
 **Known limitation:** the player must hold the gun upright (thumb toward the
 ceiling).
 
+### Trigger calibration
+
+The thresholds above fit most hands, but not all: a thumb that only drops ~40°
+never passes 55°, and a thumb that rests tilted past 32° is never cocked, so
+the gun never fires. Before the warm-up (camera only), the game runs a short
+**trigger check** (`frontend/level1/triggerCalibration.ts`):
+
+1. "Thumb UP, hold it" (2 s), "SHOOT: drop your thumb and hold it" (1.5 s), up,
+   down again. Each step sends `{"type": "trigger", "step": "up"|"down"}`, and
+   the engine records the player's finger-gun readings in that position. Time
+   only runs while the finger gun is in view.
+2. `"done"`: `TriggerCalibration` in `gesture.py` compares the two positions.
+   If the angle differs by at least 12° (80th percentile up vs median down),
+   cocked is set at 30 % and fired at 60 % of the way from up to down; if the
+   length differs by at least 0.12, folded/upright are set at 50 %/80 % of the
+   way. Otherwise (or with fewer than 10 frames per position) it answers
+   `ok: false` with a reason, keeps the current trigger, and the game retries
+   once, then goes on with the default trigger.
+3. "Calibrated! Try it": three test shots, each shown as **BANG!**, then the
+   warm-up. **Enter** skips the check; **T** runs it again during the warm-up.
+
+The thresholds belong to the stream (one player); a new stream starts with the
+defaults. `"reset"` restores them.
+
 ## Tracking loss and recovery
 
 | Situation | Behavior |
@@ -369,6 +389,7 @@ ceiling).
 | No frames for 20 s, e.g. a hidden tab (4000) | The server frees the slot; the client switches to mouse mode |
 | Operator presses `M` | Mouse mode for the rest of the round |
 | Player or operator presses `C` | The aim calibrates again: hold the finger gun still at the centre |
+| Player or operator presses `T` (warm-up) | The trigger check runs again (Trigger calibration) |
 
 ## Recording (debugging gestures)
 
