@@ -61,10 +61,12 @@ export const TARGET_POINTS: Record<TargetKind, number> = {
     deadline: 25,
     coffee: 0,
 };
+// Playtests asked for a slower round: approaches (and so the code fuses) and spawn gaps are ~30 %
+// longer than the first version's 7 s and 1800→950 ms.
 export const APPROACH_SECONDS: Record<TargetKind, number> = {
-    question: 7,
-    deadline: 7,
-    coffee: 5,
+    question: 9,
+    deadline: 9,
+    coffee: 6.5,
 };
 
 export const SPAWN_SHARES: Record<TargetKind, number> = {
@@ -72,10 +74,10 @@ export const SPAWN_SHARES: Record<TargetKind, number> = {
     deadline: 0.28,
     coffee: 0,
 }; // sums to 1
-export const SPAWN_EVERY_MS_START = 1800;
-export const SPAWN_EVERY_MS_END = 950; // the spawn rate rises over the round
+export const SPAWN_EVERY_MS_START = 2350;
+export const SPAWN_EVERY_MS_END = 1250; // the spawn rate rises over the round
 export const TARGET_RADIUS = 80; // hit radius in game pixels at scale 1
-export const GRAB_RADIUS_MULTIPLIER = 1.45; // extra reach around objects and practice papers
+export const GRAB_RADIUS_MULTIPLIER = 1.8; // extra reach around objects and practice papers
 export const GAMER_TARGET_SCALE = 1.15; // Gamer perk: targets 15 % larger
 export const ATHLETE_COOLDOWN_MS = 175; // ASVZ-athlete perk: 250 ms re-arm, 30 % faster
 
@@ -105,5 +107,7 @@ export const INTERRUPTER_STAY_MS = 4500;
 export const INTERRUPTER_POINTS = 15;
 // A slower swipe saves a code card when the swept hand touches the card anywhere, not only the
 // flame tip: in game pixels at scale 1, a circle around the card's centre (the card is 236×130).
-export const CODE_SWIPE_RADIUS = 90;
-export const FUSE_SWIPE_RADIUS = 20; // around the flame, which can burn beyond the card
+export const CODE_SWIPE_RADIUS = 115;
+export const FUSE_SWIPE_RADIUS = 30; // around the flame, which can burn beyond the card
+// Around an interrupter's body (game pixels), for slower swipes; a fast slap needs no aiming.
+export const INTERRUPTER_SWIPE_RADIUS = 110;

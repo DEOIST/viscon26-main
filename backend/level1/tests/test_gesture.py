@@ -531,3 +531,10 @@ def test_a_slide_does_not_swallow_the_slap_right_after_it():
     frames = play(PlayerGun(), sweep + swing)
     assert any(f.slide for f in frames[:16])
     assert [f.slap for f in frames[16:] if f.slap] == ["right"]
+
+
+def test_a_short_gentle_swipe_counts():
+    # 0.36 camera widths/s over 0.17 widths: too short and slow before the sensitivity tuning
+    frames = play(PlayerGun(), [[shifted(OPEN, 0.012 * i)] for i in range(15)])
+    assert [f.slide.direction for f in frames if f.slide] == ["left"]
+    assert not any(f.slap for f in frames)

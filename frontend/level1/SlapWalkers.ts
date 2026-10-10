@@ -8,6 +8,7 @@ import {
     INTERRUPTER_MIN_DELAY_MS,
     INTERRUPTER_MAX_DELAY_MS,
     INTERRUPTER_STAY_MS,
+    INTERRUPTER_SWIPE_RADIUS,
 } from "./config";
 import type { GameObjects, Scene } from "phaser";
 
@@ -78,7 +79,12 @@ export default class SlapWalkers {
         if (!walker) return false;
         if (
             slide &&
-            !swipeHits(slide, walker.sprite.x, walker.sprite.y - 115, 80)
+            !swipeHits(
+                slide,
+                walker.sprite.x,
+                walker.sprite.y - 115,
+                INTERRUPTER_SWIPE_RADIUS,
+            )
         )
             return false;
         this.walkers = this.walkers.filter((other) => other !== walker);

@@ -143,12 +143,13 @@ SLAP_REAPPEAR_S = 0.6
 SLAP_REAPPEAR_DISTANCE = 0.3  # frame widths
 # A deliberate open-hand slide can be much slower than a slap. Require lateral travel,
 # mostly one direction, and open fingers to distinguish it from carrying a pinched bug.
+# Playtests asked for more sensitive swipes: these were 0.18 s, 0.18 widths, 0.45 widths/s and 0.7.
 SLIDE_WINDOW_S = 0.9
-SLIDE_MIN_DURATION_S = 0.18
-SLIDE_MIN_DISTANCE = 0.18  # camera widths
-SLIDE_MIN_SPEED = 0.45  # camera widths per second: hovering is not a swipe
+SLIDE_MIN_DURATION_S = 0.12
+SLIDE_MIN_DISTANCE = 0.12  # camera widths
+SLIDE_MIN_SPEED = 0.3  # camera widths per second: hovering is not a swipe
 SLAP_RAW_MIN_SPEED = 0.9
-SLIDE_MIN_DIRECTNESS = 0.7  # net travel / total travel
+SLIDE_MIN_DIRECTNESS = 0.6  # net travel / total travel
 # Slides keep their own cooldown: sharing the slap's let a slow wind-up swallow the slap after it.
 SLIDE_COOLDOWN_S = 0.6
 Slap = Literal["left", "right"]  # on screen (the camera image is mirrored)
