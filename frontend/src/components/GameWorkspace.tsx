@@ -3,6 +3,7 @@ import { GAMES, TOTAL_ECTS, YEARS } from "../config";
 import { isYearComplete, isYearUnlocked } from "../store";
 import type { Game, Player, Progress } from "../types";
 import { Avatar } from "./Avatar";
+import BlackjackHowTo from "./BlackjackHowTo";
 import { GameHost } from "./GameHost";
 import { Icon } from "./Icon";
 import {
@@ -107,6 +108,9 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
         : completed
           ? T.state.completed
           : T.state.available;
+    // Year 2's slot plays Galton Blackjack (minigames/DestinationGame.tsx), whose twist on the
+    // rules needs explaining before the first deal.
+    const showsHowTo = unlocked && game.id === "year-2-slot";
 
     function handleMove(delta: number) {
         if (args.selectedGame || args.busy) return;
@@ -166,6 +170,7 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                 <button
                     type="button"
                     className={styles.portrait}
+                    data-student-portrait
                     title={TEXT.common.editCharacter}
                     aria-label={TEXT.common.editCharacter}
                     disabled={args.busy || !!args.selectedGame}
@@ -226,6 +231,7 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                 <button
                     ref={menuTrigger}
                     className="icon-button"
+                    data-student-rail
                     aria-label={T.studentMenu}
                     aria-haspopup="dialog"
                     onClick={() => studentMenu.current?.showModal()}
@@ -437,39 +443,49 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                             />
                         ) : (
                             <div className={styles.launchPanel}>
-                                <span className={styles.launchIcon}>
-                                    <Icon
-                                        name={
-                                            !unlocked
-                                                ? "lock"
+                                {showsHowTo ? (
+                                    <BlackjackHowTo />
+                                ) : (
+                                    <>
+                                        <span className={styles.launchIcon}>
+                                            <Icon
+                                                name={
+                                                    !unlocked
+                                                        ? "lock"
+                                                        : completed
+                                                          ? "check"
+                                                          : "slot"
+                                                }
+                                                size={38}
+                                            />
+                                        </span>
+                                        <h3>
+                                            {!unlocked
+                                                ? fill(T.lockedTitle, {
+                                                      year: year.title,
+                                                  })
                                                 : completed
-                                                  ? "check"
-                                                  : "slot"
-                                        }
-                                        size={38}
-                                    />
-                                </span>
-                                <h3>
-                                    {!unlocked
-                                        ? fill(T.lockedTitle, {
-                                              year: year.title,
-                                          })
-                                        : completed
-                                          ? T.revisitTitle
-                                          : game.title}
-                                </h3>
-                                <p>
-                                    {!unlocked
-                                        ? fill(T.lockedDescription, {
-                                              previousYear: year.id - 1,
-                                          })
-                                        : year.description}
-                                </p>
+                                                  ? T.revisitTitle
+                                                  : game.title}
+                                        </h3>
+                                        <p>
+                                            {!unlocked
+                                                ? fill(T.lockedDescription, {
+                                                      previousYear: year.id - 1,
+                                                  })
+                                                : year.description}
+                                        </p>
+                                    </>
+                                )}
                                 {!game.implemented && unlocked && (
                                     <small>{T.previewNote}</small>
                                 )}
                                 <button
-                                    className="button primary"
+                                    className={
+                                        showsHowTo
+                                            ? `button primary ${styles.afterHowTo}`
+                                            : "button primary"
+                                    }
                                     disabled={!unlocked || args.busy}
                                     onClick={() => {
                                         if (

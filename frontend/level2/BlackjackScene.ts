@@ -6,7 +6,9 @@ import { Math as PhaserMath, Scene } from "phaser";
 import type { GameObjects, Time } from "phaser";
 import BoardView from "./BoardView";
 import CardView from "./CardView";
+import PlayerAvatar from "./PlayerAvatar";
 import Tutorial from "./Tutorial";
+import type { AvatarLook } from "./avatar";
 import {
     BALL_GAP_MS,
     CHIP_VALUES,
@@ -31,6 +33,7 @@ import {
     HAND_LABEL,
     HEIGHT,
     PILE_SCALE,
+    PORTRAIT,
     SEATS,
     SECRET,
     SPEECH,
@@ -55,7 +58,13 @@ import {
     shuffle,
 } from "./rules";
 import type { Action, Ball, Card, GameEvent, Reason, Who } from "./rules";
-import { COLORS, loadAssets, makeTextures } from "./textures";
+import {
+    COLORS,
+    loadAssets,
+    loadAvatar,
+    makeTextures,
+    packAvatar,
+} from "./textures";
 import {
     Button,
     banner,
@@ -73,6 +82,7 @@ const T = TEXT.blackjack;
 
 interface BlackjackSceneArgs {
     playerName: string;
+    look: AvatarLook; // the character from the builder, drawn in the player's seat
     dialogue: Record<string, string[]> | null;
     finish(result: MinigameResult): void;
     announce(text: string): void; // for screen readers: the canvas itself says nothing
@@ -89,6 +99,17 @@ const LINE_FOR_REASON: Record<Reason, DealerEvent> = {
     equal: "push",
 };
 
+// How the player's avatar takes the end of a hand: [happy, big]; a push leaves it be.
+const FEELING_FOR_REASON: Record<Reason, [boolean, boolean] | null> = {
+    bust: [false, false],
+    blackjack: [true, true],
+    "dealer-bust": [true, false],
+    "dealer-blackjack": [false, false],
+    more: [true, false],
+    fewer: [false, false],
+    equal: null,
+};
+
 // Chips sit in two centred rows.
 const traySpot = (i: number): Point => ({
     x: TRAY.x + ((i % TRAY.perRow) - (TRAY.perRow - 1) / 2) * TRAY.dx,
@@ -102,6 +123,7 @@ export default class BlackjackScene extends Scene {
     private shown = 0; // events of this hand already animated
     private locked = false;
     private boards!: Record<Who, BoardView>;
+    private me: PlayerAvatar | null = null; // null if the avatar's textures failed to load
     private fans: Record<Who, CardView[]> = { player: [], dealer: [] };
     private secret: CardView | null = null;
     private pile: GameObjects.Image[] = [];
@@ -150,6 +172,7 @@ export default class BlackjackScene extends Scene {
         ];
         this.load.on("progress", (value: number) => bar.setScale(value, 1));
         loadAssets(this);
+        loadAvatar(this, this.args.look);
     }
 
     create() {
@@ -303,6 +326,7 @@ export default class BlackjackScene extends Scene {
         this.locked = true;
         this.refresh();
         if (action.type === "next") {
+            this.me?.idle();
             await this.clearTable();
             this.shown = 0;
             this.rebuildPile(true);
@@ -449,12 +473,25 @@ export default class BlackjackScene extends Scene {
 
     private drawSeat(who: Who, name: string, texture: string) {
         const { avatar } = SEATS[who];
+        if (who === "player" && packAvatar(this))
+            this.me = new PlayerAvatar(this, avatar.x, avatar.y).setDepth(5);
+        else this.drawPortrait(avatar, texture);
+        const ribbon = this.add
+            .rectangle(avatar.x, avatar.y + 92, 150, 40, 0x0b2a18, 0.85)
+            .setRounded(20)
+            .setDepth(6);
+        ribbon.setStrokeStyle(3, COLORS.gold);
+        label(this, avatar.x, avatar.y + 92, name, 24, "#f5c451").setDepth(7);
+    }
+
+    // A still portrait: the dealer, or the player if their avatar could not be drawn.
+    private drawPortrait(avatar: Point, texture: string) {
         const glow = this.add
-            .circle(avatar.x, avatar.y, 96, COLORS.gold, 0.18)
+            .circle(avatar.x, avatar.y, PORTRAIT.glow, COLORS.gold, 0.18)
             .setDepth(4);
         const image = this.add
             .image(avatar.x, avatar.y, texture)
-            .setScale(0.86)
+            .setScale(PORTRAIT.scale)
             .setDepth(5);
         this.tweens.add({
             targets: [image],
@@ -472,12 +509,6 @@ export default class BlackjackScene extends Scene {
             yoyo: true,
             repeat: -1,
         });
-        const ribbon = this.add
-            .rectangle(avatar.x, avatar.y + 92, 150, 40, 0x0b2a18, 0.85)
-            .setRounded(20)
-            .setDepth(6);
-        ribbon.setStrokeStyle(3, COLORS.gold);
-        label(this, avatar.x, avatar.y + 92, name, 24, "#f5c451").setDepth(7);
     }
 
     private drawDeck() {
@@ -810,7 +841,18 @@ export default class BlackjackScene extends Scene {
 
     // The moment a decisive ball lands. The third yellow ball is only cheered when the board
     // ends as a blackjack: `state` already knows whether a red ball follows from the same card.
+    // The player's avatar reacts straight away: a red ball or a real blackjack on the dealer's
+    // board are the player's luck turned around.
     private onLand(who: Who, decisive: "bust" | "blackjack" | null, at: Point) {
+        const confirmed =
+            decisive === "bust" ||
+            (decisive === "blackjack" &&
+                this.state[who].board.event === "blackjack");
+        if (confirmed && this.me) {
+            const good = (decisive === "blackjack") === (who === "player");
+            if (good) this.me.celebrate(who === "player");
+            else this.me.cry();
+        }
         if (decisive === "bust") {
             this.cameras.main.shake(260, 0.008);
             this.cameras.main.flash(180, 238, 90, 120, false);
@@ -854,6 +896,11 @@ export default class BlackjackScene extends Scene {
 
         this.outcome = `${title} ${subtitle}.`;
         this.say(LINE_FOR_REASON[event.reason]);
+        const feeling = FEELING_FOR_REASON[event.reason];
+        if (feeling && this.me) {
+            if (feeling[0]) this.me.celebrate(feeling[1]);
+            else this.me.cry();
+        }
         if (event.payout > 0)
             this.confetti.explode(event.outcome === "blackjack" ? 160 : 70);
         await Promise.all([
@@ -943,6 +990,10 @@ export default class BlackjackScene extends Scene {
         if (chips < MIN_BET) this.say("broke");
         else if (diff > 0) this.say("cashOut");
         this.speech?.setDepth(93); // the dealer's last word stays above the shade
+        // So does the player's last reaction.
+        this.me?.lift(92);
+        if (chips < MIN_BET) this.me?.cry();
+        else if (diff > 0) this.me?.celebrate(true);
 
         // The shell saves the result and leaves the page; the game only reports it, once.
         const done = new Button(

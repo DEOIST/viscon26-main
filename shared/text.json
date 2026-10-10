@@ -166,6 +166,14 @@
             "signoff": "Warm regards,\n**The unofficial admissions team**"
         }
     },
+    "yearOneIntro": {
+        "label": "Your first day at ETH",
+        "caption": "You got into ETH!",
+        "attacks": ["Lectures", "Practice Classes", "Lernphase"],
+        "finale": "Emotional Damage",
+        "hearts": "{left} of {total} hearts left",
+        "skip": "Skip intro"
+    },
     "workspace": {
         "studentRecord": "Student record",
         "anonymousStudent": "Anonymous student",
@@ -209,7 +217,27 @@
             "graduate": "Graduate"
         },
         "gamesRemaining": "Minigames to graduation: {games}",
-        "availableEcts": "Up to {ects} ECTS"
+        "availableEcts": "Up to {ects} ECTS",
+        "blackjackHowTo": {
+            "title": "How to play",
+            "steps": [
+                {
+                    "title": "Bet",
+                    "text": "Stack chips from your 300 stipend and press Deal: five hands to grow it.",
+                    "alt": "Chips on the bet pile next to the Deal button"
+                },
+                {
+                    "title": "Drop",
+                    "text": "Every card turns its suit symbols into balls that bounce down your Galton board.",
+                    "alt": "Balls bouncing through the pins of a Galton board"
+                },
+                {
+                    "title": "Beat the curve",
+                    "text": "Hit or stand to end with more balls than the dealer, but a red ball above the curve busts and three yellow on it is blackjack.",
+                    "alt": "A board with green, yellow and red balls stacked under a bell curve"
+                }
+            ]
+        }
     },
     "minigameHost": {
         "eyebrow": "MINIGAME",
@@ -564,7 +592,8 @@
                 "Leaving ahead of the house. That is rare.",
                 "Last hand played and still in profit. Respect."
             ]
-        }
+        },
+        "avatarCheers": ["YES!", "WOO!", "LET'S GO!", "EZ!", "YEAH!"]
     },
     "thesisDefense": {
         "defaultName": "Candidate",

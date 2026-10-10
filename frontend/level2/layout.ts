@@ -112,6 +112,9 @@ export const SEATS = {
     },
 } as const;
 
+// The round portraits: 200 px textures with the gold ring at radius 92, and the glow behind.
+export const PORTRAIT = { scale: 0.86, ring: 92, glow: 96 };
+
 export const BELT = { x: CENTER.x - 40, y: -470, radius: 680 }; // an arc curving up at both ends
 export const HAND_LABEL = { x: CENTER.x - 40, y: 42 };
 export const SPEECH = { x: 60, y: 292, width: 400 }; // the dealer's line, under their seat
