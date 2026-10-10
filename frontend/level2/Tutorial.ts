@@ -44,7 +44,7 @@ export default class Tutorial {
     private readonly title: GameObjects.Text;
     private readonly body: GameObjects.Text;
     private readonly dots: GameObjects.Arc[];
-    private readonly skip: GameObjects.Text;
+    private readonly skip: Button;
     private readonly back: Button;
     private readonly next: Button;
     private step = 0;
@@ -93,13 +93,16 @@ export default class Tutorial {
         this.dots = STEPS.map((_, i) =>
             scene.add.circle(text.x + 12 + i * 32, controls.y, 9, COLORS.gold),
         );
-        this.skip = label(scene, controls.skipX, controls.y, T.skip, 24)
-            .setOrigin(0, 0.5)
-            .setAlpha(0.75)
-            .setInteractive({ useHandCursor: true });
-        this.skip.on("pointerover", () => this.skip.setAlpha(1));
-        this.skip.on("pointerout", () => this.skip.setAlpha(0.75));
-        this.skip.on("pointerdown", () => this.close());
+        // Skips every remaining step at once and starts the game.
+        this.skip = new Button(
+            scene,
+            controls.skipX,
+            controls.y,
+            T.skip,
+            "red",
+            () => this.close(),
+            220,
+        );
         this.back = new Button(
             scene,
             controls.backX,
@@ -184,7 +187,7 @@ export default class Tutorial {
         this.dots.forEach((dot, i) => dot.setAlpha(i === step ? 1 : 0.3));
         this.back.setEnabled(step > 0);
         this.next.setLabel(last ? T.play : T.next);
-        this.skip.setVisible(!last); // PLAY closes the window as well
+        this.skip.show(!last); // PLAY closes the window as well
 
         this.scene.tweens.add({
             targets: [this.shot, this.title, this.body],

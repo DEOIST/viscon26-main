@@ -32,7 +32,7 @@ export const GAME_IDS: GameId[] = ["blackjack", "shooter"];
 
 export const GAMES: Record<GameId, { title: string; tagline: string }> = {
     blackjack: {
-        title: "Casino night",
+        title: "Probability Class - Gauss Jack",
         tagline: "Try your luck at blackjack with play chips.",
     },
     shooter: {

@@ -96,7 +96,7 @@
     "games": [
         {
             "id": "blackjack",
-            "title": "Casino night",
+            "title": "Probability Class - Gauss Jack",
             "description": "Try your luck at blackjack with play chips.",
             "ects": 90,
             "implemented": true
@@ -132,7 +132,7 @@
             "games": [
                 {
                     "id": "year-2-slot",
-                    "title": "Casino night",
+                    "title": "Probability Class - Gauss Jack",
                     "ects": 60,
                     "implemented": true
                 }

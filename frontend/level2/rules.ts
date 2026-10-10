@@ -12,6 +12,7 @@ import {
     BLACKJACK_PAYOUT,
     BLACKJACK_YELLOWS,
     CHIP_VALUES,
+    CREDITS,
     DEALER_STANDS_AT,
     HANDS,
     MIN_BET,
@@ -227,6 +228,11 @@ export function scoreOf(chips: number): number {
     const score = Math.round((SCORE_AT_START_CHIPS * chips) / START_CHIPS);
     return Math.max(0, Math.min(100, score));
 }
+
+// The ECTS a score earns, rounded half up like the shell's calculateEcts (src/store.ts), so the
+// game-over panel and the shell agree.
+export const creditsOf = (score: number): number =>
+    Math.floor((CREDITS * score) / 100 + 0.5);
 
 export const result = (s: State): MinigameResult => ({
     score: scoreOf(s.chips),
