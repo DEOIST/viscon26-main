@@ -22,6 +22,8 @@ import diplomaStyles from "./Diploma.module.css";
 
 export function WelcomeScreen({ onStart }: { onStart: () => void }) {
     const text = TEXT.welcome;
+    // The dot in "ETH.fun" carries the accent color; a title without one gets a trailing dot.
+    const [titleStart, ...titleRest] = text.title.split(".");
     return (
         <>
             <div className="welcome-layout">
@@ -30,8 +32,9 @@ export function WelcomeScreen({ onStart }: { onStart: () => void }) {
                         <span className="status-dot" /> {text.eyebrow}
                     </span>
                     <h1>
-                        {text.title}
+                        {titleStart}
                         <span className="primary-text">.</span>
+                        {titleRest.join(".")}
                     </h1>
                     <p className="hero-lead">
                         <MultiLine text={text.lead} />

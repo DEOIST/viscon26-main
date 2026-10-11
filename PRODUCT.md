@@ -12,7 +12,7 @@ VIScon 2026 hackathon judges and passers-by at our booth, mostly ETH Zürich stu
 
 ## Product Purpose
 
-ETH Simulator ("ETH Life", working title): you create an ETH student and play one minigame per study year (Year 1 the webcam finger-gun shooter, Year 2 Galton Blackjack, Year 3 the thesis defense rhythm game); completing all three years earns the 180 ECTS and the graduation diploma. Success on judging day is that a stranger understands each game in seconds, laughs at the ETH references and wants another turn.
+ETH.fun: you create an ETH student and play one minigame per study year (Year 1 the webcam finger-gun shooter, Year 2 Galton Blackjack, Year 3 the thesis defense rhythm game); completing all three years earns the 180 ECTS and the graduation diploma. Success on judging day is that a stranger understands each game in seconds, laughs at the ETH references and wants another turn.
 
 ## Positioning
 

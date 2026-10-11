@@ -1,8 +1,7 @@
 {
     "_about": "Editable player-facing copy for the application shell, graduation, minigames and fallback story. Keep the keys and {name}-style placeholders. \\n is a line break; **text** is bold in the admission letter. Game IDs, thresholds and rewards remain in game-config.json.",
     "app": {
-        "brand": "ETH SIMULATOR",
-        "brandTagline": "AFTER HOURS",
+        "brand": "ETH.fun",
         "skipToContent": "Skip to content",
         "actionsLabel": "Application actions",
         "scoreboard": "Scoreboard",
@@ -52,13 +51,13 @@
     },
     "welcome": {
         "eyebrow": "ADMISSIONS OPEN · FREE TIME CLOSED",
-        "title": "ETH Simulator",
+        "title": "ETH.fun",
         "lead": "Big ambitions.\nVery little free time.",
         "description": "Your unofficial university adventure. Create a student, work your way through three years, and earn those very expensive letters.",
         "start": "Start your degree",
         "finePrint": "Create your character and play. Coffee not included.",
         "letter": {
-            "cornerTop": "EST. AFTER HOURS",
+            "cornerTop": "EST. 2026",
             "office": "OFFICE OF\nBIG BEGINNINGS",
             "kicker": "YOUR NEXT CHAPTER",
             "headline": "You’re in.",
@@ -182,7 +181,7 @@
         "progressSummary": "ECTS earned · {completed} / {total} games",
         "studentActions": "Student actions",
         "recordNote": "Progress stays in this browser. Your chosen name appears on the leaderboard.",
-        "sidebarTitle": "ETH After Hours",
+        "sidebarTitle": "ETH.fun",
         "sidebarTagline": "Unofficial student parody.",
         "studentMenu": "Student menu",
         "closeStudentMenu": "Close student menu",
@@ -345,7 +344,7 @@
         "previewDialogTitle": "Your game diploma · Preview",
         "close": "Close diploma",
         "label": "Game diploma",
-        "brand": "ETH AFTER HOURS",
+        "brand": "ETH.fun",
         "title": "Diploma of determined survival",
         "congratulations": "Congratulations, {name}!",
         "citation": "Awarded for your commitment to the degree, the deadlines and the plot. Your next chapter begins as",
@@ -1093,7 +1092,7 @@
     },
     "legacyGraduation": {
         "label": "Your diploma",
-        "brand": "ETH Life · Diploma of determined survival",
+        "brand": "ETH.fun · Diploma of determined survival",
         "certifies": "This certifies that",
         "citation": "of {department} completed {ects} ECTS and is ready for a next chapter as",
         "sameFate": "{percent}% of graduates share this outcome.",

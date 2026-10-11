@@ -1,1 +1,1 @@
-export const APP_NAME = "ETH Life";
+export const APP_NAME = "ETH.fun";

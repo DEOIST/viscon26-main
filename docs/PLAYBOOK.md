@@ -12,7 +12,7 @@ T+1h and kept in the repository (not in chat): `docs/DEMO.md` (the exact demo
 script, inputs and fallback) and `docs/PITCH.md` (the pitch outline and who
 answers which question).
 
-**Chosen idea (2026-10-09): ETH Life**, a game with a webcam finger-gun shooter
+**Chosen idea (2026-10-09): ETH Life** (now named ETH.fun), a game with a webcam finger-gun shooter
 as the core feature. What we build is in [GAME_DESIGN.md](GAME_DESIGN.md); the
 architecture, API contract, six ownership tracks and build order are in
 [ARCHITECTURE.md](ARCHITECTURE.md). Those documents refine the generic gates
