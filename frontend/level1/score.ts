@@ -20,6 +20,13 @@ export function shotPoints(
     return TARGET_POINTS[kind] + bonus;
 }
 
+// The round's running total after a gain or a penalty. It never drops below zero: early
+// mistakes would otherwise dig a hole the rest of the round has to climb out of first, and a
+// round with real catches could still end at 0 points, 0 score and 0 ECTS.
+export function addPoints(total: number, delta: number): number {
+    return Math.max(0, total + delta);
+}
+
 // Rounded half up and clamped to 0–100.
 export function shooterScore(points: number): number {
     const score = Math.floor((100 * points) / PAR_POINTS + 0.5);

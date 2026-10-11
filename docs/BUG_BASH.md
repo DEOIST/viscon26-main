@@ -6,13 +6,15 @@ are local and have not been pushed or merged.
 
 ## Game and visuals
 
-- Year 1 / the internal `shooter` slot is displayed as **Bug Bash**.
+- Year 1 / the internal `shooter` slot is displayed as **Introduction to Programming - Bug
+  Bash**, like Year 2's "Probability Class - Gauss Jack": on the hub, the diploma, the
+  in-game banner and the advisor's intro line.
 - The background is a restrained navy IDE with a file explorer, syntax-colored code,
   minimap, terminal and scrollbar. Code scrolls during the round; the line counter
   advances. The earlier perspective tunnel and its wires were removed.
 - Bugs have three retro pixel-alien silhouettes and four palettes. Pinch and throw them.
 - Green working-code cards have black cartoon bombs. Fire travels down the rope toward
-  the bomb over seven seconds. Slapping or swiping can extinguish the fuse.
+  the bomb over nine seconds (`APPROACH_SECONDS`). Slapping or swiping can extinguish the fuse.
 - Six side interrupters have different skin/hair, glasses, cap, tie or beard, and varied
   speech bubbles. One appears every 6.5–11 seconds; it leaves after 4.5 seconds if ignored.
 - The tracked hand is a filled cartoon hand with a solid palm, rounded tapered fingers,
@@ -32,7 +34,7 @@ of that gap confirms a grab after two frames; reopening at 70% rearms it.
 Three practice pinches complete calibration, followed by three practice bugs to throw.
 `Enter` skips; `T` repeats calibration during warm-up. Collection suppresses game grabs.
 
-Only bugs can be grabbed. Grab radii are 1.45 times their original size, also in practice.
+Only bugs can be grabbed. Grab radii are 1.8 times their original size, also in practice.
 Held bugs follow the thumb/index midpoint and pause their approach. Moving 100 game
 pixels or releasing at 650 pixels/s throws them; a slower release drops them back.
 Tracking loss gets 350 ms of grace before dropping; changing input mode also drops.
@@ -40,13 +42,16 @@ Tracking loss gets 350 ms of grace before dropping; changing input mode also dro
 ## Slaps and gentle swipes
 
 Fast slaps retain the broad effect: save all currently burning code and knock out the
-visible interrupter, without aiming. Slow slides affect only contacted fuse tips and
-interrupter bodies. Neither gesture throws a held bug.
+visible interrupter, without aiming. Slow slides affect only the code cards and
+interrupter bodies they touch: anywhere on a card (115 px around its centre at scale 1,
+`CODE_SWIPE_RADIUS`) or its flame (30 px), and an interrupter within 110 px of its body
+(`INTERRUPTER_SWIPE_RADIUS`). The flame tip alone was too small to hit with a hand. Neither gesture throws a held bug.
 
 - Landmark movement uses the centroid of **all 21 hand points**.
-- Gentle slides require a non-pinching hand, lateral movement of 18% of camera width
-  within 0.9 s, at least 0.18 s of movement, average lateral speed of **0.45 camera
-  widths/s**, and net travel at least 70% of the total path. Individual finger-extension
+- Gentle slides require a non-pinching hand, lateral movement of 12% of camera width
+  within 0.9 s, at least 0.12 s of movement, average lateral speed of **0.3 camera
+  widths/s**, and net travel at least 60% of the total path (more sensitive after
+  playtests: they were 18%, 0.18 s, 0.45 and 70%). Individual finger-extension
   tests are no longer required.
 - Slide collision uses the swept convex hull of the whole hand between camera frames:
   palm, thumb and fingers, with a small margin. It is independent of pinch targeting.
@@ -57,8 +62,9 @@ interrupter bodies. Neither gesture throws a held bug.
   The image-region center must move at least 2% of frame width between consecutive
   qualifying frames; lighting changes or a stationary noisy outline alone are insufficient.
   A visible tracked fast move can provide speed evidence instead.
-- Both share a 0.6-second cooldown. The hand-settling requirement was removed because
-  it blocked detection. Fast slaps clear pending slide samples. Pinching, tracking loss
+- Each has its own 0.6-second cooldown. They used to share one, so a slide (often just
+  the wind-up) silently swallowed the slap right after it. The hand-settling requirement
+  was removed because it blocked detection. Fast slaps clear pending slide samples. Pinching, tracking loss
   and changing hands clear slide samples.
 - Hit text appears only when code is saved or a character is knocked out; empty swipes
   produce no "SWISH" or slap message.
@@ -71,7 +77,10 @@ Raw motion is a lightweight image-change estimate, not a full optical-flow model
 
 The round lasts 60 seconds. Bugs award 10 points; saved code awards 25; streaks add 5.
 Interrupters award 15. Escaped bugs deduct 5, exploded code deducts 15, missed grabs deduct
-2. Legacy internal target kinds remain: `question` = bug, `deadline` = code bomb, `coffee`
+2. The running total never drops below zero (`addPoints` in `score.ts`), so early mistakes don't
+leave a debt and a round with real catches always pays some ECTS. The 0–100 score sent to the shell
+is points / `PAR_POINTS` (325, scaled from 420 when the slower tuning cut a round from 44 to 34
+targets), and the year pays that share of its 60 ECTS. Legacy internal target kinds remain: `question` = bug, `deadline` = code bomb, `coffee`
 no longer spawns. Results retain `points`, `hits`, `shots`, plus `savedCode` and `interruptions`.
 
 - `F` / fullscreen button: toggle fullscreen. `Esc`: exit fullscreen. Phaser targets the

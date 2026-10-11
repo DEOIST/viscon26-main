@@ -513,3 +513,28 @@ def test_pinching_does_not_generate_a_slow_slide():
     frames = play(PlayerGun(), [[OPEN], [CLOSED], [CLOSED]])
     frames += play(PlayerGun(), [[shifted(CLOSED, 0.02 * i)] for i in range(16)])
     assert not any(f.slide for f in frames)
+
+
+def test_a_fast_swing_slaps_once():
+    frames = play(PlayerGun(), [[shifted(OPEN, 0.1 * i)] for i in range(6)])
+    assert [f.slap for f in frames if f.slap] == ["left"]
+
+
+def test_a_hand_that_blurs_away_mid_swing_slaps():
+    frames = play(PlayerGun(), [[OPEN], [shifted(OPEN, -0.06)], []])
+    assert frames[-1].slap == "right"
+
+
+def test_a_slide_does_not_swallow_the_slap_right_after_it():
+    sweep = [[shifted(OPEN, 0.02 * i)] for i in range(16)]
+    swing = [[shifted(OPEN, 0.3 - 0.1 * i)] for i in range(1, 6)]
+    frames = play(PlayerGun(), sweep + swing)
+    assert any(f.slide for f in frames[:16])
+    assert [f.slap for f in frames[16:] if f.slap] == ["right"]
+
+
+def test_a_short_gentle_swipe_counts():
+    # 0.36 camera widths/s over 0.17 widths: too short and slow before the sensitivity tuning
+    frames = play(PlayerGun(), [[shifted(OPEN, 0.012 * i)] for i in range(15)])
+    assert [f.slide.direction for f in frames if f.slide] == ["left"]
+    assert not any(f.slap for f in frames)

@@ -9,7 +9,12 @@ import { BEAT_ORIGIN_MS, DEFENSE_CHART } from "./chart";
 import type { Phase } from "./chart";
 import Committee from "./Committee";
 import type { Mood } from "./Committee";
-import { COUNTDOWN_MS, LANE_KEYS } from "./config";
+import {
+    COUNTDOWN_MS,
+    LANE_KEYS,
+    MULTIPLIER_STEP,
+    PERFECT_STREAK_TITLE,
+} from "./config";
 import { DefenseEngine } from "./engine";
 import type { DefenseEvent } from "./engine";
 import Figure from "./Figure";
@@ -18,6 +23,7 @@ import { HEIGHT, WIDTH } from "./layout";
 import { committeeLines } from "./lines";
 import type { CommitteeEvent } from "./lines";
 import Overlays from "./Overlays";
+import ThesisAudio, { hitCue, phaseCue } from "./audio";
 import Soundtrack from "./Soundtrack";
 import { TEXT, loadFonts, makeTextures } from "./textures";
 import { loadBest, saveBest, swissGrade, verdictFor } from "./verdict";
@@ -81,7 +87,9 @@ export default class ThesisScene extends Scene {
     private best: BestRun | null = null;
     private bestContract = 0;
     private attempts = 0;
+    private soundCombo = 0;
     private submitted = false;
+    private fx: ThesisAudio | null = null;
     private committee!: Committee;
     private figure!: Figure;
     private hud!: Hud;
@@ -107,7 +115,15 @@ export default class ThesisScene extends Scene {
 
     private build() {
         makeTextures(this);
-        this.soundtrack = new Soundtrack(DEFENSE_CHART, this.args.storage);
+        this.soundtrack = new Soundtrack(
+            DEFENSE_CHART,
+            this.args.storage,
+            undefined,
+            undefined,
+            false,
+        );
+        this.fx = new ThesisAudio(() => this.soundtrack.muted);
+        this.fx.preload();
         this.hud = new Hud(this, this.args.playerName, {
             onFullscreen: () => this.args.toggleFullscreen(),
             onMute: () => this.hud.setSound(this.soundtrack.toggleMute()),
@@ -143,6 +159,7 @@ export default class ThesisScene extends Scene {
     dispose() {
         if (this.disposed) return;
         this.disposed = true;
+        this.fx?.stop();
         this.soundtrack?.dispose();
         window.removeEventListener("keydown", this.handleKeyDown);
         window.removeEventListener("keyup", this.handleKeyUp);
@@ -192,6 +209,7 @@ export default class ThesisScene extends Scene {
         this.hud.setPlaying(false);
         this.overlays.showTitle(this.best);
         this.committee.setLead(null);
+        this.fx?.play("title", 0.26);
     }
 
     private start() {
@@ -213,6 +231,7 @@ export default class ThesisScene extends Scene {
         this.committee.setLead(null);
         this.phase = "opening";
         this.lastQuip = -Infinity;
+        this.soundCombo = 0;
         this.attempts += 1;
         this.startAt = performance.now() + COUNTDOWN_MS;
         this.soundtrack.play(-COUNTDOWN_MS);
@@ -241,12 +260,14 @@ export default class ThesisScene extends Scene {
         this.figure.releaseAll();
         this.overlays.hideCountdown();
         this.overlays.showPause(true);
+        this.fx?.play("pause", 0.34);
         this.soundtrack.pause();
     }
 
     private resume() {
         if (this.mode !== "paused") return;
         this.overlays.showPause(false);
+        this.fx?.play("resume", 0.34);
         this.resumeAt = performance.now() + RESUME_MS;
         this.mode = "resuming";
     }
@@ -302,6 +323,16 @@ export default class ThesisScene extends Scene {
             isNewBest: saved.isNew,
             submitted: this.submitted,
         });
+        this.fx?.play(
+            failed || grade < 4
+                ? "verdictLow"
+                : grade >= 5.75
+                  ? "verdictTop"
+                  : "verdictMid",
+            failed || grade < 4 ? 0.36 : 0.42,
+        );
+        if (saved.isNew)
+            this.time.delayedCall(900, () => this.fx?.play("newBest", 0.36));
         this.args.announce(
             fill(COPY.announcements.results, {
                 verdict: verdict.title,
@@ -331,6 +362,7 @@ export default class ThesisScene extends Scene {
 
     private handle(events: DefenseEvent[]) {
         for (const event of events) {
+            this.playEventSound(event);
             this.soundtrack.event(event);
             switch (event.type) {
                 case "hit":
@@ -382,6 +414,72 @@ export default class ThesisScene extends Scene {
         }
     }
 
+    private playEventSound(event: DefenseEvent) {
+        switch (event.type) {
+            case "hit": {
+                this.soundCombo = this.engine.state.combo;
+                this.fx?.play(hitCue(event.judgment), 0.15);
+                if (event.note.gold) this.fx?.play("gold", 0.28);
+                if (
+                    this.soundCombo >= MULTIPLIER_STEP &&
+                    this.soundCombo <= MULTIPLIER_STEP * 3 &&
+                    this.soundCombo % MULTIPLIER_STEP === 0
+                )
+                    this.fx?.play("multiplier", 0.22);
+                return;
+            }
+            case "miss":
+                if (this.soundCombo >= MULTIPLIER_STEP)
+                    this.fx?.play("comboBreak", 0.28);
+                this.soundCombo = 0;
+                this.fx?.play("miss", 0.5);
+                return;
+            case "stray":
+                if (this.soundCombo >= MULTIPLIER_STEP)
+                    this.fx?.play("comboBreak", 0.24);
+                this.soundCombo = 0;
+                this.fx?.play("stray", 0.85);
+                return;
+            case "milestone": {
+                if (event.title === PERFECT_STREAK_TITLE) {
+                    this.fx?.play("perfectStreak", 0.4);
+                    return;
+                }
+                const combo = this.engine.state.combo;
+                this.fx?.play(
+                    combo >= 100
+                        ? "milestone3"
+                        : combo >= 50
+                          ? "milestone2"
+                          : "milestone1",
+                    combo >= 100 ? 0.48 : 0.38,
+                );
+                return;
+            }
+            case "phase":
+                this.fx?.play(phaseCue(event.section.phase), 0.42);
+                return;
+            case "eureka-ready":
+                this.fx?.play("eurekaReady", 0.36);
+                return;
+            case "eureka-start":
+                this.fx?.play("eurekaStart", 0.48);
+                return;
+            case "eureka-end":
+                this.fx?.play("eurekaEnd", 0.3);
+                return;
+            case "failed":
+                this.fx?.play("failed", 0.52);
+                return;
+            case "complete":
+                this.fx?.play(
+                    this.engine.accuracy() >= 80 ? "completeBig" : "complete",
+                    this.engine.accuracy() >= 80 ? 0.54 : 0.42,
+                );
+                return;
+        }
+    }
+
     private enterPhase(
         index: number,
         phase: Phase,
@@ -422,6 +520,30 @@ export default class ThesisScene extends Scene {
         this.lastQuip = now;
         this.spoken = pickLine(this.lines, event, "...", this.spoken);
         this.committee.say(who, this.spoken);
+        this.playCommitteeSound(event);
+    }
+
+    private playCommitteeSound(event: CommitteeEvent) {
+        switch (event) {
+            case "passed":
+                this.fx?.play("committeeImpressed", 0.16);
+                return;
+            case "intro":
+                return;
+            case "streak":
+            case "eureka":
+                this.fx?.play("committeeAmazed", 0.18);
+                return;
+            case "miss":
+            case "stray":
+                this.fx?.play("committeeDisappointed", 0.14);
+                return;
+            case "meltdown":
+            case "final":
+            case "failed":
+                this.fx?.play("committeeFurious", 0.14);
+                return;
+        }
     }
 
     private updateMoods() {
@@ -443,7 +565,9 @@ export default class ThesisScene extends Scene {
     }
 
     private beep(value: string | null) {
-        if (value) this.soundtrack.countdown(value);
+        if (!value) return;
+        this.soundtrack.countdown(value);
+        this.fx?.play(value === "DEFEND!" ? "go" : "countTick", 0.42);
     }
 
     // --- Input -------------------------------------------------------------------

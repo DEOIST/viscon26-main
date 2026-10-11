@@ -4,6 +4,7 @@
 // Skipping (or reduced motion) only shortens the show: onEnter, which saves, always runs.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
+import { playUiSound } from "../audio";
 import { PresentationTimeline } from "../misc/motion";
 import type { Character } from "../types";
 import { Avatar } from "./Avatar";
@@ -144,6 +145,10 @@ export default function YearOneIntro(args: YearOneIntroArgs) {
             return run.active && !run.skipped;
         };
         function hit(damage: number, direction: number, finale = false) {
+            playUiSound(
+                finale ? "cutsceneFinale" : "cutsceneHit",
+                finale ? 0.7 : 0.42,
+            );
             setKnockback(direction);
             setHits((count) => count + 1);
             setHearts((left) => Math.max(1, left - damage));
@@ -165,12 +170,14 @@ export default function YearOneIntro(args: YearOneIntroArgs) {
                 element.style.removeProperty("transition");
                 element.style.removeProperty("transform");
             }
+            playUiSound("cutsceneWhoosh", 0.42);
             setDim(true);
             if (!(await pause(ENTER_MS))) return finish();
 
             // Happy, and blinking, to have made it in. The backdrop is opaque by the first
             // blink, so Year 1 can start underneath unseen.
             setStep("happy");
+            playUiSound("cutsceneHappy", 0.34);
             if (!(await pause(400))) return finish();
             enter();
             if (!(await blink())) return finish();
@@ -182,6 +189,7 @@ export default function YearOneIntro(args: YearOneIntroArgs) {
             setStep("attack");
             for (const [i, attack] of ATTACKS.entries()) {
                 setPhrase(i);
+                playUiSound("cutsceneWhoosh", 0.28);
                 if (!(await pause(ATTACK_HIT_MS))) return finish();
                 hit(attack.damage, attack.x < 0 ? 1 : -1);
                 if (!(await pause(ATTACK_MS - ATTACK_HIT_MS + ATTACK_GAP_MS)))
@@ -192,6 +200,7 @@ export default function YearOneIntro(args: YearOneIntroArgs) {
 
             setStep("finale");
             setPhrase(ATTACKS.length);
+            playUiSound("cutsceneRecordScratch", 0.36);
             if (!(await pause(FINALE_HIT_MS))) return finish();
             hit(FINALE.damage, 0, true);
             if (!(await pause(FINALE_MS - FINALE_HIT_MS + AFTERMATH_MS)))
@@ -202,6 +211,7 @@ export default function YearOneIntro(args: YearOneIntroArgs) {
             setStep("exit");
             setDim(false);
             setExpression("calm");
+            playUiSound("cutscenePaper", 0.32);
             const seat = findSeat();
             if (element) {
                 element.style.transitionDuration = `${EXIT_MS}ms`;

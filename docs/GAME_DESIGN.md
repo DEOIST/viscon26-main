@@ -1,4 +1,4 @@
-# Game design: ETH Life (working title)
+# Game design: ETH.fun
 
 > **Current level 1 change:** Bug Bash replaces the finger-gun gameplay. See
 > [BUG_BASH.md](BUG_BASH.md) for the current gestures, scoring, visuals, fullscreen,
@@ -31,6 +31,19 @@ Everything else in the game frames that moment.
 | 5 | `/shooter` | Basisprüfung: shoot exam questions with your finger gun | `POST …/scores` |
 | 6 | `/graduation` | Click **Open your diploma**: career reveal, ending art, your epilogue typed out and read aloud by the rector, your rank, **Play again** | `POST …/graduate`, `…/epilogue`, `…/epilogue/speech` |
 
+- **Year panels:** a year whose game hasn't been played yet opens with a
+  three-step **How to play** for it (Bug Bash, Gauss Jack, Thesis defense),
+  each step with a screenshot of the real game, dealt in one after another
+  (`frontend/src/components/HowToPlay.tsx`, wording in `workspace.howToPlay`,
+  screenshots in `frontend/src/assets/howto/`), and a **Start lecture** button.
+  Once played, the panel shows the result instead
+  (`frontend/src/components/LectureResult.tsx`, wording in
+  `workspace.lectureResult`): a speedometer of the ECTS it paid out of 60 whose
+  needle sweeps up from zero, the score, a line teasing the player about it and
+  **Retry lecture** (a retry is for glory: the first result keeps its credits).
+  The header also shows the ECTS on a bar. The button in the bottom-right
+  corner is **Next** for Years 1 and 2, unlocked once that year's game is done;
+  only Year 3 shows **Graduate**.
 - **First-day intro:** after **Begin Year 1** on the acceptance letter, the
   avatar slides to the centre of a darkening screen under a soft spotlight,
   blinking and beaming about getting into ETH. Two seconds later "Lectures",

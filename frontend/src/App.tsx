@@ -1,5 +1,6 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import { api, errorMessage } from "./api";
+import { installUiSounds, playUiSound } from "./audio";
 import { GAMES, YEARS } from "./config";
 import {
     CharacterBuilder,
@@ -70,6 +71,11 @@ export function App() {
     const mounted = useRef(true);
     const saving = useRef(false);
     const mainRef = useRef<HTMLElement>(null);
+
+    useEffect(() => installUiSounds(), []);
+    useEffect(() => {
+        if (error || syncError) playUiSound("error", 0.28);
+    }, [error, syncError]);
 
     async function synchronize() {
         const snapshot = store.getState();
@@ -221,6 +227,7 @@ export function App() {
             return;
         }
         setNotice(TEXT.app.gameCompleted);
+        playUiSound("yearDone", 0.48);
         void synchronize();
     }
     function graduate() {
@@ -236,6 +243,7 @@ export function App() {
         dispatch(markGraduated());
         setCelebrateGraduation(!wasGraduated);
         setGraduation(true);
+        if (!wasGraduated) playUiSound("graduate", 0.54);
         if (!wasGraduated) void synchronize();
     }
     const inDegree = player.onboardingStage === "main";
@@ -252,10 +260,7 @@ export function App() {
                     <span className="brand-icon">
                         <Icon name="cap" size={25} />
                     </span>
-                    <span>
-                        {TEXT.app.brand}
-                        <small>{TEXT.app.brandTagline}</small>
-                    </span>
+                    <span>{TEXT.app.brand}</span>
                 </div>
                 <nav className="top-actions" aria-label={TEXT.app.actionsLabel}>
                     {!inDegree && (
@@ -408,6 +413,7 @@ export function App() {
                                 setSelectedGame(game);
                                 setError("");
                                 setNotice("");
+                                if (game.implemented) playUiSound("launch");
                             }}
                             onComplete={finishGame}
                             onExit={() => {

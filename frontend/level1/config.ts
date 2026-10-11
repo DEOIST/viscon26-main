@@ -50,7 +50,9 @@ export const TRIGGER_STEPS: {
 export const TRIGGER_TEST_SHOTS = 3;
 export const TRIGGER_MAX_ATTEMPTS = 2; // then the default trigger, so nobody gets stuck
 export const TRIGGER_RETRY_MS = 2500; // how long a failure's reason shows before retrying
-export const PAR_POINTS = 420; // a good first-time player scores about 70
+// Points for a score of 100 (a good first-time player scores about 70). Scaled with the round:
+// the slower tuning spawns 34 targets a round instead of 44, so 420 became 420 × 34 / 44.
+export const PAR_POINTS = 325;
 export const MISS_PENALTY = 2;
 export const STREAK_FOR_BONUS = 3;
 export const STREAK_BONUS = 5;
@@ -61,10 +63,12 @@ export const TARGET_POINTS: Record<TargetKind, number> = {
     deadline: 25,
     coffee: 0,
 };
+// Playtests asked for a slower round: approaches (and so the code fuses) and spawn gaps are ~30 %
+// longer than the first version's 7 s and 1800→950 ms.
 export const APPROACH_SECONDS: Record<TargetKind, number> = {
-    question: 7,
-    deadline: 7,
-    coffee: 5,
+    question: 9,
+    deadline: 9,
+    coffee: 6.5,
 };
 
 export const SPAWN_SHARES: Record<TargetKind, number> = {
@@ -72,10 +76,10 @@ export const SPAWN_SHARES: Record<TargetKind, number> = {
     deadline: 0.28,
     coffee: 0,
 }; // sums to 1
-export const SPAWN_EVERY_MS_START = 1800;
-export const SPAWN_EVERY_MS_END = 950; // the spawn rate rises over the round
+export const SPAWN_EVERY_MS_START = 2350;
+export const SPAWN_EVERY_MS_END = 1250; // the spawn rate rises over the round
 export const TARGET_RADIUS = 80; // hit radius in game pixels at scale 1
-export const GRAB_RADIUS_MULTIPLIER = 1.45; // extra reach around objects and practice papers
+export const GRAB_RADIUS_MULTIPLIER = 1.8; // extra reach around objects and practice papers
 export const GAMER_TARGET_SCALE = 1.15; // Gamer perk: targets 15 % larger
 export const ATHLETE_COOLDOWN_MS = 175; // ASVZ-athlete perk: 250 ms re-arm, 30 % faster
 
@@ -103,3 +107,9 @@ export const INTERRUPTER_MIN_DELAY_MS = 6500;
 export const INTERRUPTER_MAX_DELAY_MS = 11000;
 export const INTERRUPTER_STAY_MS = 4500;
 export const INTERRUPTER_POINTS = 15;
+// A slower swipe saves a code card when the swept hand touches the card anywhere, not only the
+// flame tip: in game pixels at scale 1, a circle around the card's centre (the card is 236×130).
+export const CODE_SWIPE_RADIUS = 115;
+export const FUSE_SWIPE_RADIUS = 30; // around the flame, which can burn beyond the card
+// Around an interrupter's body (game pixels), for slower swipes; a fast slap needs no aiming.
+export const INTERRUPTER_SWIPE_RADIUS = 110;

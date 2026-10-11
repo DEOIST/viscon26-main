@@ -143,12 +143,15 @@ SLAP_REAPPEAR_S = 0.6
 SLAP_REAPPEAR_DISTANCE = 0.3  # frame widths
 # A deliberate open-hand slide can be much slower than a slap. Require lateral travel,
 # mostly one direction, and open fingers to distinguish it from carrying a pinched bug.
+# Playtests asked for more sensitive swipes: these were 0.18 s, 0.18 widths, 0.45 widths/s and 0.7.
 SLIDE_WINDOW_S = 0.9
-SLIDE_MIN_DURATION_S = 0.18
-SLIDE_MIN_DISTANCE = 0.18  # camera widths
-SLIDE_MIN_SPEED = 0.45  # camera widths per second: hovering is not a swipe
+SLIDE_MIN_DURATION_S = 0.12
+SLIDE_MIN_DISTANCE = 0.12  # camera widths
+SLIDE_MIN_SPEED = 0.3  # camera widths per second: hovering is not a swipe
 SLAP_RAW_MIN_SPEED = 0.9
-SLIDE_MIN_DIRECTNESS = 0.7  # net travel / total travel
+SLIDE_MIN_DIRECTNESS = 0.6  # net travel / total travel
+# Slides keep their own cooldown: sharing the slap's let a slow wind-up swallow the slap after it.
+SLIDE_COOLDOWN_S = 0.6
 Slap = Literal["left", "right"]  # on screen (the camera image is mirrored)
 
 
@@ -654,6 +657,7 @@ class PlayerGun:
         self._slide_outlines: deque[list[tuple[float, float]]] = deque()
         self._slides_of: int | None = None
         self._last_slap_s: float | None = None
+        self._last_slide_s: float | None = None
         self._vanished: tuple[float, float, float] | None = None  # (t, x, y) when the hand went
 
     def update(
@@ -803,8 +807,13 @@ class PlayerGun:
             return None
         path = [to_game_area((p[1], p[2] * width / height), self.box) for p in self._slides]
         outlines = list(self._slide_outlines)
-        direction = self._slap(t, dx)
-        return Slide(direction, path, 0.012, outlines) if direction else None
+        if self._last_slide_s is not None and t - self._last_slide_s < SLIDE_COOLDOWN_S:
+            return None
+        self._last_slide_s = t
+        self._slides.clear()
+        self._slide_outlines.clear()
+        # The camera image is mirrored on screen: moving to the image's right is a slide left
+        return Slide("left" if dx > 0 else "right", path, 0.012, outlines)
 
     def _slap_on_moving(self, player_id: int, palm: tuple[float, float], t: float) -> Slap | None:
         """A slap when the palm moved SLAP_MIN_DISTANCE within SLAP_WINDOW_S."""

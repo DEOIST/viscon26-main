@@ -8,7 +8,7 @@ Guidance for Claude Code **and for every teammate** working in this repository. 
 
 ## What this is
 
-**ETH Life** (working title), our VIScon 2026 game. You create an ETH student (name, pronouns, department, archetype, avatar), play a minigame per year, and your scores decide your career at graduation: quant researcher, eternal PhD, Master's student (again), McDonald's or homeless in Zürich. The minigames are **Blackjack** ("Probability Class - Gauss Jack") and a **webcam finger-gun shooter** ("Basisprüfung"): you aim with your index finger and drop your thumb to shoot, tracked live by our server (MediaPipe, level 1). The shooter is the feature we win with. OpenAI writes the story around your character: advisor and dealer lines, a personal epilogue, and a narrator voice.
+**ETH.fun**, our VIScon 2026 game. You create an ETH student (name, pronouns, department, archetype, avatar), play a minigame per year, and your scores decide your career at graduation: quant researcher, eternal PhD, Master's student (again), McDonald's or homeless in Zürich. The minigames are **Blackjack** ("Probability Class - Gauss Jack") and a **webcam finger-gun shooter** ("Basisprüfung"): you aim with your index finger and drop your thumb to shoot, tracked live by our server (MediaPipe, level 1). The shooter is the feature we win with. OpenAI writes the story around your character: advisor and dealer lines, a personal epilogue, and a narrator voice.
 
 **The demo flow that must work on judging day:** enroll → Year 1: the shooter with the camera (level 1) → Year 2: Probability Class - Gauss Jack (blackjack) → Year 3: the thesis defense (keyboard rhythm game, level 3) → graduation reveal, read aloud. The years and their games are set in `shared/game-config.json`; `src/minigames/DestinationGame.tsx` maps each year's slot to its game.
 
@@ -25,7 +25,7 @@ Stack: **React + TypeScript** outer shell bundled by **esbuild**; a WebGL inner 
 
 ## Current level 1 implementation
 
-Level 1 is now **Bug Bash**: pinch/throw pixel bugs in an IDE, slap burning code fuses,
+Level 1 is now **Introduction to Programming - Bug Bash** (Bug Bash for short): pinch/throw pixel bugs in an IDE, slap burning code fuses,
 and swat side interruptions. Pinching uses thumb/index tips; slaps use whole-hand movement.
 Fast slaps are broad; gentle swipes affect only targets covered by the swept hand.
 The complete current behavior, thresholds, controls, wire additions, file inventory and

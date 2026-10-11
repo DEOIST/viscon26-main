@@ -2,6 +2,7 @@
 // Calibration and practice lead into a 60-second coding round.
 
 import { Scene } from "phaser";
+import ShooterAudio, { loadShooterAudio } from "./audio";
 import Backdrop from "./Backdrop";
 import SlapWalkers from "./SlapWalkers";
 import { makeBug, makeCodeBomb, drawFuse } from "./CodeTargets";
@@ -19,6 +20,8 @@ import {
     APPROACH_SECONDS,
     BUG_MISSED_PENALTY,
     CODE_LOST_PENALTY,
+    CODE_SWIPE_RADIUS,
+    FUSE_SWIPE_RADIUS,
     INTERRUPTER_POINTS,
     COUNTDOWN_SECONDS,
     PRACTICE_MAX_SECONDS,
@@ -32,7 +35,7 @@ import { project } from "./depth";
 import { swipeHits } from "./swipeHit";
 import type { CvSlide } from "./input/cvStream";
 import { hitTest } from "./hitTest";
-import { shooterScore, shotPoints } from "./score";
+import { addPoints, shooterScore, shotPoints } from "./score";
 import { pickTargetKind, spawnIntervalMs } from "./spawn";
 import { TriggerCalibration } from "./triggerCalibration";
 import type { GameObjects, Time } from "phaser";
@@ -110,6 +113,7 @@ export default class ShooterScene extends Scene {
     private hint!: GameObjects.Text;
     private banner!: GameObjects.Text;
     private instruction!: GameObjects.Text;
+    private audio!: ShooterAudio;
 
     constructor(args: ShooterSceneArgs) {
         super("shooter");
@@ -117,7 +121,13 @@ export default class ShooterScene extends Scene {
         this.handColors = handColors(args.skinColor);
     }
 
+    preload() {
+        loadShooterAudio(this);
+    }
+
     create() {
+        this.audio = new ShooterAudio(this);
+        this.audio.startMusic();
         const canvas = this.game.canvas;
         const previousCursor = canvas.style.cursor;
         canvas.style.cursor = "none";
@@ -294,11 +304,15 @@ export default class ShooterScene extends Scene {
         for (const reply of input.takeTriggerReplies())
             trigger.handleReply(reply);
         const step = trigger.update(delta, input.tracking === "ok");
-        if (step) input.calibrateTrigger(step);
+        if (step) {
+            input.calibrateTrigger(step);
+            this.audio.play(step === "done" ? "calibOk" : "calibStep", 0.45);
+        }
         for (const shot of shots) {
             if (!trigger.handleShot()) continue; // shots only count in the test
             const x = shot.x * GAME_WIDTH;
             const y = shot.y * GAME_HEIGHT;
+            this.audio.play("calibOk", 0.42);
             muzzleFlash(this, x, y);
             floatText(this, x, y, T.callouts.grab, "#f2c14e");
             this.backdrop.pulse(x, y, HIT_FLASH, 0.6);
@@ -309,6 +323,7 @@ export default class ShooterScene extends Scene {
         if (trigger.usedDefault && input.mode === "camera")
             input.calibrateTrigger("done");
         this.instruction.setText("");
+        this.audio.play(trigger.usedDefault ? "calibFail" : "calibDone", 0.58);
         if (trigger.usedDefault && input.mode === "camera")
             floatText(
                 this,
@@ -342,6 +357,7 @@ export default class ShooterScene extends Scene {
     }
 
     private showPracticeTarget() {
+        this.audio.play("practicePop", 0.4);
         const point = PRACTICE_POINTS[this.practiceIndex];
         this.practiceTarget = makeBug(this)
             .setPosition(point.x * GAME_WIDTH, point.y * GAME_HEIGHT)
@@ -381,6 +397,7 @@ export default class ShooterScene extends Scene {
         this.subtitle.setText(T.roundStart);
         let remaining = COUNTDOWN_SECONDS;
         this.banner.setText(String(remaining));
+        this.audio.play("countTick", 0.5);
         this.time.addEvent({
             delay: 1000,
             repeat: COUNTDOWN_SECONDS - 1,
@@ -388,10 +405,15 @@ export default class ShooterScene extends Scene {
                 remaining -= 1;
                 if (remaining > 0) {
                     this.banner.setText(String(remaining));
+                    this.audio.play(
+                        remaining === 1 ? "countLast" : "countTick",
+                        0.54,
+                    );
                     return;
                 }
                 this.banner.setText("");
                 this.phase = "playing";
+                this.audio.play("go", 0.68);
                 this.backdrop.pulse(
                     GAME_WIDTH / 2,
                     GAME_HEIGHT / 2,
@@ -410,10 +432,14 @@ export default class ShooterScene extends Scene {
     private tick() {
         if (this.phase !== "playing") return;
         this.secondsLeft -= 1;
-        if (this.secondsLeft === Math.floor(ROUND_SECONDS / 2))
+        if (this.secondsLeft === Math.floor(ROUND_SECONDS / 2)) {
             this.subtitle.setText(T.halfway);
-        if (this.secondsLeft === FINAL_STRETCH_SECONDS)
+            this.audio.play("halfway", 0.48);
+        }
+        if (this.secondsLeft === FINAL_STRETCH_SECONDS) {
             this.subtitle.setText(T.finalStretch);
+            this.audio.play("countLast", 0.48);
+        }
         if (this.secondsLeft <= 0) this.endRound();
     }
 
@@ -421,6 +447,8 @@ export default class ShooterScene extends Scene {
         this.held = null;
         this.phase = "over";
         this.banner.setText(T.buildComplete);
+        this.audio.stopHeldLoop();
+        this.audio.play("roundEnd", 0.62);
         this.backdrop.pulse(GAME_WIDTH / 2, GAME_HEIGHT / 2, HIT_FLASH, 1);
         this.subtitle.setText(T.shiftComplete);
         this.time.delayedCall(1400, () =>
@@ -441,6 +469,7 @@ export default class ShooterScene extends Scene {
         const progress = this.elapsedMs / (ROUND_SECONDS * 1000);
         this.nextSpawnMs = this.elapsedMs + spawnIntervalMs(progress);
         const kind = pickTargetKind(Math.random());
+        this.audio.play(kind === "deadline" ? "practicePop" : "bugSpawn", 0.28);
         this.targets.push({
             id: this.nextId++,
             kind,
@@ -457,19 +486,23 @@ export default class ShooterScene extends Scene {
 
     private handleSlap(side: "left" | "right", slide?: CvSlide) {
         const knockedOut = this.slapWalkers.slap(side, slide);
-        if (knockedOut) this.points += INTERRUPTER_POINTS;
+        this.audio.play(knockedOut ? "walkerSlap" : "slapWhiff", 0.46);
+        if (knockedOut)
+            this.points = addPoints(this.points, INTERRUPTER_POINTS);
         const burning = this.targets.filter((target) => {
             if (target.kind !== "deadline") return false;
             if (!slide) return true;
-            const fire = target.view.getData("fire") as AimPoint;
+            const { x, y, scaleX, scaleY } = target.view;
+            const fire = target.view.getData("fire") as AimPoint | undefined;
             return (
-                fire &&
-                swipeHits(
-                    slide,
-                    target.view.x + fire.x * target.view.scaleX,
-                    target.view.y + fire.y * target.view.scaleY,
-                    20 * target.view.scaleX,
-                )
+                swipeHits(slide, x, y, CODE_SWIPE_RADIUS * scaleX) ||
+                (!!fire &&
+                    swipeHits(
+                        slide,
+                        x + fire.x * scaleX,
+                        y + fire.y * scaleY,
+                        FUSE_SWIPE_RADIUS * scaleX,
+                    ))
             );
         });
         for (const target of burning) {
@@ -478,9 +511,10 @@ export default class ShooterScene extends Scene {
             );
             const fuse = target.view.getData("fuse") as GameObjects.Graphics;
             fuse.clear();
+            this.audio.play("fuseOut", 0.54);
             this.savedCode += 1;
             const gained = shotPoints("deadline", this.streak);
-            this.points += gained;
+            this.points = addPoints(this.points, gained);
             this.streak += 1;
             floatText(
                 this,
@@ -509,7 +543,7 @@ export default class ShooterScene extends Scene {
             if (target.z <= 0) {
                 const isCode = target.kind === "deadline";
                 const penalty = isCode ? CODE_LOST_PENALTY : BUG_MISSED_PENALTY;
-                this.points -= penalty;
+                this.points = addPoints(this.points, -penalty);
                 this.streak = 0;
                 floatText(
                     this,
@@ -522,6 +556,7 @@ export default class ShooterScene extends Scene {
                     "#ff8a8a",
                 );
                 if (isCode) {
+                    this.audio.play("bomb", 0.58);
                     shatter(this, target.view.x, target.view.y, 0xff862c);
                     this.cameras.main.shake(160, 0.006);
                     this.backdrop.pulse(
@@ -531,6 +566,7 @@ export default class ShooterScene extends Scene {
                         1,
                     );
                 }
+                if (!isCode) this.audio.play("bugEscape", 0.44);
                 this.removeTarget(target, false);
                 continue;
             }
@@ -587,8 +623,9 @@ export default class ShooterScene extends Scene {
         const target = this.targets.find((candidate) => candidate.id === hitId);
         if (!target) {
             const gained = shotPoints(null, this.streak);
-            this.points += gained;
+            this.points = addPoints(this.points, gained);
             this.streak = 0;
+            this.audio.play("grabMiss", 0.45);
             floatText(this, x, y, T.callouts.nothingGrabbed, "#ff8a8a");
             return;
         }
@@ -611,6 +648,8 @@ export default class ShooterScene extends Scene {
             lostMs: 0,
             mode: this.args.input.mode,
         };
+        this.audio.play("grab", 0.54);
+        this.audio.startHeldLoop();
         floatText(this, x, y - 80, T.callouts.grabbed, "#f2c14e");
     }
 
@@ -678,6 +717,8 @@ export default class ShooterScene extends Scene {
         const held = this.held;
         if (!held) return;
         this.held = null;
+        this.audio.stopHeldLoop();
+        this.audio.play("drop", 0.38);
         if (!held.target) {
             const point = PRACTICE_POINTS[this.practiceIndex];
             held.view
@@ -691,13 +732,15 @@ export default class ShooterScene extends Scene {
         const held = this.held;
         if (!held) return;
         this.held = null;
+        this.audio.stopHeldLoop();
         const target = held.target;
+        this.audio.play(target ? "throw" : "practicePop", 0.58);
         if (target) {
             this.targets = this.targets.filter(
                 (candidate) => candidate !== target,
             );
             const gained = shotPoints(target.kind, this.streak);
-            this.points += gained;
+            this.points = addPoints(this.points, gained);
             this.hits += 1;
             this.streak += 1;
             floatText(
@@ -707,8 +750,10 @@ export default class ShooterScene extends Scene {
                 fill(T.callouts.bugSquashed, { points: gained }),
                 "#f2c14e",
             );
-            if (this.streak === 3 || this.streak % 6 === 0)
+            if (this.streak === 3 || this.streak % 6 === 0) {
                 this.subtitle.setText(T.streak);
+                this.audio.play("streak", 0.5);
+            }
         } else {
             this.practiceTarget = null;
             this.practiceIndex += 1;
