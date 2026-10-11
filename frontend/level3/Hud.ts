@@ -61,6 +61,7 @@ export default class Hud {
     private readonly meter: GameObjects.Graphics;
     private readonly nowPlaying: GameObjects.Text;
     private readonly sound: GameObjects.Text;
+    private readonly sync: GameObjects.Text;
     private readonly thumbs: GameObjects.Graphics;
     private readonly playParts: Visible[];
     private readonly ticks: { delta: number; at: number }[] = [];
@@ -182,6 +183,9 @@ export default class Hud {
                 wordWrap: { width: WIDTH - px - 18 },
                 lineSpacing: 3,
             })
+            .setDepth(2);
+        this.sync = scene.add
+            .text(px, 162, "", serif(13, CSS.chromeMuted))
             .setDepth(2);
         field(196, COPY.pane.timing);
         scene.add
@@ -347,6 +351,13 @@ export default class Hud {
                 ease: "Cubic.Out",
             });
         }
+    }
+
+    // The manual music sync, shown so the booth knows what is set.
+    setSync(ms: number) {
+        this.sync.setText(
+            fill(COPY.pane.sync, { value: ms > 0 ? `+${ms}` : String(ms) }),
+        );
     }
 
     setNowPlaying(value: string) {

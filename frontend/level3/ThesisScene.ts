@@ -139,6 +139,7 @@ export default class ThesisScene extends Scene {
         );
         this.best = loadBest(this.args.storage);
         this.hud.setSound(this.soundtrack.muted);
+        this.hud.setSync(this.soundtrack.syncMs);
         this.showTitle();
         this.args.announce(COPY.announcements.intro);
         window.addEventListener("keydown", this.handleKeyDown);
@@ -616,6 +617,15 @@ export default class ThesisScene extends Scene {
                             this.eventTime(event) - this.startAt,
                         ),
                     );
+                return;
+            case "BracketLeft":
+            case "BracketRight":
+                event.preventDefault();
+                this.hud.setSync(
+                    this.soundtrack.nudgeSync(
+                        event.code === "BracketRight" ? 1 : -1,
+                    ),
+                );
                 return;
             case "KeyM":
                 event.preventDefault();

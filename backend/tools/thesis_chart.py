@@ -29,12 +29,34 @@ CHORDS = {"opening": False, "cross": False, "meltdown": True, "final": True}
 GOLD_EVERY = 2  # a golden downbeat every other bar (from the cross-examination on)
 
 
+def grid_lag(path: str, period: float, offset: float) -> float:
+    """Seconds to shift the beat grid so it sits on the attacks, measured at 1.5 ms steps.
+
+    The coarse onset envelope used for the beat fit lands about 24 ms after the real attacks;
+    the median lag between grid steps and their nearest strong attack corrects that."""
+    y, sr = librosa.load(path, sr=44100, mono=True)
+    hop = 64
+    env = librosa.onset.onset_strength(y=y, sr=sr, hop_length=hop)
+    t = librosa.frames_to_time(np.arange(len(env)), sr=sr, hop_length=hop)
+    lags = []
+    for step in range(int((t[-1] - offset) / (period / 4))):
+        c = offset + step * period / 4
+        window = (t > c - 0.06) & (t < c + 0.06)
+        if not window.any():
+            continue
+        i = np.argmax(env[window])
+        if env[window][i] > 3 * np.median(env):
+            lags.append(t[window][i] - c)
+    return float(np.median(lags)) if lags else 0.0
+
+
 def analyse(path: str):
     y, sr = librosa.load(path, sr=SR, mono=True)
     env = librosa.onset.onset_strength(y=y, sr=sr, hop_length=HOP)
     _, beats = librosa.beat.beat_track(onset_envelope=env, sr=sr, hop_length=HOP, units="time")
     k = np.arange(len(beats))
     period, offset = np.linalg.lstsq(np.vstack([k, np.ones_like(k)]).T, beats, rcond=None)[0]
+    offset += grid_lag(path, period, offset)
     chroma = librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=HOP)
     tonic = int(np.argmax(chroma.mean(axis=1)))
     frames = env.shape[0]
