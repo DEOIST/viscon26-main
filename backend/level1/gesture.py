@@ -113,11 +113,16 @@ CALIBRATION_STILL = 0.02
 AIM_MIN_CUTOFF_HZ = 0.5  # lower = steadier when holding still
 AIM_BETA = 0.5  # higher = less lag on fast moves, but more abrupt
 
-# Telling hands apart between frames: a hand is the same one if its palm moved less than this
-# (fraction of the frame width) since it was last seen; a hand unseen for longer than the timeout
-# is gone, and one appearing later gets a new id. Within the timeout it keeps its cocked thumb,
-# and the crosshair keeps its last aim.
+# Telling hands apart between frames: a hand is the same one if its palm moved less than
+# TRACK_MAX_JUMP (fraction of the frame width) since it was last seen, or, when frames arrive
+# further apart, no faster than TRACK_MAX_SPEED. A fixed per-frame jump only suited ~30 fps: at the
+# ~10 fps a remote server manages, every slap and fast drag jumped further, so the player's hand
+# was dropped as "lost" mid-gesture. TRACK_MAX_JUMP_CAP keeps a far-away hand from taking over. A
+# hand unseen for longer than the timeout is gone, and one appearing later gets a new id. Within
+# the timeout it keeps its pinch state, and the crosshair keeps its last aim.
 TRACK_MAX_JUMP = 0.2
+TRACK_MAX_SPEED = 8.0  # frame widths per second: a fast slap; TRACK_MAX_JUMP is 6 at 30 fps
+TRACK_MAX_JUMP_CAP = 0.8
 TRACK_TIMEOUT_S = 0.3
 
 # With more than one hand allowed, MediaPipe sometimes reports one hand twice (its tracked hand
@@ -579,7 +584,9 @@ class GunTracks:
         matched: dict[int, _Track] = {}
         taken: set[int] = set()
         for distance, h, k in pairs:
-            if distance <= TRACK_MAX_JUMP and h not in matched and k not in taken:
+            elapsed = t - self._tracks[k].last_seen
+            reach = min(max(TRACK_MAX_JUMP, TRACK_MAX_SPEED * elapsed), TRACK_MAX_JUMP_CAP)
+            if distance <= reach and h not in matched and k not in taken:
                 matched[h] = self._tracks[k]
                 taken.add(k)
 
