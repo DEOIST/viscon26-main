@@ -14,6 +14,7 @@ from level1.gesture import (
     TRIGGER_MIN_SAMPLES,
     GunTracker,
     GunTracks,
+    Motion,
     PinchTracker,
     PlayerGun,
     drop_duplicate_hands,
@@ -593,3 +594,25 @@ def test_losing_a_pinched_hand_is_no_slap():
     pinch = [[OPEN]] * 5 + [[CLOSED]] * 5
     frames = pinch + [[shifted(CLOSED, 0.08)], [shifted(CLOSED, 0.18)], []]
     assert not any(f.slap for f in remote_play(frames))
+
+
+def test_a_hand_that_vanishes_and_returns_far_away_slapped():
+    # no frame shows the swing; the hand comes back 0.25 frame widths away 0.3 s later
+    frames = [[OPEN]] * 10 + [[], [], [shifted(OPEN, 0.25)]]
+    assert [f.slap for f in remote_play(frames) if f.slap] == ["left"]
+
+
+def test_a_blur_where_the_hand_was_slaps_when_the_hand_vanishes():
+    gun = PlayerGun()
+    for i in range(10):
+        gun.update([OPEN], SIZE, SIZE, i * REMOTE_FRAME_MS)
+    blur = Motion(share=0.18, dx=-0.1, speed=0.6)  # too weak for a visible hand, enough on loss
+    assert gun.update([], SIZE, SIZE, 10 * REMOTE_FRAME_MS, blur).slap == "right"
+
+
+def test_a_still_hand_that_drops_out_and_returns_is_no_slap():
+    calm = Motion(share=0.05, dx=0.0, speed=0.0)
+    gun = PlayerGun()
+    frames = [[OPEN]] * 10 + [[], []] + [[shifted(OPEN, 0.1)]] * 3
+    for i, hands in enumerate(frames):
+        assert not gun.update(hands, SIZE, SIZE, i * REMOTE_FRAME_MS, calm).slap

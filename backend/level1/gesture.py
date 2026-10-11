@@ -144,14 +144,21 @@ SLAP_SHOT_BLOCK_S = 0.3
 # from before the swing, so SLAP_MIN_SPEED misses it. A hand that vanishes after moving
 # SLAP_LOST_MIN_DISTANCE within SLAP_LOST_WINDOW_S counts too. A hand that drops out while still
 # or drifting slowly, or while pinching (dragging a bug), does not: a lost hand alone is no slap.
-SLAP_LOST_WINDOW_S = 0.3
-SLAP_LOST_MIN_DISTANCE = 0.15  # frame widths
+SLAP_LOST_WINDOW_S = 0.4
+SLAP_LOST_MIN_DISTANCE = 0.08  # frame widths
+# The hand vanishing is itself evidence of a blur, so the speed and image-change checks on that
+# frame are looser than their counterparts for a visible hand (SLAP_MIN_SPEED, SLAP_MIN_MOTION,
+# SLAP_RAW_MIN_SPEED).
+SLAP_LOST_MIN_SPEED = 0.8  # frame widths per second, between the last two frames
+SLAP_LOST_MIN_MOTION = 0.15  # share of the area around the last hand that changed sharply
+SLAP_LOST_RAW_MIN_SPEED = 0.5  # frame widths per second, of the changed image region
 # A very fast slap blurs the hand away before any frame shows it moving. Two signals that don't
 # need the hand: the share of pixels that changed sharply around where the hand was last seen
 # (CvSession measures it, `motion`), and the hand coming back far from where it vanished.
 SLAP_MIN_MOTION = 0.25  # share of the area around the last hand that changed sharply
 SLAP_REAPPEAR_S = 0.6
-SLAP_REAPPEAR_DISTANCE = 0.3  # frame widths
+SLAP_REAPPEAR_DISTANCE = 0.2  # frame widths
+SLAP_REAPPEAR_MIN_SPEED = 1.0  # frame widths per second, from where it vanished
 # A deliberate open-hand slide can be much slower than a slap. Require lateral travel,
 # mostly one direction, and open fingers to distinguish it from carrying a pinched bug.
 # Playtests asked for more sensitive swipes: these were 0.18 s, 0.18 widths, 0.45 widths/s and 0.7.
@@ -853,12 +860,15 @@ class PlayerGun:
             return None
         (t1, x1, y1) = self._palms[-1]
         self._vanished = (t, x1, y1)
+        # A hand dragging a bug keeps the visible-hand thresholds: losing it mid-drag is no slap
+        held = self._was_pinching
         fast = None
         if len(self._palms) >= 2:
             (t0, x0, y0) = self._palms[-2]
-            if t1 > t0 and math.hypot(x1 - x0, y1 - y0) / (t1 - t0) >= SLAP_MIN_SPEED:
+            min_speed = SLAP_MIN_SPEED if held else SLAP_LOST_MIN_SPEED
+            if t1 > t0 and math.hypot(x1 - x0, y1 - y0) / (t1 - t0) >= min_speed:
                 fast = x1 - x0
-        if fast is None and not self._was_pinching:
+        if fast is None and not held:
             recent = [p for p in self._palms if p[0] >= t1 - SLAP_LOST_WINDOW_S]
             far = max(recent, key=lambda p: math.hypot(x1 - p[1], y1 - p[2]))
             if math.hypot(x1 - far[1], y1 - far[2]) >= SLAP_LOST_MIN_DISTANCE:
@@ -868,8 +878,8 @@ class PlayerGun:
             return self._slap(t, fast)
         if (
             motion is not None
-            and motion.share >= SLAP_MIN_MOTION
-            and motion.speed >= SLAP_RAW_MIN_SPEED
+            and motion.share >= (SLAP_MIN_MOTION if held else SLAP_LOST_MIN_MOTION)
+            and motion.speed >= (SLAP_RAW_MIN_SPEED if held else SLAP_LOST_RAW_MIN_SPEED)
         ):
             return self._slap(t, motion.dx)
         return None
@@ -884,7 +894,7 @@ class PlayerGun:
         if (
             math.hypot(dx, dy) < SLAP_REAPPEAR_DISTANCE
             or elapsed <= 0
-            or math.hypot(dx, dy) / elapsed < SLAP_MIN_SPEED
+            or math.hypot(dx, dy) / elapsed < SLAP_REAPPEAR_MIN_SPEED
         ):
             return None
         return self._slap(t, dx)
