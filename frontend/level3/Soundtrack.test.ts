@@ -106,4 +106,40 @@ describe("Soundtrack", () => {
         expect(fetchM4a).toHaveBeenCalledOnce();
         expect(synth.playTrack).toHaveBeenCalled();
     });
+
+    // Bluetooth headphones and projector audio play late; [ and ] move the music to match.
+    it("shifts the music by the sync offset and remembers it", () => {
+        vi.spyOn(performance, "now").mockReturnValue(10_000);
+        const data: Record<string, string> = {};
+        const storage = {
+            getItem: (key: string) => data[key] ?? null,
+            setItem: (key: string, value: string) => {
+                data[key] = value;
+            },
+        };
+        const synth = fakeSynth();
+        const track = new Soundtrack(
+            DEFENSE_CHART,
+            storage,
+            synth as unknown as Synth,
+            [() => Promise.resolve(new ArrayBuffer(8))],
+        );
+        expect(track.syncMs).toBe(0);
+        track.play(5000);
+        expect(synth.playTrack).toHaveBeenLastCalledWith(5000, 0);
+        expect(track.nudgeSync(+1)).toBe(10);
+        expect(track.nudgeSync(+1)).toBe(20);
+        // Playing: the music restarts 20 ms ahead of the notes.
+        expect(synth.playTrack).toHaveBeenLastCalledWith(5020, 0);
+        expect(track.nudgeSync(-1)).toBe(10);
+        const reloaded = new Soundtrack(
+            DEFENSE_CHART,
+            storage,
+            fakeSynth() as unknown as Synth,
+            [],
+        );
+        expect(reloaded.syncMs).toBe(10);
+        for (let i = 0; i < 100; i++) reloaded.nudgeSync(+1);
+        expect(reloaded.syncMs).toBe(300); // clamped
+    });
 });

@@ -260,7 +260,12 @@ Keyboard only, no server side: the code is in `frontend/level3/`.
   it ends on a golden four-key "QED" chord. Song time is track time.
 - **Music:** the track starts with the countdown so song time 0 is its first
   sample, stops on pause and resumes at the exact position, compensates the
-  device's output latency, and fades out on a failed defense. Hits only tick, so
+  device's output latency, and fades out on a failed defense. The chart's beat grid is refined
+  against a 1.5 ms onset analysis, so notes sit on the attacks (median lag
+  under 1 ms), and the hit rule runs through the notes' centres, so the moment
+  a note looks on time is the moment it is judged. Speakers that play late
+  (Bluetooth, projector HDMI) are matched by hand: `[` and `]` move the music
+  in 10 ms steps (up to ±300 ms), shown in the side pane and kept per browser. Hits only tick, so
   the player hears the track rather than a second melody. Audio starts on the
   first key press or click, as browsers require.
 - **Sound effects (Swiss/ETH jokes):** a clashing wrong note on a miss, a knock

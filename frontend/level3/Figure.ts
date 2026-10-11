@@ -237,19 +237,16 @@ export default class Figure {
         g.lineStyle(1.6, COLORS.ink, 1);
         g.lineBetween(COLUMN.x, FIGURE_TOP, COLUMN.x + COLUMN.w, FIGURE_TOP);
         const ruleColor = this.eureka ? 0xd4b800 : this.ruleColor;
+        // The hit rule runs through the notes' centres: a reference is on time exactly when
+        // the rule cuts it in half, so the eye and the music agree.
         g.lineStyle(2 + pulse * 2.5, ruleColor, 1);
-        g.lineBetween(
-            COLUMN.x - 6,
-            HIT_Y + 26,
-            COLUMN.x + COLUMN.w + 6,
-            HIT_Y + 26,
-        );
+        g.lineBetween(COLUMN.x - 6, HIT_Y, COLUMN.x + COLUMN.w + 6, HIT_Y);
         g.lineStyle(1, ruleColor, 0.8);
         g.lineBetween(
             COLUMN.x - 6,
-            HIT_Y + 30,
+            HIT_Y + 26,
             COLUMN.x + COLUMN.w + 6,
-            HIT_Y + 30,
+            HIT_Y + 26,
         );
         if (this.eureka) {
             g.fillStyle(COLORS.gold, 0.22);

@@ -11,6 +11,11 @@ import trackOgg from "./assets/music/thesis-defense.ogg";
 import { TEXT } from "../src/misc/text";
 
 const VELOCITY = { perfect: 1, great: 0.85, good: 0.65 } as const;
+// The manual audio sync: speakers that play late (Bluetooth, projector HDMI) need the music
+// started earlier than the notes. Steps of 10 ms, kept per browser.
+const SYNC_KEY = "eth-life:thesis-defense:sync-ms";
+const SYNC_STEP_MS = 10;
+const SYNC_LIMIT_MS = 300;
 const FAIL_FADE_MS = 600;
 
 type FetchTrack = () => Promise<ArrayBuffer>;
@@ -33,6 +38,8 @@ export default class Soundtrack {
     private readonly first: Promise<ArrayBuffer | null>;
     private songZero: number | null = null; // performance.now() at song time 0, while playing
     private loading: Promise<void> | null = null;
+    private readonly storage: SoundStorage;
+    syncMs: number;
 
     constructor(
         chart: Chart,
@@ -43,6 +50,8 @@ export default class Soundtrack {
     ) {
         void chart;
         this.synth = synth ?? new Synth(storage);
+        this.storage = storage;
+        this.syncMs = readSync(storage);
         this.sources = sources;
         // Downloading needs no gesture; decoding waits for the audio context.
         this.first = sources[0]?.().catch(() => null) ?? Promise.resolve(null);
@@ -149,10 +158,39 @@ export default class Soundtrack {
         }
     }
 
+    // Moves the music by one step (+1 earlier, -1 later) and restarts it in place if it plays.
+    nudgeSync(direction: 1 | -1): number {
+        this.syncMs = Math.max(
+            -SYNC_LIMIT_MS,
+            Math.min(SYNC_LIMIT_MS, this.syncMs + direction * SYNC_STEP_MS),
+        );
+        try {
+            this.storage.setItem(SYNC_KEY, String(this.syncMs));
+        } catch {
+            // Storage denied: the offset still holds for this visit.
+        }
+        this.resync();
+        return this.syncMs;
+    }
+
     // (Re)starts the track at the song clock's current position, if both are ready.
     private resync() {
         if (this.songZero === null || !this.synth.hasTrack) return;
-        const song = performance.now() - this.songZero;
+        const song = performance.now() - this.songZero + this.syncMs;
         this.synth.playTrack(Math.max(0, song), Math.max(0, -song));
+    }
+}
+
+function readSync(storage: SoundStorage): number {
+    try {
+        const value = Number(storage.getItem(SYNC_KEY));
+        return Number.isFinite(value)
+            ? Math.max(
+                  -SYNC_LIMIT_MS,
+                  Math.min(SYNC_LIMIT_MS, Math.round(value)),
+              )
+            : 0;
+    } catch {
+        return 0;
     }
 }

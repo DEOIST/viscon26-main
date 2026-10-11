@@ -736,8 +736,10 @@
                 ["Esc", "pause"],
                 ["R", "revise"],
                 ["M", "sound"],
+                ["[ ]", "sync music"],
                 ["F", "fullscreen"]
-            ]
+            ],
+            "sync": "Music sync {value} ms"
         },
         "page": {
             "runningHead": "{name} · Bachelor Thesis · ETH Zürich",
