@@ -33,6 +33,7 @@ const SFX = {
 } as const;
 
 type ShooterCue = keyof typeof SFX;
+type VolumeSound = Sound.BaseSound & { setVolume(value: number): void };
 
 function pick(keys: readonly string[]): string {
     return keys[Math.floor(Math.random() * keys.length)];
@@ -58,11 +59,24 @@ export default class ShooterAudio {
     startMusic() {
         if (this.music?.isPlaying) return;
         try {
+            const target = 0.28;
             this.music = this.scene.sound.add(MUSIC_KEY, {
                 loop: true,
-                volume: 0.28,
+                volume: 0,
             });
             this.music.play();
+            this.scene.tweens.add({
+                targets: { volume: 0 },
+                volume: target,
+                duration: 900,
+                ease: "Sine.easeInOut",
+                onUpdate: (tween) => {
+                    const source = tween.targets[0] as { volume: number };
+                    (this.music as VolumeSound | null)?.setVolume(
+                        source.volume,
+                    );
+                },
+            });
         } catch {
             /* Sound is optional gameplay polish. */
         }

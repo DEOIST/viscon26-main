@@ -12,7 +12,7 @@ import type {
 // to the finger-detection engine (backend/level1/), and falls back to the mouse if either is
 // unavailable.
 export const mountShooter: MountMinigame = (options) => {
-    const { archetype, name } = options.character;
+    const { archetype, name, skinColor } = options.character;
     const input = new SwitchableInput(
         options.parent,
         archetype === "athlete" ? ATHLETE_COOLDOWN_MS : null,
@@ -27,6 +27,7 @@ export const mountShooter: MountMinigame = (options) => {
                     dialogue: options.dialogue,
                     input,
                     targetScale: archetype === "gamer" ? GAMER_TARGET_SCALE : 1,
+                    skinColor,
                     finish,
                 }),
         );
