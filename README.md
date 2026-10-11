@@ -73,7 +73,7 @@ Pixel-alien bugs crawl over the code, working-code cards arrive with a lit bomb 
 - **Swipe** an open hand across a card before its nine-second fuse reaches the bomb.
 - **Slap** to knock out the colleague who is interrupting you.
 
-A round lasts 60 seconds. A thrown bug is worth 10 points, saved code 25 and a dismissed colleague 15, and streaks add 5. An escaped bug costs 5, exploded code 15 and an empty grab 2. 325 points earn the year's full 60 ECTS. Without a camera the round carries on with the mouse: drag bugs, and press Space to swipe.
+A round lasts 60 seconds. A thrown bug is worth 10 points, saved code 25 and a dismissed colleague 15, and from the third catch in a row each catch adds a streak bonus of 5. An escaped bug costs 5, exploded code 15 and an empty grab 2. 325 points earn the year's full 60 ECTS. Without a camera the round carries on with the mouse: drag bugs, and press Space to swipe.
 
 ## Year 2: Gauss Jack
 
@@ -105,7 +105,7 @@ Your bachelor thesis, open in a PDF viewer, defended live against a three-profes
 </p>
 <p align="center"><sub>Cross-examination into the lightning round. This run is played by a script that presses the keys from the game's own chart, so it is flawless; yours will collect more red pen.</sub></p>
 
-The committee is doodled in blue ballpoint in the margin and grades you in red pen: "Who supervised this?!", "Have you tried a larger n?!", "Who put tabs in your LaTeX?!". Milestones arrive in the same red ink, from PROMISING RESEARCH to MENSA QUEUE SKIPPED and FIELDS MEDAL SPEEDRUN. The level plays a track the team made, and every note sits on an onset of that track. Golden notes fill a Eureka meter; Space then doubles your points for eight seconds. If your thesis confidence runs out, the defense fails.
+The committee is doodled in blue ballpoint in the margin and grades you in red pen: "Who supervised this?!", "Have you tried a larger n?!", "Who put tabs in your LaTeX?!". Milestones arrive in the same red ink, from PROMISING RESEARCH to MENSA QUEUE SKIPPED and FIELDS MEDAL SPEEDRUN. The level plays a track the team made, and every note sits on one of that track's strongest onsets. Golden notes fill a Eureka meter; Space then doubles your points for eight seconds. If your thesis confidence runs out, the defense fails.
 
 The verdict is an ETH transcript with the committee's rubber stamp. Your accuracy becomes a grade on the Swiss scale from 1 to 6, and every band has its own verdict: 4.0 IS A PASS and KOMPENSIERT near the line, A VERY SWISS 5.0 in the middle, SUMMA CUM LAUDE at the top, and EXMATRIKULIERT at the bottom.
 
@@ -190,7 +190,7 @@ Four rules held the project together while five people built it in parallel:
 
 ### Hand tracking on our own server
 
-Finger detection runs in the backend ([decision #13](docs/DECISIONS.md)). The browser stays light: no 12 MB WASM runtime and no hand model competing with Phaser for the GPU, while the gesture logic is plain Python with pytest coverage. The price is a network hop on every frame, so we budgeted the latency explicitly.
+Finger detection runs in the backend ([why, in #13](docs/SHOOTER_CV.md#why-on-the-server-13)), not in the browser as first planned. The browser stays light: no 12 MB WASM runtime and no hand model competing with Phaser for the GPU, while the gesture logic is plain Python with pytest coverage. The price is a network hop on every frame, so we budgeted the latency explicitly.
 
 ```mermaid
 sequenceDiagram
@@ -293,7 +293,7 @@ A login form costs players at a booth. Each browser gets a random **player UUID*
 
 - **The server enforces the rules.** A year unlocks only when every game in the earlier years is complete, and placeholders can't award ECTS. Each year pays ECTS in proportion to its score (`POST …/completions/{game_id}` with `{"score": 0–100}`), and graduation needs all three years. A display name never grants access to a run.
 - **Safe under concurrency.** Completions and graduation take a per-player row lock (`SELECT … FOR UPDATE`) and are idempotent, so double clicks and retries can't award ECTS twice.
-- **Credit-spending guard.** The vision endpoint rejects requests whose `Origin` isn't on the allow-list, so another site can't spend our OpenAI budget through a player's browser.
+- **Credit-spending guard.** The vision endpoint rejects requests whose `Origin` is neither the app's own nor on the allow-list, so another site can't spend our OpenAI budget through a player's browser.
 
 ---
 
@@ -334,7 +334,7 @@ flowchart LR
 |---|---|---|
 | Shell | **React 19 + TypeScript**, Vite, Redux Toolkit | Enrolment, the year panels and the credit transcript are classic UI; the degree state lives in one store, mirrored to the server by the anonymous player ID |
 | Game engine | **Phaser 4** (WebGL with Canvas fallback) | One 2D engine for all three games, each on a 1280 × 720 logical canvas behind the same mount contract |
-| Audio | **Web Audio** | Year 3's track and its sound effects (a cowbell for milestones, the Zürich tram bell for Eureka, a sad trombone for a failed defense), with latency compensation |
+| Audio | **Phaser sound**, **Web Audio** | Music for Bug Bash and the casino, sampled effects for every game and the shell (with random variants), and Year 3's track on a latency-compensated Web Audio clock |
 | Computer vision | **MediaPipe HandLandmarker** (Python), Pillow, NumPy | 21 landmarks per hand in about 10 ms per frame on a CPU, with our own gesture geometry on top |
 | Backend | **FastAPI** + Pydantic v2 | A typed contract, mirrored in TypeScript (`schemas.py` ↔ `CommonInt.ts`), camelCase on the wire |
 | Data | **PostgreSQL 17** (SQLAlchemy 2) · **Redis 8** | Players, profiles and completions with row-level locks; runs, the leaderboard and the AI cache and budget |
