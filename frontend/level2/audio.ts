@@ -98,9 +98,7 @@ export default class BlackjackAudio {
                         music: number;
                         ambience: number;
                     };
-                    (this.music as VolumeSound | null)?.setVolume(
-                        source.music,
-                    );
+                    (this.music as VolumeSound | null)?.setVolume(source.music);
                     (this.ambience as VolumeSound | null)?.setVolume(
                         source.ambience,
                     );
