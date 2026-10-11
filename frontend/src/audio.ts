@@ -102,6 +102,10 @@ function ensureMenuMusic(): HTMLAudioElement | null {
 function startMenuMusic() {
     const audio = ensureMenuMusic();
     if (!audio) return;
+    if (!audio.paused) {
+        fadeAudio(audio, MENU_MUSIC_VOLUME);
+        return;
+    }
     try {
         const playback = audio.play();
         if (playback)
@@ -126,6 +130,13 @@ export function setMenuMusicPlaying(playing: boolean) {
         startMenuMusic();
         return;
     }
+    fadeAudio(audio, 0);
+}
+
+export function stopMenuMusic() {
+    menuShouldPlay = false;
+    const audio = ensureMenuMusic();
+    if (!audio) return;
     fadeAudio(audio, 0, MENU_FADE_MS, () => {
         if (menuShouldPlay) return;
         audio.pause();
