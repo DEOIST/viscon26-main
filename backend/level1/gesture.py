@@ -140,6 +140,12 @@ SLAP_MIN_DISTANCE = 0.35  # frame widths
 SLAP_MIN_SPEED = 1.5  # frame widths per second, between the last two frames before vanishing
 SLAP_COOLDOWN_S = 0.6  # one slap per swing
 SLAP_SHOT_BLOCK_S = 0.3
+# At a remote server's ~10 fps the last two frames before a slap blurs the hand away are often
+# from before the swing, so SLAP_MIN_SPEED misses it. A hand that vanishes after moving
+# SLAP_LOST_MIN_DISTANCE within SLAP_LOST_WINDOW_S counts too. A hand that drops out while still
+# or drifting slowly, or while pinching (dragging a bug), does not: a lost hand alone is no slap.
+SLAP_LOST_WINDOW_S = 0.3
+SLAP_LOST_MIN_DISTANCE = 0.15  # frame widths
 # A very fast slap blurs the hand away before any frame shows it moving. Two signals that don't
 # need the hand: the share of pixels that changed sharply around where the hand was last seen
 # (CvSession measures it, `motion`), and the hand coming back far from where it vanished.
@@ -666,6 +672,7 @@ class PlayerGun:
         self._last_slap_s: float | None = None
         self._last_slide_s: float | None = None
         self._vanished: tuple[float, float, float] | None = None  # (t, x, y) when the hand went
+        self._was_pinching = False  # when the player's hand was last seen
 
     def update(
         self,
@@ -725,6 +732,7 @@ class PlayerGun:
         player = tracked[ids.index(self._player_id)]
         reading = player.reading
         self._last_seen_ms = timestamp_ms
+        self._was_pinching = bool(reading.pinching)
         whole_hand = tuple(to_points(player.landmarks, width, height)[:, :2].mean(axis=0) / width)
         slap = (
             motion_slap
@@ -828,17 +836,19 @@ class PlayerGun:
             self._palms.clear()
             self._palms_of = player_id
         self._palms.append((t, *palm))
-        while self._palms[0][0] < t - SLAP_WINDOW_S:
+        while self._palms[0][0] < t - max(SLAP_WINDOW_S, SLAP_LOST_WINDOW_S):
             self._palms.popleft()
         _, x, y = self._palms[-1]
-        far = max(self._palms, key=lambda p: math.hypot(x - p[1], y - p[2]))
+        recent = [p for p in self._palms if p[0] >= t - SLAP_WINDOW_S]
+        far = max(recent, key=lambda p: math.hypot(x - p[1], y - p[2]))
         if math.hypot(x - far[1], y - far[2]) < SLAP_MIN_DISTANCE:
             return None
         return self._slap(t, x - far[1])
 
     def _slap_on_vanishing(self, t: float, motion: Motion | None) -> Slap | None:
-        """A slap when the hand blurred out of view: it was moving fast, or the area around it
-        changed sharply (checked on the first frame without it)."""
+        """A slap when the hand blurred out of view: it was moving fast, it had just moved far
+        (SLAP_LOST_*), or the area around it changed sharply (checked on the first frame
+        without it)."""
         if not self._palms:
             return None
         (t1, x1, y1) = self._palms[-1]
@@ -848,6 +858,11 @@ class PlayerGun:
             (t0, x0, y0) = self._palms[-2]
             if t1 > t0 and math.hypot(x1 - x0, y1 - y0) / (t1 - t0) >= SLAP_MIN_SPEED:
                 fast = x1 - x0
+        if fast is None and not self._was_pinching:
+            recent = [p for p in self._palms if p[0] >= t1 - SLAP_LOST_WINDOW_S]
+            far = max(recent, key=lambda p: math.hypot(x1 - p[1], y1 - p[2]))
+            if math.hypot(x1 - far[1], y1 - far[2]) >= SLAP_LOST_MIN_DISTANCE:
+                fast = x1 - far[1]
         self._palms.clear()
         if fast is not None:
             return self._slap(t, fast)

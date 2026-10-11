@@ -74,7 +74,12 @@ frame is in flight at a time, and each needs the network round trip plus ~60 ms 
 the VM's CPU. Hand tracking therefore matches a hand to the previous frame by speed, not by a
 fixed per-frame distance (`TRACK_MAX_SPEED`, 8 frame widths/s, capped at 0.8 of the frame), so
 slaps and fast drags no longer drop the player's hand as "lost" between frames. The blurred-slap
-motion check accepts frames up to 0.35 s apart (`MOTION_MAX_GAP_S`).
+motion check accepts frames up to 0.35 s apart (`MOTION_MAX_GAP_S`). A hand that vanishes after moving
+at least 15% of the frame width within 0.3 s also counts as a slap (`SLAP_LOST_*`), since at
+~10 fps the last two frames before the blur are often from before the swing; a hand that drops
+out while still, drifting slowly, or pinching does not. In a 10 fps simulation this lifts slap
+detection only from 60% to 64%: most misses are swings no frame shows at all, which only a
+higher frame rate (or the image-change check) can catch.
 
 These thresholds need human camera tuning. Returning a hand can still count if it meets
 speed/displacement rules; pose noise or fast body movement can still cause false positives.

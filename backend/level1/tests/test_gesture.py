@@ -567,3 +567,29 @@ def test_a_far_away_hand_never_takes_over_the_players_track():
     gun.update([OPEN], SIZE, SIZE, 0)
     frame = gun.update([shifted(OPEN, 0.9)], SIZE, SIZE, 250)  # gone, then a hand far away
     assert frame.tracking == "lost"
+
+
+def remote_play(frames):
+    gun = PlayerGun()
+    return [gun.update(h, SIZE, SIZE, i * REMOTE_FRAME_MS) for i, h in enumerate(frames)]
+
+
+def test_a_hand_lost_right_after_a_visible_swing_slaps_at_a_remote_frame_rate():
+    # one frame shows the swing starting (too slow between frames for SLAP_MIN_SPEED), then blur
+    frames = [[OPEN]] * 10 + [[shifted(OPEN, 0.05)], [shifted(OPEN, 0.18)], []]
+    gun = PlayerGun()
+    slaps = [gun.update(h, SIZE, SIZE, i * REMOTE_FRAME_MS).slap for i, h in enumerate(frames)]
+    assert [s for s in slaps if s] == ["left"]
+
+
+def test_a_lost_hand_alone_is_no_slap():
+    still = [[OPEN]] * 10 + [[]] * 5
+    drift = [[shifted(OPEN, 0.02 * i)] for i in range(12)] + [[]] * 5  # 0.2 widths/s, then gone
+    for frames in (still, drift):
+        assert not any(f.slap for f in remote_play(frames))
+
+
+def test_losing_a_pinched_hand_is_no_slap():
+    pinch = [[OPEN]] * 5 + [[CLOSED]] * 5
+    frames = pinch + [[shifted(CLOSED, 0.08)], [shifted(CLOSED, 0.18)], []]
+    assert not any(f.slap for f in remote_play(frames))
