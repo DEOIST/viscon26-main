@@ -70,7 +70,11 @@ class MediaPipeDetector:
         options = vision.HandLandmarkerOptions(
             base_options=BaseOptions(model_asset_path=str(model_path)),
             running_mode=vision.RunningMode.VIDEO,
-            num_hands=2,  # the largest is the player (gesture.PlayerGun)
+            # One hand: with room for a second, MediaPipe reruns its full-image palm search on every
+            # frame while only the player's hand is in view, which doubled the tracking time
+            # (19 → 9 ms here, ~63 ms on the VM). The cost: a bystander's hand in view when the
+            # player's hand is (re)acquired can be picked instead.
+            num_hands=1,
             min_hand_detection_confidence=HAND_CONFIDENCE,
             min_hand_presence_confidence=HAND_CONFIDENCE,
             min_tracking_confidence=HAND_CONFIDENCE,

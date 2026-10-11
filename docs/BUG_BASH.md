@@ -79,7 +79,10 @@ at least 15% of the frame width within 0.3 s also counts as a slap (`SLAP_LOST_*
 ~10 fps the last two frames before the blur are often from before the swing; a hand that drops
 out while still, drifting slowly, or pinching does not. In a 10 fps simulation this lifts slap
 detection only from 60% to 64%: most misses are swings no frame shows at all, which only a
-higher frame rate (or the image-change check) can catch.
+higher frame rate (or the image-change check) can catch. To raise the frame rate, MediaPipe now tracks one hand
+(`num_hands=1` in `backend/level1/cv.py`): allowing two made it rerun its full-image palm search
+on every frame, doubling the tracking time (19 → 9 ms per frame on a laptop; ~63 ms on the VM).
+A bystander's hand in view when the player's hand is (re)acquired can be picked instead.
 
 These thresholds need human camera tuning. Returning a hand can still count if it meets
 speed/displacement rules; pose noise or fast body movement can still cause false positives.
