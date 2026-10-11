@@ -39,6 +39,7 @@ export default class Soundtrack {
         storage: SoundStorage,
         synth?: Synth,
         sources: FetchTrack[] = TRACK_FILES,
+        private readonly synthEvents = true,
     ) {
         void chart;
         this.synth = synth ?? new Synth(storage);
@@ -86,10 +87,18 @@ export default class Soundtrack {
     }
 
     countdown(value: string) {
+        if (!this.synthEvents) return;
         this.synth.countdown(value === "DEFEND!");
     }
 
     event(event: DefenseEvent) {
+        if (!this.synthEvents) {
+            if (event.type === "failed") {
+                this.songZero = null;
+                this.synth.stopTrack(FAIL_FADE_MS);
+            }
+            return;
+        }
         switch (event.type) {
             case "hit":
                 this.synth.tick(VELOCITY[event.judgment]);

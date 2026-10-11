@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api, errorMessage, type ScoreRow } from "../api";
+import { playUiSound } from "../audio";
 import { departmentLabel, TOTAL_ECTS } from "../config";
 import { Icon } from "./Icon";
 import { PresentationTimeline } from "../misc/motion";
@@ -28,6 +29,7 @@ export function Dialog({
     const closing = useRef<PresentationTimeline | null>(null);
     async function handleClose() {
         if (busy || closing.current?.active) return;
+        playUiSound("panelClose", 0.24);
         const run = new PresentationTimeline();
         closing.current = run;
         ref.current?.classList.add("is-closing");
@@ -38,6 +40,7 @@ export function Dialog({
         const dialog = ref.current!;
         const trigger = document.activeElement as HTMLElement | null;
         dialog.showModal();
+        playUiSound("panelOpen", 0.24);
         dialog.querySelector<HTMLElement>("[data-autofocus]")?.focus();
         return () => {
             closing.current?.dispose();

@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 
 PAGE_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
-STATIC_DIRS = ("pages", "assets", "static")
+STATIC_DIRS = ("pages", "assets", "static", "audio")
 NO_CACHE = {"Cache-Control": "no-cache"}
 
 
