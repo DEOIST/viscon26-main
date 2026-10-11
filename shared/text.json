@@ -204,8 +204,8 @@
         "previewNote": "Preview component · no ECTS awarded",
         "launch": {
             "locked": "Locked",
-            "open": "Open game",
-            "launch": "Launch game",
+            "open": "Retry lecture",
+            "launch": "Start lecture",
             "preview": "Open preview"
         },
         "ectsGained": "+{ects} ECTS",
@@ -217,23 +217,97 @@
         },
         "gamesRemaining": "Minigames to graduation: {games}",
         "availableEcts": "Up to {ects} ECTS",
-        "blackjackHowTo": {
+        "howToPlay": {
             "title": "How to play",
-            "steps": [
+            "bugBash": [
+                {
+                    "title": "Grab bugs",
+                    "text": "Pinch a bug between thumb and index finger and fling it off the screen.",
+                    "alt": "A pixel bug crawling over the code"
+                },
+                {
+                    "title": "Save the code",
+                    "text": "Swipe an open hand across a burning fuse before the bomb blows up your working code.",
+                    "alt": "Working-code cards with lit fuses and bombs"
+                },
+                {
+                    "title": "Shoo the visitors",
+                    "text": "Slap away colleagues who interrupt you, and keep going until the {seconds} seconds are up.",
+                    "alt": "A colleague asking for a quick call"
+                }
+            ],
+            "blackjack": [
                 {
                     "title": "Bet",
-                    "text": "Stack chips from your 300 stipend and press Deal: three hands to grow it.",
+                    "text": "Stack chips from your {chips}-chip stipend and press Deal: {hands} hands to grow it.",
                     "alt": "Chips on the bet pile next to the Deal button"
                 },
                 {
                     "title": "Drop",
-                    "text": "Every card turns its suit symbols into balls that bounce down your Galton board.",
-                    "alt": "Balls bouncing through the pins of a Galton board"
+                    "text": "Every card drops one bead per symbol, and the beads bounce down your Galton board.",
+                    "alt": "Beads bouncing through the pins of a Galton board"
                 },
                 {
                     "title": "Beat the curve",
-                    "text": "Hit or stand to end with more balls than the dealer, but a red ball above the curve busts and three yellow on it is blackjack.",
-                    "alt": "A board with green, yellow and red balls stacked under a bell curve"
+                    "text": "Hit or stand to finish with more beads than the dealer: one red bead busts, {yellows} yellow ones are blackjack.",
+                    "alt": "A board with green, yellow and red beads stacked under a bell curve"
+                }
+            ],
+            "thesis": [
+                {
+                    "title": "Hit the references",
+                    "text": "Press D, F, J or K as each reference reaches the rule at the bottom of its lane.",
+                    "alt": "References sliding down four highlighter lanes"
+                },
+                {
+                    "title": "Shout Eureka",
+                    "text": "Golden references charge Eureka: press Space for {seconds} seconds of double points.",
+                    "alt": "The Eureka meter full and the score doubled"
+                },
+                {
+                    "title": "Defend your grade",
+                    "text": "Keep the committee's confidence above zero to the end and earn your ETH grade.",
+                    "alt": "A transcript with the grade 5.50, cum laude"
+                }
+            ]
+        },
+        "earnedEcts": "{earned} / {ects} ECTS",
+        "earnedLabel": "ECTS earned in this game",
+        "next": "Next",
+        "lectureResult": {
+            "label": "Your result for this lecture",
+            "outOf": "/ {ects} ECTS",
+            "score": "Score {score} %",
+            "replayNote": "Retries are for glory: your credits stay as they are.",
+            "_teases": "Shown under the gauge: the first line whose minScore the score reaches, highest first.",
+            "teases": [
+                {
+                    "minScore": 90,
+                    "text": "Unreasonably good. Are you a TA in disguise?"
+                },
+                {
+                    "minScore": 75,
+                    "text": "Show-off. The front row is taking notes on you now."
+                },
+                {
+                    "minScore": 60,
+                    "text": "Respectable. Your parents can mention this at dinner."
+                },
+                {
+                    "minScore": 40,
+                    "text": "Solidly mid. The Hiwi has seen worse, but not much worse."
+                },
+                {
+                    "minScore": 20,
+                    "text": "Technically you were there. Technically."
+                },
+                {
+                    "minScore": 1,
+                    "text": "Were you even awake? The coffee machine put in more effort."
+                },
+                {
+                    "minScore": 0,
+                    "text": "Zero. Bold strategy. Let's see if it pays off at graduation."
                 }
             ]
         }

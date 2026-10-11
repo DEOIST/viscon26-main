@@ -50,7 +50,9 @@ export const TRIGGER_STEPS: {
 export const TRIGGER_TEST_SHOTS = 3;
 export const TRIGGER_MAX_ATTEMPTS = 2; // then the default trigger, so nobody gets stuck
 export const TRIGGER_RETRY_MS = 2500; // how long a failure's reason shows before retrying
-export const PAR_POINTS = 420; // a good first-time player scores about 70
+// Points for a score of 100 (a good first-time player scores about 70). Scaled with the round:
+// the slower tuning spawns 34 targets a round instead of 44, so 420 became 420 × 34 / 44.
+export const PAR_POINTS = 325;
 export const MISS_PENALTY = 2;
 export const STREAK_FOR_BONUS = 3;
 export const STREAK_BONUS = 5;
