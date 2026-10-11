@@ -73,7 +73,7 @@ Pixel-alien bugs crawl over the code, working-code cards arrive with a lit bomb 
 - **Swipe** an open hand across a card before its nine-second fuse reaches the bomb.
 - **Slap** to knock out the colleague who is interrupting you.
 
-A round lasts 60 seconds. A thrown bug is worth 10 points, saved code 25 and a dismissed colleague 15, and streaks add 5. An escaped bug costs 5, exploded code 15 and an empty grab 2. 325 points earn the year's full 60 ECTS. Without a camera the round carries on with the mouse: drag bugs, and press Space to swipe.
+A round lasts 30 seconds. A thrown bug is worth 10 points, saved code 25 and a dismissed colleague 15, and streaks add 5. An escaped bug costs 5, exploded code 15 and an empty grab 2. 163 points earn the year's full 60 ECTS. Without a camera the round carries on with the mouse: drag bugs, and press Space to swipe.
 
 ## Year 2: Gauss Jack
 
@@ -365,7 +365,7 @@ The full contract, with types, status codes and the Redis key layout, is in [doc
 
 ```bash
 # Full stack in Docker: Postgres + Redis + backend + frontend
-docker compose up --build -d          # or: make prod  →  http://localhost:5173
+docker compose up --build -d          # or: make prod  →  https://localhost (Caddy → backend, built frontend)
 
 # Local development
 make install                          # npm ci + backend/.venv
@@ -380,6 +380,8 @@ make smoke                            # read-only end-to-end probe of a running 
 echo 'SITE_ADDRESS=18-direct.viscon-hackathon.ch' >> .env   # once, next to compose.yaml
 docker compose up -d --build                                  # → https://18-direct.viscon-hackathon.ch
 ```
+
+Caddy proxies to the backend, which serves the API, the camera WebSocket and the production frontend build from one origin. The `frontend` service (Vite's dev server on port 8080) is for development only; never put it behind Caddy, since its pre-bundled dependency chunks can 404 after a re-optimization or a rebuild.
 
 `make dev` needs Postgres for player progress: `docker compose up -d db` starts one on `127.0.0.1:5433`, which the backend's defaults already point at (or set `DATABASE_URL`). Redis is optional in development: without `REDIS_URL` the backend uses an in-process fakeredis. `AI_MODE` defaults to `off`, so running the game never spends OpenAI credits. Set it in `backend/.env` (see [`backend/.env.example`](backend/.env.example)).
 
