@@ -33,7 +33,7 @@ import { project } from "./depth";
 import { swipeHits } from "./swipeHit";
 import type { CvSlide } from "./input/cvStream";
 import { hitTest } from "./hitTest";
-import { shooterScore, shotPoints } from "./score";
+import { addPoints, shooterScore, shotPoints } from "./score";
 import { pickTargetKind, spawnIntervalMs } from "./spawn";
 import { TriggerCalibration } from "./triggerCalibration";
 import type { GameObjects, Time } from "phaser";
@@ -455,7 +455,8 @@ export default class ShooterScene extends Scene {
 
     private handleSlap(side: "left" | "right", slide?: CvSlide) {
         const knockedOut = this.slapWalkers.slap(side, slide);
-        if (knockedOut) this.points += INTERRUPTER_POINTS;
+        if (knockedOut)
+            this.points = addPoints(this.points, INTERRUPTER_POINTS);
         const burning = this.targets.filter((target) => {
             if (target.kind !== "deadline") return false;
             if (!slide) return true;
@@ -480,7 +481,7 @@ export default class ShooterScene extends Scene {
             fuse.clear();
             this.savedCode += 1;
             const gained = shotPoints("deadline", this.streak);
-            this.points += gained;
+            this.points = addPoints(this.points, gained);
             this.streak += 1;
             floatText(
                 this,
@@ -509,7 +510,7 @@ export default class ShooterScene extends Scene {
             if (target.z <= 0) {
                 const isCode = target.kind === "deadline";
                 const penalty = isCode ? CODE_LOST_PENALTY : BUG_MISSED_PENALTY;
-                this.points -= penalty;
+                this.points = addPoints(this.points, -penalty);
                 this.streak = 0;
                 floatText(
                     this,
@@ -587,7 +588,7 @@ export default class ShooterScene extends Scene {
         const target = this.targets.find((candidate) => candidate.id === hitId);
         if (!target) {
             const gained = shotPoints(null, this.streak);
-            this.points += gained;
+            this.points = addPoints(this.points, gained);
             this.streak = 0;
             floatText(this, x, y, T.callouts.nothingGrabbed, "#ff8a8a");
             return;
@@ -697,7 +698,7 @@ export default class ShooterScene extends Scene {
                 (candidate) => candidate !== target,
             );
             const gained = shotPoints(target.kind, this.streak);
-            this.points += gained;
+            this.points = addPoints(this.points, gained);
             this.hits += 1;
             this.streak += 1;
             floatText(

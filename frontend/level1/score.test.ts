@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { shooterScore, shotPoints } from "./score";
+import { addPoints, shooterScore, shotPoints } from "./score";
 
 describe("shooterScore", () => {
-    it("scales points against par (420 points = 100)", () => {
+    it("scales points against par (325 points = 100)", () => {
         expect(shooterScore(0)).toBe(0);
-        expect(shooterScore(210)).toBe(50);
-        expect(shooterScore(420)).toBe(100);
+        expect(shooterScore(162.5)).toBe(50);
+        expect(shooterScore(325)).toBe(100);
     });
 
     it("rounds half up and clamps to 0–100", () => {
-        expect(shooterScore(2.1)).toBe(1); // 0.5 → 1
+        expect(shooterScore(1.625)).toBe(1); // 0.5 → 1
         expect(shooterScore(-30)).toBe(0);
         expect(shooterScore(9000)).toBe(100);
     });
@@ -29,5 +29,20 @@ describe("shotPoints", () => {
 
     it("costs points for a miss", () => {
         expect(shotPoints(null, 5)).toBe(-2);
+    });
+});
+
+describe("addPoints", () => {
+    it("adds gains and takes penalties", () => {
+        expect(addPoints(40, 15)).toBe(55);
+        expect(addPoints(40, -15)).toBe(25);
+    });
+
+    it("never drops below zero, so later catches always count", () => {
+        expect(addPoints(10, -15)).toBe(0);
+        let total = 0;
+        for (const delta of [-5, -15, -2, -5]) total = addPoints(total, delta);
+        expect(total).toBe(0);
+        expect(shooterScore(addPoints(total, 10))).toBeGreaterThan(0);
     });
 });
