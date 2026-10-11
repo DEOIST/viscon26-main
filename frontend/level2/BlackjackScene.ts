@@ -4,6 +4,7 @@
 
 import { Math as PhaserMath, Scene } from "phaser";
 import type { GameObjects, Time } from "phaser";
+import BlackjackAudio, { loadBlackjackAudio } from "./audio";
 import BoardView from "./BoardView";
 import CardView from "./CardView";
 import PlayerAvatar from "./PlayerAvatar";
@@ -144,6 +145,7 @@ export default class BlackjackScene extends Scene {
     private speech: GameObjects.Container | null = null;
     private speechTimer: Time.TimerEvent | null = null;
     private spoken = ""; // the dealer's last line, so it isn't repeated straight away
+    private audio!: BlackjackAudio;
 
     constructor(args: BlackjackSceneArgs) {
         super("blackjack");
@@ -171,11 +173,14 @@ export default class BlackjackScene extends Scene {
             label(this, CENTER.x, CENTER.y - 50, T.loading, 34),
         ];
         this.load.on("progress", (value: number) => bar.setScale(value, 1));
+        loadBlackjackAudio(this);
         loadAssets(this);
         loadAvatar(this, this.args.look);
     }
 
     create() {
+        this.audio = new BlackjackAudio(this);
+        this.audio.startTable();
         this.loading.forEach((o) => o.destroy());
         makeTextures(this);
         this.add.image(0, 0, "felt").setOrigin(0);
@@ -198,6 +203,8 @@ export default class BlackjackScene extends Scene {
             this.onLand("player", landing.decisive, landing.at);
         this.boards.dealer.onLand = (landing) =>
             this.onLand("dealer", landing.decisive, landing.at);
+        this.boards.player.onPin = () => this.audio.play("pinTick", 0.14);
+        this.boards.dealer.onPin = () => this.audio.play("pinTick", 0.12);
 
         this.drawSeat("dealer", T.seats.dealer, "avatar-dealer");
         this.drawSeat("player", T.seats.player, "avatar-player");
@@ -300,6 +307,7 @@ export default class BlackjackScene extends Scene {
     // --- Input -----------------------------------------------------------------
 
     private deal() {
+        this.audio.play("shuffle", 0.5);
         this.act({
             type: "deal",
             deck: shuffle(newDeck()),
@@ -412,6 +420,7 @@ export default class BlackjackScene extends Scene {
     private countChips(to: number) {
         const from = this.shownChips;
         if (from === to) return;
+        this.audio.play("countUp", 0.22);
         this.shownChips = to;
         this.tweens.addCounter({
             from,
@@ -528,6 +537,7 @@ export default class BlackjackScene extends Scene {
                 .image(x, y, "chips", `chip_${value}`)
                 .setScale(TRAY_SCALE)
                 .setDepth(50);
+            chip.on("pointerover", () => this.audio.play("chipHover", 0.18));
             chip.on("pointerover", () =>
                 this.tweens.add({
                     targets: chip,
@@ -597,6 +607,7 @@ export default class BlackjackScene extends Scene {
     }
 
     private chipIn(value: number) {
+        this.audio.play("chipPlace", 0.46);
         const from = this.tray[CHIP_VALUES.indexOf(value)];
         this.rebuildPile();
         const top = this.pile[this.pile.length - 1];
@@ -619,6 +630,7 @@ export default class BlackjackScene extends Scene {
     }
 
     private chipOut(index: number) {
+        this.audio.play("chipRemove", 0.4);
         const leaving = this.pile[index];
         const home =
             this.tray[CHIP_VALUES.indexOf(Number(leaving.frame.name.slice(5)))];
@@ -639,6 +651,7 @@ export default class BlackjackScene extends Scene {
     }
 
     private async doubleChips() {
+        this.audio.play("double", 0.52);
         const { avatar } = SEATS.player;
         floatText(this, BET.x, BET.y - 80, T.callouts.double, "#6fa8ee");
         this.rebuildPile();
@@ -663,6 +676,7 @@ export default class BlackjackScene extends Scene {
         const dealer = SEATS.dealer.avatar;
         const player = SEATS.player.avatar;
         if (payout > 0) {
+            this.audio.play("chipsWin", 0.5);
             const winnings = this.pile.map((chip) =>
                 this.add
                     .image(dealer.x, dealer.y, "chips", chip.frame.name)
@@ -684,6 +698,7 @@ export default class BlackjackScene extends Scene {
             this.pile.push(...winnings);
         }
         const to = payout < 0 ? dealer : player;
+        if (payout < 0) this.audio.play("chipsLose", 0.48);
         await Promise.all(
             this.pile.map((chip, i) =>
                 tween(this, {
@@ -714,6 +729,7 @@ export default class BlackjackScene extends Scene {
                     BOARD_SCALE * CARD_ON_BOARD,
                 );
                 board.adopt(card);
+                this.audio.play("cardFlip", 0.46);
                 await card.flip();
                 return this.dissolve(card, event.to, event.balls);
             }
@@ -723,6 +739,7 @@ export default class BlackjackScene extends Scene {
             case "reveal": {
                 const card = this.secret!;
                 this.secret = null;
+                this.audio.play("cardFlip", 0.46);
                 await card.flip();
                 const board = this.boards.dealer;
                 await tween(this, {
@@ -742,6 +759,7 @@ export default class BlackjackScene extends Scene {
 
     // A face-down card slides off the deck to `to`.
     private async fly(card: Card, to: Point, scale: number): Promise<CardView> {
+        this.audio.play("cardSlide", 0.46);
         const view = new CardView(
             this,
             DECK.x,
@@ -769,6 +787,7 @@ export default class BlackjackScene extends Scene {
         const burst = symbols.length === 1 && balls.length > 1; // a court card's portrait
 
         if (burst) {
+            this.audio.play("courtRattle", 0.38);
             await tween(this, {
                 targets: card,
                 angle: 6,
@@ -806,9 +825,11 @@ export default class BlackjackScene extends Scene {
         const center = board.cardSpot;
         this.sparks.setParticleTint(0xffffff);
         this.sparks.explode(burst ? 24 : 8 + balls.length, center.x, center.y);
+        this.audio.play(burst ? "popBurst" : "popFew", 0.42);
 
         await wait(this, 180);
         const fade = card.fadeBody(360);
+        this.audio.play("cardFade", 0.26);
         balls.forEach((ball, i) =>
             board.launch(sprites[i], ball, 220 + i * BALL_GAP_MS),
         );
@@ -844,6 +865,9 @@ export default class BlackjackScene extends Scene {
     // The player's avatar reacts straight away: a red ball or a real blackjack on the dealer's
     // board are the player's luck turned around.
     private onLand(who: Who, decisive: "bust" | "blackjack" | null, at: Point) {
+        if (decisive === "bust") this.audio.play("landRed", 0.44);
+        else if (decisive === "blackjack") this.audio.play("landYellow", 0.48);
+        else this.audio.play("landGreen", 0.26);
         const confirmed =
             decisive === "bust" ||
             (decisive === "blackjack" &&
@@ -861,6 +885,7 @@ export default class BlackjackScene extends Scene {
             decisive === "blackjack" &&
             this.state[who].board.event === "blackjack"
         ) {
+            this.audio.play("threeYellow", 0.54);
             this.cameras.main.flash(220, 255, 214, 120, false);
             this.sparks.setParticleTint(COLORS.gold);
             this.sparks.explode(30, at.x, at.y);
@@ -895,6 +920,16 @@ export default class BlackjackScene extends Scene {
         const subtitle = fill(result.detail, { amount, mine, theirs });
 
         this.outcome = `${title} ${subtitle}.`;
+        this.audio.play(
+            event.outcome === "blackjack"
+                ? "blackjack"
+                : event.outcome === "win"
+                  ? "win"
+                  : event.outcome === "lose"
+                    ? "lose"
+                    : "push",
+            0.6,
+        );
         this.say(LINE_FOR_REASON[event.reason]);
         const feeling = FEELING_FOR_REASON[event.reason];
         if (feeling && this.me) {
@@ -904,6 +939,7 @@ export default class BlackjackScene extends Scene {
         if (event.payout > 0)
             this.confetti.explode(event.outcome === "blackjack" ? 160 : 70);
         await Promise.all([
+            Promise.resolve(this.audio.play("banner", 0.45)),
             banner(this, title, subtitle, color),
             this.payOut(event.payout),
         ]);
@@ -911,6 +947,7 @@ export default class BlackjackScene extends Scene {
     }
 
     private async clearTable() {
+        this.audio.play("clear", 0.42);
         const cards = [
             ...this.fans.player,
             ...this.fans.dealer,
@@ -986,6 +1023,14 @@ export default class BlackjackScene extends Scene {
             ease: "Back.easeOut",
         });
         if (diff > 0) this.confetti.explode(180);
+        this.audio.play(
+            chips < MIN_BET
+                ? "gameoverBroke"
+                : diff > 0
+                  ? "gameoverUp"
+                  : "gameoverDown",
+            0.58,
+        );
 
         if (chips < MIN_BET) this.say("broke");
         else if (diff > 0) this.say("cashOut");

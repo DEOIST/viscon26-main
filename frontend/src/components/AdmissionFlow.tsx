@@ -1,6 +1,7 @@
 // This transient controller exists only in memory; saved acceptance screens never replay, and
 // the presentation belongs to the first build only: edits keep the stage and skip it.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { playUiSound } from "../audio";
 import type { AdmissionPhase } from "../misc/admission";
 import { PresentationTimeline, useReducedMotion } from "../misc/motion";
 import type { Player } from "../types";
@@ -31,6 +32,29 @@ export default function AdmissionFlow(args: AdmissionFlowArgs) {
 
     useEffect(() => () => timeline.current?.dispose(), []);
     useEffect(() => {
+        switch (phase) {
+            case "initializing":
+                playUiSound("shutter", 0.28);
+                break;
+            case "travel":
+                playUiSound("cutsceneWhoosh", 0.34);
+                break;
+            case "emblem":
+                playUiSound("avatarReady", 0.42);
+                break;
+            case "stamp":
+                playUiSound("stamp", 0.48);
+                break;
+            case "text":
+                playUiSound("letterIn", 0.36);
+                playUiSound("cutsceneTyping", 0.12);
+                break;
+            case "edit":
+                playUiSound("cutsceneComplete", 0.26);
+                break;
+        }
+    }, [phase]);
+    useEffect(() => {
         if (reduced) {
             timeline.current?.skip();
             setPhase((current) =>
@@ -49,6 +73,7 @@ export default function AdmissionFlow(args: AdmissionFlowArgs) {
     async function handleContinue(next: Player) {
         if (pending.current || args.busy) return;
         pending.current = true;
+        playUiSound("launch", 0.34);
         const run = new PresentationTimeline();
         timeline.current?.dispose();
         timeline.current = run;

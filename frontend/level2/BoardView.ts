@@ -49,6 +49,7 @@ export default class BoardView {
     private yellow = 0;
     private red = 0;
     private pending: Promise<void>[] = [];
+    onPin: () => void = () => {};
     onLand: (landing: Landing) => void = () => {};
 
     constructor(
@@ -255,6 +256,7 @@ export default class BoardView {
             const hop = i - 2; // from contact[hop] to contact[hop + 1], or off the last pin
             if (hop !== lastHop && hop < contacts.length) {
                 lastHop = hop;
+                this.onPin();
                 this.flashPin(
                     hop,
                     ball.path.slice(0, hop).filter(Boolean).length,
