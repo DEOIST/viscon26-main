@@ -1,5 +1,5 @@
 // Bug Bash: pinch and throw bugs, slap burning fuses, and swat rare side interruptions.
-// Calibration and practice lead into a 60-second coding round.
+// Calibration and practice lead into a 30-second coding round.
 
 import { Scene } from "phaser";
 import ShooterAudio, { loadShooterAudio } from "./audio";

@@ -82,12 +82,12 @@ Raw motion is a lightweight image-change estimate, not a full optical-flow model
 
 ## Scoring and controls
 
-The round lasts 60 seconds. Bugs award 10 points; saved code awards 25; streaks add 5.
+The round lasts 30 seconds. Bugs award 10 points; saved code awards 25; streaks add 5.
 Interrupters award 15. Escaped bugs deduct 5, exploded code deducts 15, missed grabs deduct
 2. The running total never drops below zero (`addPoints` in `score.ts`), so early mistakes don't
 leave a debt and a round with real catches always pays some ECTS. The 0–100 score sent to the shell
-is points / `PAR_POINTS` (325, scaled from 420 when the slower tuning cut a round from 44 to 34
-targets), and the year pays that share of its 60 ECTS. Legacy internal target kinds remain: `question` = bug, `deadline` = code bomb, `coffee`
+is points / `PAR_POINTS` (163: scaled from 420 to 325 when the slower tuning cut a round from 44 to
+34 targets, then halved with the round's length, 60 to 30 seconds and 34 to 17 targets), and the year pays that share of its 60 ECTS. Legacy internal target kinds remain: `question` = bug, `deadline` = code bomb, `coffee`
 no longer spawns. Results retain `points`, `hits`, `shots`, plus `savedCode` and `interruptions`.
 
 - `F` / fullscreen button: toggle fullscreen. `Esc`: exit fullscreen. Phaser targets the
