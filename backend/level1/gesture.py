@@ -62,6 +62,10 @@ PINCH_OPEN_ABOVE = 0.65
 PINCH_CLOSED_BELOW = 0.3
 PINCH_MIN_GAP = 0.15
 PINCH_SETTLING_FRAMES = 10
+# FIRE_CONFIRM_FRAMES costs one frame: ~33 ms at 30 fps, but ~100 ms on a remote server, where a
+# quick pinch is often closed in a single frame and was missed (a 0.1 s pinch registered about
+# half the time). With frames this far apart, one closed frame confirms the pinch.
+PINCH_SINGLE_FRAME_GAP_S = 0.06
 
 
 @dataclass(frozen=True)
@@ -447,10 +451,20 @@ class PinchTracker:
         self._pinching = False
 
     def update(
-        self, hand: Hand, width: int, height: int, trigger: TriggerThresholds = DEFAULT_TRIGGER
+        self,
+        hand: Hand,
+        width: int,
+        height: int,
+        trigger: TriggerThresholds = DEFAULT_TRIGGER,
+        frame_gap_s: float | None = None,  # since this hand's previous frame
     ) -> GunReading:
         pts = to_points(hand, width, height)
         span = float(np.linalg.norm(pts[INDEX_MCP, :2] - pts[17, :2]))
+        confirm_frames = (
+            1
+            if frame_gap_s is not None and frame_gap_s >= PINCH_SINGLE_FRAME_GAP_S
+            else FIRE_CONFIRM_FRAMES
+        )
         gap = float(np.linalg.norm(pts[THUMB_TIP, :2] - pts[INDEX_TIP, :2]))
         distance = gap / span if span > 1.0 else None
         shot = False
@@ -462,7 +476,7 @@ class PinchTracker:
             self._closed_frames = 0
         elif distance < trigger.pinch_closed_below and self._armed:
             self._closed_frames += 1
-            if self._closed_frames >= FIRE_CONFIRM_FRAMES:
+            if self._closed_frames >= confirm_frames:
                 shot = True
                 self.reset()
                 self._pinching = True
@@ -606,12 +620,16 @@ class GunTracks:
         readings, self.ids = [], []
         for h, hand in enumerate(hands):
             track = matched.get(h)
+            gap_s = t - track.last_seen if track is not None else None
             if track is None:
                 track = _Track(self._next_id, self.pinch)
                 self._next_id += 1
                 self._tracks.append(track)
             track.palm, track.last_seen = palms[h], t
-            readings.append(track.gun.update(hand, width, height, trigger))
+            if isinstance(track.gun, PinchTracker):
+                readings.append(track.gun.update(hand, width, height, trigger, gap_s))
+            else:
+                readings.append(track.gun.update(hand, width, height, trigger))
             self.ids.append(track.id)
         return readings
 

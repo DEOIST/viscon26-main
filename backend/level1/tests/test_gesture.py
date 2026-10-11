@@ -616,3 +616,13 @@ def test_a_still_hand_that_drops_out_and_returns_is_no_slap():
     frames = [[OPEN]] * 10 + [[], []] + [[shifted(OPEN, 0.1)]] * 3
     for i, hands in enumerate(frames):
         assert not gun.update(hands, SIZE, SIZE, i * REMOTE_FRAME_MS, calm).slap
+
+
+def test_a_quick_pinch_seen_in_one_frame_grabs_at_a_remote_frame_rate():
+    frames = [[OPEN]] * 5 + [[CLOSED], [OPEN], [OPEN]]
+    assert any(f.fired_at for f in remote_play(frames))
+
+
+def test_a_one_frame_pinch_flicker_still_does_not_grab_at_30_fps():
+    frames = [[OPEN]] * 5 + [[CLOSED], [OPEN], [OPEN]]
+    assert not any(f.fired_at for f in play(PlayerGun(), frames))

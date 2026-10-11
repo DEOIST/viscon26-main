@@ -29,7 +29,11 @@ Pinching still uses the distance between thumb and index tips, normalized by pal
 Calibration asks for apart (2 s), pinched (1.5 s), apart (1.5 s), pinched (1.5 s), ignoring
 10 initial visible frames per step. It needs at least 10 samples per position and a gap
 of 0.15 palm widths between the open 20th and closed 80th percentiles. Closing at 30%
-of that gap confirms a grab after two frames; reopening at 70% rearms it.
+of that gap confirms a grab after two frames; reopening at 70% rearms it. When frames arrive
+at least 0.06 s apart (a remote server's ~10 fps), one closed frame confirms the grab
+(`PINCH_SINGLE_FRAME_GAP_S`): waiting for a second one took ~200 ms there, so quick pinches were
+missed (a 0.1 s pinch registered about half the time in simulation, now always). The cost is
+that a one-frame misreading can grab at that frame rate.
 
 Three practice pinches complete calibration, followed by three practice bugs to throw.
 `Enter` skips; `T` repeats calibration during warm-up. Collection suppresses game grabs.
