@@ -538,3 +538,32 @@ def test_a_short_gentle_swipe_counts():
     frames = play(PlayerGun(), [[shifted(OPEN, 0.012 * i)] for i in range(15)])
     assert [f.slide.direction for f in frames if f.slide] == ["left"]
     assert not any(f.slap for f in frames)
+
+
+# A remote server answers ~10 times a second instead of ~30: frames are 100 ms apart, so a fast
+# hand moves 3x further between frames and must still count as the same hand.
+REMOTE_FRAME_MS = 100
+
+
+def test_a_slap_counts_at_a_remote_servers_frame_rate():
+    still = [[OPEN]] * 10
+    sweep = [[shifted(OPEN, 0.3)], [shifted(OPEN, 0.6)], []]
+    gun = PlayerGun()
+    frames = [gun.update(h, SIZE, SIZE, i * REMOTE_FRAME_MS) for i, h in enumerate(still + sweep)]
+    assert [f.slap for f in frames if f.slap] == ["left"]
+    assert frames[-3].tracking != "lost"
+
+
+def test_a_fast_drag_keeps_the_pinch_at_a_remote_servers_frame_rate():
+    pinch = [[OPEN]] * 5 + [[CLOSED]] * 5
+    drag = [[shifted(CLOSED, 0.3 * i)] for i in range(1, 4)]  # 3 frame widths a second
+    gun = PlayerGun()
+    frames = [gun.update(h, SIZE, SIZE, i * REMOTE_FRAME_MS) for i, h in enumerate(pinch + drag)]
+    assert all(f.tracking != "lost" and f.pinching for f in frames[-3:])
+
+
+def test_a_far_away_hand_never_takes_over_the_players_track():
+    gun = PlayerGun()
+    gun.update([OPEN], SIZE, SIZE, 0)
+    frame = gun.update([shifted(OPEN, 0.9)], SIZE, SIZE, 250)  # gone, then a hand far away
+    assert frame.tracking == "lost"
