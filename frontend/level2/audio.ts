@@ -48,6 +48,7 @@ const SFX = {
 } as const;
 
 type BlackjackCue = keyof typeof SFX;
+type VolumeSound = Sound.BaseSound & { setVolume(value: number): void };
 
 function pick(keys: readonly string[]): string {
     return keys[Math.floor(Math.random() * keys.length)];
@@ -74,16 +75,37 @@ export default class BlackjackAudio {
     startTable() {
         if (this.music?.isPlaying) return;
         try {
+            const musicVolume = 0.24;
+            const ambienceVolume = 0.13;
             this.music = this.scene.sound.add(MUSIC_KEY, {
                 loop: true,
-                volume: 0.24,
+                volume: 0,
             });
             this.ambience = this.scene.sound.add(AMBIENCE_KEY, {
                 loop: true,
-                volume: 0.13,
+                volume: 0,
             });
             this.music.play();
             this.ambience.play();
+            this.scene.tweens.add({
+                targets: { music: 0, ambience: 0 },
+                music: musicVolume,
+                ambience: ambienceVolume,
+                duration: 900,
+                ease: "Sine.easeInOut",
+                onUpdate: (tween) => {
+                    const source = tween.targets[0] as {
+                        music: number;
+                        ambience: number;
+                    };
+                    (this.music as VolumeSound | null)?.setVolume(
+                        source.music,
+                    );
+                    (this.ambience as VolumeSound | null)?.setVolume(
+                        source.ambience,
+                    );
+                },
+            });
         } catch {
             /* Audio is non-critical. */
         }

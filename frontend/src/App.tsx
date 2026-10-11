@@ -1,6 +1,6 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import { api, errorMessage } from "./api";
-import { installUiSounds, playUiSound } from "./audio";
+import { installUiSounds, playUiSound, setMenuMusicPlaying } from "./audio";
 import { GAMES, YEARS } from "./config";
 import {
     CharacterBuilder,
@@ -250,6 +250,10 @@ export function App() {
     const showGraduation =
         graduation || (graduationPreview && previewingGraduation);
     const gameScreen = inDegree && !showGraduation && !editingCharacter;
+    useEffect(() => {
+        setMenuMusicPlaying(!selectedGame && !intro);
+        return () => setMenuMusicPlaying(false);
+    }, [selectedGame, intro]);
     return (
         <div className={`app-shell ${gameScreen ? "game-screen" : ""}`}>
             <a className="skip-link" href="#main-content">
