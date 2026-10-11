@@ -46,6 +46,26 @@ const pool = new Map<string, HTMLAudioElement>();
 let menuMusic: HTMLAudioElement | null = null;
 let menuShouldPlay = false;
 let menuFade: number | null = null;
+// Synthesised shell sounds (gaugeSound.ts) share one Web Audio context. Browsers only start one
+// from a user gesture, so the click and key listeners below create and resume it.
+let synthContext: AudioContext | null = null;
+
+function unlockSynth() {
+    if (isTestBrowser() || typeof AudioContext === "undefined") return;
+    try {
+        synthContext ??= new AudioContext();
+        if (synthContext.state === "suspended")
+            void synthContext.resume().catch(() => undefined);
+    } catch {
+        synthContext = null; // no Web Audio here: those sounds stay silent
+    }
+}
+
+// The context once it runs, or null. A sound scheduled on a locked context would wait there and
+// play late, on whichever gesture unlocks it.
+export function synthAudio(): AudioContext | null {
+    return synthContext?.state === "running" ? synthContext : null;
+}
 
 function pick(paths: readonly string[]): string {
     return paths[Math.floor(Math.random() * paths.length)];
@@ -173,6 +193,7 @@ function interactiveTarget(target: EventTarget | null): HTMLElement | null {
 export function installUiSounds() {
     let lastHoverAt = 0;
     const handlePointerDown = (event: PointerEvent) => {
+        unlockSynth();
         const target = interactiveTarget(event.target);
         if (!target || target.getAttribute("aria-disabled") === "true") return;
         if (
@@ -185,6 +206,7 @@ export function installUiSounds() {
         if (menuShouldPlay && menuMusic?.paused) startMenuMusic();
     };
     const handleKeyDown = () => {
+        unlockSynth();
         if (menuShouldPlay && menuMusic?.paused) startMenuMusic();
     };
     const handlePointerOver = (event: PointerEvent) => {

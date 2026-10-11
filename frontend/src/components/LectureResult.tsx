@@ -3,6 +3,8 @@
 // The wording is workspace.lectureResult in shared/text.json.
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
+import { playGaugeSound } from "../gaugeSound";
+import type { NeedleMotion } from "../gaugeSound";
 import { PresentationTimeline } from "../misc/motion";
 import { fill, TEXT } from "../misc/text";
 import styles from "./LectureResult.module.css";
@@ -10,6 +12,12 @@ import styles from "./LectureResult.module.css";
 const T = TEXT.workspace.lectureResult;
 const TICKS = [0, 0.25, 0.5, 0.75, 1];
 const SWEEP_MS = 1100; // keep in sync with the needle and arc animations
+// The needle's own animation, for the sound that follows it: keep in sync with .needle.
+const NEEDLE: NeedleMotion = {
+    delayMs: 150,
+    sweepMs: SWEEP_MS,
+    easing: [0.3, 1.35, 0.5, 1],
+};
 
 // The arc is a half circle around (100, 100); `share` 0 is its left end, 1 its right end.
 const ARC = "M20 100A80 80 0 0 1 180 100";
@@ -38,13 +46,19 @@ export default function LectureResult(args: LectureResultArgs) {
     const share = Math.min(1, Math.max(0, args.earned / args.ects));
     const [shown, setShown] = useState(0);
 
-    // The number counts up with the needle; reduced motion shows the result at once.
+    // The number counts up with the needle; reduced motion shows the result at once. The sound
+    // starts here too, so it plays every time the gauge animates (each time a result appears or
+    // changes), not once per visit, and stops with the gauge.
     useEffect(() => {
         const run = new PresentationTimeline();
+        const stopSound = run.skipped ? null : playGaugeSound(share, NEEDLE);
         void run.frames(SWEEP_MS, (t) =>
             setShown(Math.round(args.earned * (1 - (1 - t) ** 3))),
         );
-        return () => run.dispose();
+        return () => {
+            run.dispose();
+            stopSound?.();
+        };
     }, [args.earned]);
 
     return (
