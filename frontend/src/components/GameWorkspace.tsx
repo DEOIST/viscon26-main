@@ -3,7 +3,7 @@ import { GAMES, YEARS } from "../config";
 import { isYearComplete, isYearUnlocked } from "../store";
 import type { Game, Player, Progress } from "../types";
 import { Avatar } from "./Avatar";
-import BlackjackHowTo from "./BlackjackHowTo";
+import HowToPlay, { hasHowToPlay } from "./HowToPlay";
 import { GameHost } from "./GameHost";
 import { Icon } from "./Icon";
 import {
@@ -11,7 +11,7 @@ import {
     reducedMotion,
     useAnimatedNumber,
 } from "../misc/motion";
-import { creditSummary } from "../misc/credits";
+import { creditSummary, gameEcts } from "../misc/credits";
 import { fill, TEXT } from "../misc/text";
 import CreditTranscript from "./common/CreditTranscript";
 import styles from "./GameWorkspace.module.css";
@@ -56,7 +56,8 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                 isYearUnlocked(yearIndex, args.progress.completedGameIds) &&
                 !args.progress.completedGameIds.includes(game.id),
         );
-        return Math.max(0, next);
+        // Everything done: open on the last year, where the diploma waits.
+        return next === -1 ? ENTRIES.length - 1 : next;
     });
     const panel = useRef<HTMLDivElement>(null);
     const direction = useRef(1);
@@ -113,9 +114,13 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
         : completed
           ? T.state.completed
           : T.state.available;
-    // Year 2's slot plays Galton Blackjack (minigames/DestinationGame.tsx), whose twist on the
-    // rules needs explaining before the first deal.
-    const showsHowTo = unlocked && game.id === "year-2-slot";
+    // Every year's game explains itself in three steps before it starts.
+    const showsHowTo = unlocked && hasHowToPlay(game.id);
+    const earned = completed
+        ? gameEcts(game, args.progress.scores[game.id])
+        : null;
+    // Years before the last lead on to the next one; only the last year graduates.
+    const isLastYear = yearIndex === YEARS.length - 1;
 
     function handleMove(delta: number) {
         if (args.selectedGame || args.busy) return;
@@ -345,32 +350,6 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                     </div>
                 </nav>
                 <div
-                    className={styles.gameSelectors}
-                    role="group"
-                    aria-label={fill(T.yearGames, { year: year.title })}
-                >
-                    {year.games.map((item) => (
-                        <button
-                            key={item.id}
-                            className={
-                                item.id === game.id ? styles.activeGame : ""
-                            }
-                            aria-pressed={item.id === game.id}
-                            disabled={!!args.selectedGame || args.busy}
-                            onClick={() =>
-                                handleSelect(
-                                    ENTRIES.findIndex(
-                                        ({ game: value }) =>
-                                            value.id === item.id,
-                                    ),
-                                )
-                            }
-                        >
-                            {item.title}
-                        </button>
-                    ))}
-                </div>
-                <div
                     ref={panel}
                     className={styles.panel}
                     role="region"
@@ -384,11 +363,41 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                             <h2>{game.title}</h2>
                         </div>
                         <div className={styles.gameMeta}>
-                            <span className={styles.reward}>
-                                {fill(T.availableEcts, {
-                                    ects: game.ects,
-                                })}
-                            </span>
+                            {earned === null ? (
+                                <span className={styles.reward}>
+                                    {fill(T.availableEcts, {
+                                        ects: game.ects,
+                                    })}
+                                </span>
+                            ) : (
+                                <div
+                                    key={game.id}
+                                    className={styles.earned}
+                                    role="meter"
+                                    aria-label={T.earnedLabel}
+                                    aria-valuemin={0}
+                                    aria-valuemax={game.ects}
+                                    aria-valuenow={earned}
+                                    aria-valuetext={fill(T.earnedEcts, {
+                                        earned,
+                                        ects: game.ects,
+                                    })}
+                                >
+                                    <span className={styles.earnedBar}>
+                                        <span
+                                            style={{
+                                                width: `${(100 * earned) / game.ects}%`,
+                                            }}
+                                        />
+                                    </span>
+                                    <span className={styles.earnedText}>
+                                        {fill(T.earnedEcts, {
+                                            earned,
+                                            ects: game.ects,
+                                        })}
+                                    </span>
+                                </div>
+                            )}
                             <span
                                 className={
                                     completed
@@ -438,7 +447,7 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                         ) : (
                             <div className={styles.launchPanel}>
                                 {showsHowTo ? (
-                                    <BlackjackHowTo />
+                                    <HowToPlay gameId={game.id} />
                                 ) : (
                                     <>
                                         <span className={styles.launchIcon}>
@@ -535,31 +544,47 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                                     ).length,
                                 })}
                     </p>
-                    <button
-                        className="button primary compact"
-                        disabled={
-                            (!args.eligible && !args.graduationPreview) ||
-                            args.busy ||
-                            !!args.selectedGame
-                        }
-                        onClick={args.onGraduate}
-                    >
-                        {args.busy
-                            ? TEXT.common.saving
-                            : !args.eligible && args.graduationPreview
-                              ? T.graduate.preview
-                              : args.progress.graduated
-                                ? T.graduate.view
-                                : T.graduate.graduate}
-                        <Icon
-                            name={
-                                args.eligible || args.graduationPreview
-                                    ? "cap"
-                                    : "lock"
+                    {isLastYear ? (
+                        <button
+                            className="button primary compact"
+                            disabled={
+                                (!args.eligible && !args.graduationPreview) ||
+                                args.busy ||
+                                !!args.selectedGame
                             }
-                            size={16}
-                        />
-                    </button>
+                            onClick={args.onGraduate}
+                        >
+                            {args.busy
+                                ? TEXT.common.saving
+                                : !args.eligible && args.graduationPreview
+                                  ? T.graduate.preview
+                                  : args.progress.graduated
+                                    ? T.graduate.view
+                                    : T.graduate.graduate}
+                            <Icon
+                                name={
+                                    args.eligible || args.graduationPreview
+                                        ? "cap"
+                                        : "lock"
+                                }
+                                size={16}
+                            />
+                        </button>
+                    ) : (
+                        <button
+                            className="button primary compact"
+                            disabled={
+                                !completed || args.busy || !!args.selectedGame
+                            }
+                            onClick={() => handleMove(1)}
+                        >
+                            {T.next}
+                            <Icon
+                                name={completed ? "arrow" : "lock"}
+                                size={16}
+                            />
+                        </button>
+                    )}
                 </footer>
             </section>
         </div>

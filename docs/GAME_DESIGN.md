@@ -31,6 +31,14 @@ Everything else in the game frames that moment.
 | 5 | `/shooter` | Basisprüfung: shoot exam questions with your finger gun | `POST …/scores` |
 | 6 | `/graduation` | Click **Open your diploma**: career reveal, ending art, your epilogue typed out and read aloud by the rector, your rank, **Play again** | `POST …/graduate`, `…/epilogue`, `…/epilogue/speech` |
 
+- **Year panels:** each year's panel opens with a three-step **How to play**
+  for its game (Bug Bash, Gauss Jack, Thesis defense), each step with a
+  screenshot of the real game, dealt in one after another
+  (`frontend/src/components/HowToPlay.tsx`, wording in `workspace.howToPlay`,
+  screenshots in `frontend/src/assets/howto/`). Once a game is finished, the
+  panel's header shows the ECTS it paid on a bar out of the year's 60. The
+  button in the bottom-right corner is **Next** for Years 1 and 2, unlocked once
+  that year's game is done; only Year 3 shows **Graduate**.
 - **First-day intro:** after **Begin Year 1** on the acceptance letter, the
   avatar slides to the centre of a darkening screen under a soft spotlight,
   blinking and beaming about getting into ETH. Two seconds later "Lectures",
