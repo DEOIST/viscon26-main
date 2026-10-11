@@ -365,7 +365,7 @@ The full contract, with types, status codes and the Redis key layout, is in [doc
 
 ```bash
 # Full stack in Docker: Postgres + Redis + backend + frontend
-docker compose up --build -d          # or: make prod  →  http://localhost:5173
+docker compose up --build -d          # or: make prod  →  https://localhost (Caddy → backend, built frontend)
 
 # Local development
 make install                          # npm ci + backend/.venv
@@ -380,6 +380,8 @@ make smoke                            # read-only end-to-end probe of a running 
 echo 'SITE_ADDRESS=18-direct.viscon-hackathon.ch' >> .env   # once, next to compose.yaml
 docker compose up -d --build                                  # → https://18-direct.viscon-hackathon.ch
 ```
+
+Caddy proxies to the backend, which serves the API, the camera WebSocket and the production frontend build from one origin. The `frontend` service (Vite's dev server on port 8080) is for development only; never put it behind Caddy, since its pre-bundled dependency chunks can 404 after a re-optimization or a rebuild.
 
 `make dev` needs Postgres for player progress: `docker compose up -d db` starts one on `127.0.0.1:5433`, which the backend's defaults already point at (or set `DATABASE_URL`). Redis is optional in development: without `REDIS_URL` the backend uses an in-process fakeredis. `AI_MODE` defaults to `off`, so running the game never spends OpenAI credits. Set it in `backend/.env` (see [`backend/.env.example`](backend/.env.example)).
 
