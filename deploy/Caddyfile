@@ -5,6 +5,8 @@
 # (sudo ufw allow 80,443/tcp). Locally it serves https://localhost with a self-signed one.
 {$SITE_ADDRESS:localhost} {
 	encode zstd gzip
-	# Vite proxies /api (including the WebSocket) to the backend.
-	reverse_proxy frontend:5173
+	# The backend serves the API, the camera WebSocket and the production frontend build from
+	# one origin. Never proxy to the Vite dev server here: it serves unbundled modules whose
+	# pre-bundled dependency chunks 404 after a re-optimization or a rebuild with a warm cache.
+	reverse_proxy backend:8000
 }

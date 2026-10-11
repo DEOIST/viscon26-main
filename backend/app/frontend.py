@@ -4,6 +4,7 @@
 a page; the frontend build generates the HTML.
 """
 
+import mimetypes
 import re
 
 from fastapi import FastAPI, HTTPException
@@ -15,6 +16,16 @@ from app.config import settings
 PAGE_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 STATIC_DIRS = ("pages", "assets", "static", "audio")
 NO_CACHE = {"Cache-Control": "no-cache"}
+
+# The slim Docker image has no /etc/mime.types, and Python's built-in table lacks these, so the
+# game's music, images and fonts would otherwise be sent as application/octet-stream.
+for _type, _extension in (
+    ("audio/ogg", ".ogg"),
+    ("audio/mp4", ".m4a"),
+    ("image/webp", ".webp"),
+    ("font/woff2", ".woff2"),
+):
+    mimetypes.add_type(_type, _extension)
 
 
 class _RevalidatingStaticFiles(StaticFiles):
