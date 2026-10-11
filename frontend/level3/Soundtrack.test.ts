@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { DEFENSE_CHART } from "./chart";
-import Soundtrack from "./Soundtrack";
+import Soundtrack, { clockCorrection } from "./Soundtrack";
 import type Synth from "./Synth";
 
-function fakeSynth(hasTrack = true) {
+function fakeSynth(hasTrack = true, trackDurationMs = 61_875) {
     return {
         isReady: true,
         hasTrack,
+        trackDurationMs,
+        heardTrackMs: vi.fn((_now: number): number | null => null),
         muted: false,
         unlock: vi.fn(),
         loadTrack: vi.fn((_data?: ArrayBuffer) => Promise.resolve(true)),
@@ -105,5 +107,66 @@ describe("Soundtrack", () => {
         expect(synth.loadTrack).toHaveBeenCalledTimes(2);
         expect(fetchM4a).toHaveBeenCalledOnce();
         expect(synth.playTrack).toHaveBeenCalled();
+    });
+});
+
+describe("keeping the song clock on the music", () => {
+    it("ignores jitter, eases small errors and snaps big ones", () => {
+        expect(clockCorrection(10_000, 10_001)).toBe(0); // below the deadband
+        expect(clockCorrection(10_000, 10_020)).toBeCloseTo(2); // a tenth of 20 ms
+        expect(clockCorrection(10_000, 9_980)).toBeCloseTo(-2);
+        expect(clockCorrection(10_000, 10_500)).toBe(500); // a restart: take it at once
+    });
+
+    it("converges onto music that started late without jumping", () => {
+        let song = 5_000;
+        const heard = 4_960; // the audio context woke up 40 ms late
+        let largestStep = 0;
+        for (let frame = 0; frame < 60; frame++) {
+            const step = clockCorrection(song, heard);
+            largestStep = Math.max(largestStep, Math.abs(step));
+            song += step;
+        }
+        expect(Math.abs(song - heard)).toBeLessThan(2.5); // within the deadband after 1 s
+        expect(largestStep).toBeLessThanOrEqual(4); // never more than 4 ms in one frame
+    });
+
+    it("reports the heard song time only while the song is playing", () => {
+        const synth = fakeSynth();
+        synth.heardTrackMs.mockReturnValue(12_345);
+        const track = make(synth);
+        expect(track.heardSongTime(0)).toBeNull();
+        track.play(12_000);
+        expect(track.heardSongTime(0)).toBe(12_345);
+        track.pause();
+        expect(track.heardSongTime(0)).toBeNull();
+    });
+});
+
+describe("codec padding", () => {
+    async function startedWith(trackDurationMs: number) {
+        vi.spyOn(performance, "now").mockReturnValue(10_000);
+        const synth = fakeSynth(true, trackDurationMs);
+        synth.heardTrackMs.mockReturnValue(1_000);
+        const track = make(synth);
+        await track.unlock();
+        track.play(-2400);
+        return { synth, track };
+    }
+
+    it("skips the AAC encoder delay when the decoder kept it", async () => {
+        // 2112 priming + 208 tail samples at 44.1 kHz: the whole AAC stream, untrimmed.
+        const { synth, track } = await startedWith(61_875 + 52.4);
+        const [offset, wait] = synth.playTrack.mock.lastCall!;
+        expect(offset).toBeCloseTo(47.9, 1);
+        expect(wait).toBe(2400);
+        expect(track.heardSongTime(0)).toBeCloseTo(1_000 - 47.9, 1);
+    });
+
+    it("leaves a decoder's few ms of tail padding alone", async () => {
+        // Chrome decodes the Ogg 7.6 ms longer than the file's music; its start is exact.
+        const { synth, track } = await startedWith(61_875 + 7.6);
+        expect(synth.playTrack).toHaveBeenLastCalledWith(0, 2400);
+        expect(track.heardSongTime(0)).toBe(1_000);
     });
 });

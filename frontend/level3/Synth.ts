@@ -32,6 +32,8 @@ export default class Synth {
     private track: AudioBuffer | null = null;
     private trackSource: AudioBufferSourceNode | null = null;
     private trackGain: GainNode | null = null;
+    private trackWhen = 0; // audio-clock seconds at which the playing track starts
+    private trackOffset = 0; // seconds into the track at that moment
     private disposed = false;
     muted: boolean;
 
@@ -117,6 +119,30 @@ export default class Synth {
         return this.track !== null;
     }
 
+    // Length of the decoded track: compared with the file's to catch codec padding (Soundtrack).
+    get trackDurationMs(): number {
+        return (this.track?.duration ?? 0) * 1000;
+    }
+
+    // Track time (ms) reaching the speakers at `perfNow` (a performance.now() time), or null
+    // while the track isn't sounding or the browser can't tell. It comes from the audio clock
+    // itself, via the output timestamp that pairs what is heard right now with the page's
+    // clock, so it holds when the audio started late, its latency was misreported or the two
+    // clocks drift.
+    heardTrackMs(perfNow: number): number | null {
+        const ctx = this.ctx;
+        if (!ctx || !this.trackSource || ctx.state !== "running") return null;
+        if (typeof ctx.getOutputTimestamp !== "function") return null;
+        const stamp = ctx.getOutputTimestamp();
+        // Both are 0 until the first audio has actually reached the output.
+        if (!stamp.performanceTime || stamp.contextTime === undefined)
+            return null;
+        const heard =
+            stamp.contextTime + (perfNow - stamp.performanceTime) / 1000;
+        if (heard < this.trackWhen) return null; // scheduled, not sounding yet
+        return (this.trackOffset + heard - this.trackWhen) * 1000;
+    }
+
     // Plays the track so that track time `offsetMs` is heard `inMs` from now, compensating
     // for the device's output latency so the music lines up with the notes on screen.
     playTrack(offsetMs: number, inMs: number) {
@@ -138,6 +164,8 @@ export default class Synth {
         source.connect(gain).connect(this.music);
         source.start(when, offset);
         this.trackSource = source;
+        this.trackWhen = when;
+        this.trackOffset = offset;
         this.trackGain = gain;
     }
 

@@ -11,6 +11,12 @@ sixteenth, then keeps the strongest onsets of each bar up to a per-phase budget:
 is sparse, the meltdown is the peak and the final defense never outruns it. Higher pitches go
 to lanes further right, like a keyboard. Chords land on the strongest downbeats from the
 cross-examination on, and the defense ends on the four-key QED chord.
+
+Finally every time is moved onto what players hear. librosa's onset envelope trails the audio
+(its centred frames are shifted again by n_fft / 2), so the fitted grid ran ~37 ms behind the
+music and on-beat key presses were judged early. The notes stay the same; the script measures
+where each one's attack really is (the steepest rise of a 5 ms energy envelope) and shifts the
+whole chart by the median distance.
 """
 
 import sys
@@ -27,6 +33,24 @@ BUDGET = {"opening": 4, "cross": 6, "meltdown": 7, "final": 7}  # notes per bar,
 ALLOW_SIXTEENTHS = {"opening": False, "cross": True, "meltdown": False, "final": True}
 CHORDS = {"opening": False, "cross": False, "meltdown": True, "final": True}
 GOLD_EVERY = 2  # a golden downbeat every other bar (from the cross-examination on)
+
+
+def attack_times(y, sr: int, times, before=0.08, after=0.04):
+    """The audible attack near each time: the steepest rise of a 5 ms energy envelope, sampled
+    every millisecond. Accurate to about 2 ms on piano, plucked and percussive test notes."""
+    win, step = int(0.005 * sr), max(1, int(0.001 * sr))
+    power = np.convolve(y.astype(np.float64) ** 2, np.ones(win) / win, mode="same")
+    env = np.log(power[::step] + 1e-10)
+    rise = np.diff(env, prepend=env[0])
+    found = []
+    for t in times:
+        lo = max(1, int((t - before) * sr / step))
+        hi = min(len(rise) - 1, int((t + after) * sr / step))
+        if hi > lo:
+            found.append((lo + int(np.argmax(rise[lo:hi]))) * step / sr)
+        else:
+            found.append(t)
+    return np.array(found)
 
 
 def analyse(path: str):
@@ -49,7 +73,7 @@ def analyse(path: str):
         f = frame(t)
         return int((np.argmax(chroma[:, f : f + 4].mean(axis=1)) - tonic) % 12)
 
-    return period, offset, strength, pitch, len(y) / sr
+    return period, offset, strength, pitch, len(y) / sr, y
 
 
 def phase_of(bar: int) -> str:
@@ -61,7 +85,7 @@ def phase_of(bar: int) -> str:
 
 
 def build(path: str):
-    period, offset, strength, pitch, duration = analyse(path)
+    period, offset, strength, pitch, duration, y = analyse(path)
     six = period / 4
     notes: list[tuple[int, int, bool]] = []  # (time ms, lane, gold)
     last_lane_time = [-1e9] * 4
@@ -133,6 +157,15 @@ def build(path: str):
 
     phase_times = [0] + [int(round((offset + s * 16 * six) * 1000)) for s in starts]
     end = int(round((offset + (LAST_BAR + 1) * 16 * six) * 1000)) + 1200
+
+    # Move everything onto the audible attacks (see the module docstring).
+    times = np.unique([t for t, _, _ in notes]) / 1000
+    shift_ms = int(round(float(np.median(attack_times(y, SR, times) - times)) * 1000))
+    print(f"aligned to the audio: every time moved by {shift_ms:+d} ms", file=sys.stderr)
+    notes = [(t + shift_ms, lane, gold) for t, lane, gold in notes]
+    phase_times = [0] + [t + shift_ms for t in phase_times[1:]]
+    end += shift_ms
+    offset += shift_ms / 1000
     return period, offset, duration, phase_times, end, notes
 
 

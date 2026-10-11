@@ -254,13 +254,22 @@ Keyboard only, no server side: the code is in `frontend/level3/`.
   grid, measures onset strength and the dominant pitch at every sixteenth and
   writes `trackChart.ts`: every note sits on an onset of the track, higher pitches
   go to lanes further right, and the four phases start on the track's own break
-  bars (15.0, 31.9 and 45.0 s). Per-phase budgets keep it fair: the opening is
+  bars (15.0, 31.9 and 45.0 s). The script then moves every time onto the
+  audible attacks (the steepest rise of a 5 ms energy envelope near each note):
+  librosa's onset envelope trails the audio, so the grid it fits ran 38 ms behind
+  the music and on-beat presses were judged early. Two independent onset
+  detectors now put the attacks within 3 ms of the notes. Per-phase budgets keep it fair: the opening is
   sparse, the meltdown is the peak and the final defense never outruns it (under
   4 notes per second, sixteenth bursts of at most four notes, both chart tests);
   it ends on a golden four-key "QED" chord. Song time is track time.
 - **Music:** the track starts with the countdown so song time 0 is its first
   sample, stops on pause and resumes at the exact position, compensates the
-  device's output latency, and fades out on a failed defense. Hits only tick, so
+  device's output latency, and fades out on a failed defense. While it plays,
+  the music is the conductor: every frame the song clock is eased onto the track
+  position the speakers are playing (`AudioContext.getOutputTimestamp`), so a
+  late audio start, misreported latency or clock drift can't pull the notes and
+  key judgments off the beat (`SYNC_*` in `config.ts`). Safari plays the AAC copy,
+  whose 48 ms of encoder delay is skipped when its decoder keeps it. Hits only tick, so
   the player hears the track rather than a second melody. Audio starts on the
   first key press or click, as browsers require.
 - **Sound effects (Swiss/ETH jokes):** a clashing wrong note on a miss, a knock

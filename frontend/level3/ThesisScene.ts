@@ -24,7 +24,7 @@ import { committeeLines } from "./lines";
 import type { CommitteeEvent } from "./lines";
 import Overlays from "./Overlays";
 import ThesisAudio, { hitCue, phaseCue } from "./audio";
-import Soundtrack from "./Soundtrack";
+import Soundtrack, { clockCorrection } from "./Soundtrack";
 import { TEXT, loadFonts, makeTextures } from "./textures";
 import { loadBest, saveBest, swissGrade, verdictFor } from "./verdict";
 import type { BestRun, BestStorage } from "./verdict";
@@ -173,6 +173,7 @@ export default class ThesisScene extends Scene {
     update(time: number, delta: number) {
         if (this.mode === "loading") return;
         const now = performance.now();
+        if (this.mode === "playing") this.followMusic(now);
         const song = this.songTime(now);
         this.committee.update(time, delta);
         if (this.mode === "countdown") {
@@ -571,6 +572,14 @@ export default class ThesisScene extends Scene {
     }
 
     // --- Input -------------------------------------------------------------------
+
+    // The music is the conductor: ease the song clock onto what the speakers are playing, so
+    // the notes, the beat lines and every key judgment stay with the beat the player hears.
+    private followMusic(now: number) {
+        const heard = this.soundtrack.heardSongTime(now);
+        if (heard !== null)
+            this.startAt -= clockCorrection(now - this.startAt, heard);
+    }
 
     private songTime(now: number): number {
         if (this.mode === "paused" || this.mode === "resuming")

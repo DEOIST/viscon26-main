@@ -22,6 +22,13 @@ export const BPM = 128;
 export const LEAD_IN_MS = 500; // from "DEFEND!" to the first (empty) bar
 export const NOTE_LEAD_MS = 1500; // how long a note is visible before it must be hit
 
+// Keeping the song clock on the music while it plays (Soundtrack.clockCorrection): errors
+// below the deadband are jitter, bigger ones are eased in a fraction per frame so the
+// highway never jumps, and anything past the snap distance (a restart) is taken at once.
+export const SYNC_DEADBAND_MS = 2;
+export const SYNC_GAIN = 0.1;
+export const SYNC_SNAP_MS = 120;
+
 // Timing windows, +- milliseconds around a note.
 export const WINDOWS = { perfect: 45, great: 90, good: 135 } as const;
 // A note is only written off this long after its late window, so a key event that arrives

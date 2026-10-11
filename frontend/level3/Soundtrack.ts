@@ -3,15 +3,30 @@
 // on the page. Hits only tick, so the player hears the track, not a second melody over it.
 
 import type { Chart, Phase } from "./chart";
+import { SYNC_DEADBAND_MS, SYNC_GAIN, SYNC_SNAP_MS } from "./config";
 import type { DefenseEvent } from "./engine";
 import Synth from "./Synth";
 import type { SoundStorage } from "./Synth";
 import trackM4a from "./assets/music/thesis-defense.m4a";
 import trackOgg from "./assets/music/thesis-defense.ogg";
+import { TRACK_CHART } from "./trackChart";
 import { TEXT } from "../src/misc/text";
 
 const VELOCITY = { perfect: 1, great: 0.85, good: 0.65 } as const;
 const FAIL_FADE_MS = 600;
+// The AAC copy (for Safari) starts with 2112 samples of encoder delay, flagged only in an
+// iTunes tag. A decoder that keeps them plays everything 48 ms late; the decoded track is
+// then that much longer than the file's music, which is how it is caught.
+const AAC_PRIMING_MS = (2112 / 44100) * 1000;
+const PADDING_TOLERANCE_MS = 30; // decoders may keep a few ms of tail padding; that's harmless
+
+// How far to move the song clock towards the music it should follow, this frame.
+export function clockCorrection(song: number, heard: number): number {
+    const error = heard - song;
+    if (Math.abs(error) < SYNC_DEADBAND_MS) return 0;
+    if (Math.abs(error) > SYNC_SNAP_MS) return error;
+    return error * SYNC_GAIN;
+}
 
 type FetchTrack = () => Promise<ArrayBuffer>;
 
@@ -33,6 +48,7 @@ export default class Soundtrack {
     private readonly first: Promise<ArrayBuffer | null>;
     private songZero: number | null = null; // performance.now() at song time 0, while playing
     private loading: Promise<void> | null = null;
+    private leadMs = 0; // codec padding to skip at the start of the decoded track
 
     constructor(
         chart: Chart,
@@ -40,6 +56,7 @@ export default class Soundtrack {
         synth?: Synth,
         sources: FetchTrack[] = TRACK_FILES,
         private readonly synthEvents = true,
+        private readonly trackMs = TRACK_CHART.durationMs,
     ) {
         void chart;
         this.synth = synth ?? new Synth(storage);
@@ -72,6 +89,14 @@ export default class Soundtrack {
     nowPlaying(phase: Phase): string {
         void phase;
         return TEXT.thesisDefense.pane.nowPlaying;
+    }
+
+    // The song time being heard at `now` (performance.now()), or null when there is no music
+    // to follow: muted tracks still count, a silent fallback or an unsupported browser doesn't.
+    heardSongTime(now: number): number | null {
+        if (this.songZero === null) return null;
+        const heard = this.synth.heardTrackMs(now);
+        return heard === null ? null : heard - this.leadMs;
     }
 
     // The song clock reads `song` ms right now: play the track from there (or start it in the
@@ -143,6 +168,8 @@ export default class Soundtrack {
                     ? await this.first
                     : await this.sources[i]().catch(() => null);
             if (data && (await this.synth.loadTrack(data))) {
+                const extra = this.synth.trackDurationMs - this.trackMs;
+                this.leadMs = extra > PADDING_TOLERANCE_MS ? AAC_PRIMING_MS : 0;
                 this.resync();
                 return;
             }
@@ -153,6 +180,9 @@ export default class Soundtrack {
     private resync() {
         if (this.songZero === null || !this.synth.hasTrack) return;
         const song = performance.now() - this.songZero;
-        this.synth.playTrack(Math.max(0, song), Math.max(0, -song));
+        this.synth.playTrack(
+            Math.max(0, song) + this.leadMs,
+            Math.max(0, -song),
+        );
     }
 }

@@ -161,3 +161,56 @@ describe("Synth", () => {
         expect(sources).toHaveLength(2);
     });
 });
+
+describe("the heard position of the track", () => {
+    async function playing(
+        stamp: { contextTime: number; performanceTime: number } | null,
+    ) {
+        const ctx = fakeContext() as ReturnType<typeof fakeContext> & {
+            getOutputTimestamp?: () => {
+                contextTime: number;
+                performanceTime: number;
+            };
+        };
+        if (stamp) ctx.getOutputTimestamp = () => stamp;
+        const synth = new Synth(
+            memoryStorage(),
+            () => ctx as unknown as AudioContext,
+        );
+        synth.unlock();
+        await synth.loadTrack(new ArrayBuffer(8));
+        return synth;
+    }
+
+    it("reads what the speakers play from the output timestamp", async () => {
+        // At audio time 10 s the track starts 5 s in; 20 ms of output latency is folded into
+        // the start, so it begins at 5.02 s. Half a second later the speakers play 5.52 s.
+        const synth = await playing({
+            contextTime: 10.5,
+            performanceTime: 1_000,
+        });
+        synth.playTrack(5_000, 0);
+        expect(synth.heardTrackMs(1_000)).toBeCloseTo(5_520);
+        expect(synth.heardTrackMs(1_100)).toBeCloseTo(5_620); // 100 ms later on the page clock
+    });
+
+    it("says nothing before the track sounds or when the browser can't tell", async () => {
+        const early = await playing({
+            contextTime: 9.9,
+            performanceTime: 1_000,
+        });
+        early.playTrack(0, 0);
+        expect(early.heardTrackMs(1_000)).toBeNull(); // scheduled for 10 s, not heard yet
+        const warmingUp = await playing({ contextTime: 0, performanceTime: 0 });
+        warmingUp.playTrack(0, 0);
+        expect(warmingUp.heardTrackMs(1_000)).toBeNull();
+        const noTimestamp = await playing(null);
+        noTimestamp.playTrack(0, 0);
+        expect(noTimestamp.heardTrackMs(1_000)).toBeNull();
+        const stopped = await playing({
+            contextTime: 10.5,
+            performanceTime: 1_000,
+        });
+        expect(stopped.heardTrackMs(1_000)).toBeNull(); // nothing playing
+    });
+});
