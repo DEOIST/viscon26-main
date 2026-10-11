@@ -2,7 +2,6 @@ import type { Scene, Sound } from "phaser";
 
 const MUSIC_KEY = "bb_music";
 const BASE = "/audio/sfx/bug-bash";
-const EXTRA_SFX = ["internet_slap.mp3"] as const;
 
 const SFX = {
     calibStep: ["bb_calib_step"],
@@ -29,7 +28,7 @@ const SFX = {
     streak: ["bb_streak"],
     walkerIn: ["bb_walker_in_1", "bb_walker_in_2", "bb_walker_in_3"],
     walkerLeave: ["bb_walker_leave"],
-    walkerSlap: ["slap.wav"],
+    walkerSlap: ["good_slap.wav"],
 } as const;
 
 type ShooterCue = keyof typeof SFX;
@@ -41,7 +40,7 @@ function pick(keys: readonly string[]): string {
 
 export function loadShooterAudio(scene: Scene) {
     scene.load.audio(MUSIC_KEY, "/audio/music/bug-bash.ogg");
-    for (const key of new Set([...Object.values(SFX).flat(), ...EXTRA_SFX]))
+    for (const key of new Set(Object.values(SFX).flat()))
         scene.load.audio(
             key,
             key.includes(".") ? `${BASE}/${key}` : `${BASE}/${key}.ogg`,
@@ -83,11 +82,6 @@ export default class ShooterAudio {
     }
 
     play(cue: ShooterCue, volume = 0.62) {
-        if (cue === "walkerSlap") {
-            this.playKey("slap.wav", volume * 0.68);
-            this.playKey("internet_slap.mp3", volume * 0.78);
-            return;
-        }
         this.playKey(pick(SFX[cue]), volume);
     }
 
