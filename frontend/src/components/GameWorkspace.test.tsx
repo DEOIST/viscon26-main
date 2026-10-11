@@ -132,6 +132,22 @@ it("browses locked years with keyboard and selectors without allowing launch", (
     ).toBe(true);
 });
 
+it("shows the browsed year's photo behind the workspace, earlier years parked to the left", () => {
+    const { view } = setup();
+    const layers = () =>
+        [...document.querySelectorAll("body > [aria-hidden=true] > img")].map(
+            (image) => image.className,
+        );
+    expect(layers()).toHaveLength(YEARS.length);
+    expect(layers()[0]).toMatch(/currentYear/);
+    fireEvent.click(screen.getByRole("button", { name: YEARS[1].title }));
+    expect(layers()[0]).toMatch(/pastYear/);
+    expect(layers()[1]).toMatch(/currentYear/);
+    expect(layers()[2]).toBe("");
+    view.unmount();
+    expect(layers()).toHaveLength(0);
+});
+
 it("leaves game keyboard input alone and prevents carousel switching during a round", () => {
     setup(true);
     const control = screen.getByRole("button", { name: "Game control" });
