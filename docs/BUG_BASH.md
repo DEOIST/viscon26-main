@@ -29,7 +29,11 @@ Pinching still uses the distance between thumb and index tips, normalized by pal
 Calibration asks for apart (2 s), pinched (1.5 s), apart (1.5 s), pinched (1.5 s), ignoring
 10 initial visible frames per step. It needs at least 10 samples per position and a gap
 of 0.15 palm widths between the open 20th and closed 80th percentiles. Closing at 30%
-of that gap confirms a grab after two frames; reopening at 70% rearms it.
+of that gap confirms a grab after two frames; reopening at 70% rearms it. When frames arrive
+at least 0.06 s apart (a remote server's ~10 fps), one closed frame confirms the grab
+(`PINCH_SINGLE_FRAME_GAP_S`): waiting for a second one took ~200 ms there, so quick pinches were
+missed (a 0.1 s pinch registered about half the time in simulation, now always). The cost is
+that a one-frame misreading can grab at that frame rate.
 
 Three practice pinches complete calibration, followed by three practice bugs to throw.
 `Enter` skips; `T` repeats calibration during warm-up. Collection suppresses game grabs.
@@ -74,7 +78,15 @@ frame is in flight at a time, and each needs the network round trip plus ~60 ms 
 the VM's CPU. Hand tracking therefore matches a hand to the previous frame by speed, not by a
 fixed per-frame distance (`TRACK_MAX_SPEED`, 8 frame widths/s, capped at 0.8 of the frame), so
 slaps and fast drags no longer drop the player's hand as "lost" between frames. The blurred-slap
-motion check accepts frames up to 0.35 s apart (`MOTION_MAX_GAP_S`).
+motion check accepts frames up to 0.35 s apart (`MOTION_MAX_GAP_S`). When the player's hand vanishes, the slap checks
+are looser than for a visible hand, since the vanishing is itself evidence of a blur
+(`SLAP_LOST_*`): 0.8 instead of 1.5 frame widths/s between the last two frames; any move of 8%
+of the frame width within 0.4 s; an image change over 15% (not 25%) of the area at 0.5 (not 0.9)
+widths/s. A hand reappearing within 0.6 s at least 0.2 widths away at 1 width/s also slaps. A hand
+that was pinching keeps the strict thresholds, so losing it mid-drag is no slap. In a 10 fps
+simulation of 400 slaps this detects 64% when the hand stays away and 77% when it comes back
+(main: 7% and 12%). The cost: tracking that drops while the hand moves at aiming speed can now
+read as a slap. Most remaining misses are swings no frame shows at all.
 
 These thresholds need human camera tuning. Returning a hand can still count if it meets
 speed/displacement rules; pose noise or fast body movement can still cause false positives.
