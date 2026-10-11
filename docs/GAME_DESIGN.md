@@ -1,4 +1,4 @@
-# Game design: ETH Life (working title)
+# Game design: ETH.fun
 
 > **Current level 1 change:** Bug Bash replaces the finger-gun gameplay. See
 > [BUG_BASH.md](BUG_BASH.md) for the current gestures, scoring, visuals, fullscreen,

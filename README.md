@@ -1,10 +1,10 @@
 <div align="center">
 
-# ETH Simulator: After Hours
+# ETH.fun
 
 ### A complete ETH degree in about ten minutes, controlled with nothing but your hand.
 
-ETH Simulator turns the three defining moments of an ETH Zürich degree into three minigames: surviving the Basisprüfung, betting your stipend, and defending your thesis. Players walk up, raise a finger gun at the webcam and play. There is nothing to install, no controller to hand over and no account to create.
+ETH.fun turns the three defining moments of an ETH Zürich degree into three minigames: surviving the Basisprüfung, betting your stipend, and defending your thesis. Players walk up, raise a finger gun at the webcam and play. There is nothing to install, no controller to hand over and no account to create.
 
 ![VIScon Hackathon 2026](https://img.shields.io/badge/VIScon-Hackathon%202026-1F407A)
 ![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
@@ -62,7 +62,7 @@ Graduation closes the loop: a personalised diploma with your avatar, your depart
 
 <table>
 <tr>
-<td width="50%"><img src="docs/readme/landing.png" alt="Landing page: ETH Simulator, big ambitions, very little free time" /><br/><sub><b>Landing.</b> One click to start, with no account and no password.</sub></td>
+<td width="50%"><img src="docs/readme/landing.png" alt="Landing page: ETH.fun, big ambitions, very little free time" /><br/><sub><b>Landing.</b> One click to start, with no account and no password.</sub></td>
 <td width="50%"><img src="docs/readme/character-builder.png" alt="Character builder with a live student ID preview" /><br/><sub><b>Character builder.</b> A live student-ID preview, curated colour presets, and an optional photo assist that suggests the player's colours.</sub></td>
 </tr>
 <tr>
@@ -399,6 +399,6 @@ The core loop is complete. The next steps deepen it rather than widen it:
 
 ## Team
 
-ETH Simulator: After Hours was designed and built during VIScon Hackathon 2026 by [@ITheClixs](https://github.com/ITheClixs), [@Mer123haba456](https://github.com/Mer123haba456), [@ibrahim1metin](https://github.com/ibrahim1metin), [@toezcan](https://github.com/toezcan) and [@anomyq](https://github.com/anomyq).
+ETH.fun was designed and built during VIScon Hackathon 2026 by [@ITheClixs](https://github.com/ITheClixs), [@Mer123haba456](https://github.com/Mer123haba456), [@ibrahim1metin](https://github.com/ibrahim1metin), [@toezcan](https://github.com/toezcan) and [@anomyq](https://github.com/anomyq).
 
-<sub>ETH Simulator is an unofficial student parody. It is not affiliated with or endorsed by ETH Zürich and uses no official logos. AI features use the OpenAI API. All screenshots and recordings were captured from the application running locally. For the shooter recordings, the webcam was simulated with the hand photos in `backend/level1/tests/fixtures/`, and the thesis defense was played by a scripted input sequence.</sub>
+<sub>ETH.fun is an unofficial student parody. It is not affiliated with or endorsed by ETH Zürich and uses no official logos. AI features use the OpenAI API. All screenshots and recordings were captured from the application running locally. For the shooter recordings, the webcam was simulated with the hand photos in `backend/level1/tests/fixtures/`, and the thesis defense was played by a scripted input sequence.</sub>

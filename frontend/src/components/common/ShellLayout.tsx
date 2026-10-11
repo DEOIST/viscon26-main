@@ -2,6 +2,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Icon from "./Icon";
 import ScoreboardDialog from "./ScoreboardDialog";
+import { APP_NAME } from "../../misc/constants";
 import { shellClass } from "../../misc/shellStyles";
 
 interface ShellLayoutArgs {
@@ -20,7 +21,7 @@ export default function ShellLayout(args: ShellLayoutArgs) {
         }
     });
     useEffect(() => {
-        document.title = `${args.title} · ETH Simulator`;
+        document.title = `${args.title} · ${APP_NAME}`;
         try {
             localStorage.setItem("eth-simulator.theme", theme);
         } catch {
@@ -37,9 +38,7 @@ export default function ShellLayout(args: ShellLayoutArgs) {
                     <span className={shellClass("brand-icon")}>
                         <Icon name="cap" size={25} />
                     </span>
-                    <span>
-                        ETH SIMULATOR<small>AFTER HOURS</small>
-                    </span>
+                    <span>{APP_NAME}</span>
                 </a>
                 <nav
                     className={shellClass("top-actions")}

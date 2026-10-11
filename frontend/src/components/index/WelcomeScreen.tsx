@@ -15,8 +15,9 @@ export default function WelcomeScreen(args: WelcomeScreenArgs) {
                         OPEN Â· FREE TIME CLOSED
                     </span>
                     <h1>
-                        ETH Simulator
+                        ETH
                         <span className={shellClass("primary-text")}>.</span>
+                        fun
                     </h1>
                     <p className={shellClass("hero-lead")}>
                         Big ambitions.
@@ -40,7 +41,7 @@ export default function WelcomeScreen(args: WelcomeScreenArgs) {
                 </section>
                 <div className={shellClass("letter-scene")} aria-hidden="true">
                     <span className={shellClass("scene-corner top")}>
-                        EST. AFTER HOURS
+                        EST. 2026
                     </span>
                     <div className={shellClass("admission-paper")}>
                         <div className={shellClass("paper-top")}>

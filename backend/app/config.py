@@ -15,7 +15,7 @@ class Settings(BaseSettings):
         env_file=(REPO_DIR / ".env", BACKEND_DIR / ".env"), extra="ignore"
     )
 
-    app_name: str = "ETH Life"
+    app_name: str = "ETH.fun"
     environment: str = "development"
     frontend_dist: Path = REPO_DIR / "frontend" / "dist"
     # UI-only test access; progression and leaderboard eligibility are never bypassed.

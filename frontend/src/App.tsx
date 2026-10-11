@@ -252,10 +252,7 @@ export function App() {
                     <span className="brand-icon">
                         <Icon name="cap" size={25} />
                     </span>
-                    <span>
-                        {TEXT.app.brand}
-                        <small>{TEXT.app.brandTagline}</small>
-                    </span>
+                    <span>{TEXT.app.brand}</span>
                 </div>
                 <nav className="top-actions" aria-label={TEXT.app.actionsLabel}>
                     {!inDegree && (
