@@ -7,6 +7,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import GameWorkspace from "./GameWorkspace";
+import { teaseFor } from "./LectureResult";
 import { GAMES, YEARS } from "../config";
 import { defaultPlayer } from "../store";
 
@@ -124,7 +125,7 @@ it("browses locked years with keyboard and selectors without allowing launch", (
     fireEvent.keyDown(screen.getByRole("region", { name: "Active game" }), {
         key: "Home",
     });
-    fireEvent.click(screen.getByRole("button", { name: "Launch game" })); // Year 1: the shooter
+    fireEvent.click(screen.getByRole("button", { name: "Start lecture" })); // Year 1: Bug Bash
     expect(onOpen).toHaveBeenCalledExactlyOnceWith(GAMES[0]);
     expect(
         screen.getByRole("button", { name: "Next" }).hasAttribute("disabled"),
@@ -177,10 +178,11 @@ it("explains each year's game in three steps before it launches", () => {
     expect(howTo.querySelectorAll("li")).toHaveLength(3);
     expect(howTo.querySelectorAll("img")).toHaveLength(3);
     expect(within(howTo).getByText("Beat the curve")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Launch game" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start lecture" }));
     expect(onOpen).toHaveBeenCalledExactlyOnceWith(GAMES[1]);
 
-    fireEvent.click(screen.getByRole("button", { name: YEARS[0].title }));
+    cleanup();
+    setup(); // a fresh degree opens on Year 1, not played yet
     const bugBash = screen.getByRole("region", { name: "How to play" });
     expect(within(bugBash).getAllByRole("img")).toHaveLength(3);
     expect(within(bugBash).getByText("Grab bugs")).toBeTruthy();
@@ -207,6 +209,27 @@ it("shows the ECTS a finished game paid and moves on to the next year", () => {
     fireEvent.click(next);
     expect(screen.getByRole("heading", { name: GAMES[1].title })).toBeTruthy();
     expect(screen.queryByRole("meter")).toBeNull(); // Year 2 isn't played yet
+});
+
+it("shows a played lecture's result instead of its how-to, with a retry", () => {
+    const { onOpen } = setup(false, false, [GAMES[0].id]);
+    fireEvent.click(screen.getByRole("button", { name: YEARS[0].title }));
+    expect(screen.queryByRole("region", { name: "How to play" })).toBeNull();
+    const result = screen.getByRole("meter", {
+        name: "Your result for this lecture",
+    });
+    expect(result.getAttribute("aria-valuenow")).toBe("0");
+    expect(result.getAttribute("aria-valuemax")).toBe(String(GAMES[0].ects));
+    expect(within(result).getByText("Score 0 %")).toBeTruthy();
+    expect(within(result).getByText(teaseFor(0))).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Retry lecture" }));
+    expect(onOpen).toHaveBeenCalledExactlyOnceWith(GAMES[0]);
+});
+
+it("teases each score band with its own line", () => {
+    const lines = [0, 10, 30, 50, 70, 80, 95].map(teaseFor);
+    expect(new Set(lines).size).toBe(lines.length);
+    expect(teaseFor(100)).toBe(teaseFor(95));
 });
 
 it("graduates from the last year only and opens there once everything is done", () => {

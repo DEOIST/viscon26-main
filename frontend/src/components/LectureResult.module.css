@@ -1,0 +1,111 @@
+/* The needle and the coloured arc sweep up from zero together (1.1 s, SWEEP_MS), then the line
+   under the gauge arrives. Every animation fills backwards only, so reduced motion (styles.css)
+   simply shows the final reading. */
+.result {
+    width: 100%;
+    max-width: 440px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-align: center;
+}
+.gauge {
+    width: min(320px, 78%);
+    overflow: visible;
+}
+.track,
+.value {
+    fill: none;
+    stroke-width: 16;
+    stroke-linecap: round;
+}
+.track {
+    stroke: var(--surface-raised);
+}
+.value {
+    stroke-dasharray: 100 101; /* a gap longer than the arc: no stray cap at its far end */
+    stroke-dashoffset: calc(100 - var(--share) * 100);
+    animation: arc-sweep 1100ms cubic-bezier(0.2, 0.7, 0.2, 1) 150ms backwards;
+}
+.tick line {
+    stroke: var(--border);
+    stroke-width: 2;
+}
+.tick text {
+    fill: var(--text-muted);
+    font-size: 9px;
+    text-anchor: middle;
+}
+.needle {
+    fill: var(--text);
+    transform-box: view-box;
+    transform-origin: 100px 100px;
+    transform: rotate(var(--needle));
+    animation: needle-sweep 1100ms cubic-bezier(0.3, 1.35, 0.5, 1) 150ms
+        backwards;
+}
+.needle circle {
+    fill: var(--reward);
+    stroke: var(--surface);
+    stroke-width: 3;
+}
+@keyframes arc-sweep {
+    from {
+        stroke-dashoffset: 100;
+    }
+}
+@keyframes needle-sweep {
+    from {
+        transform: rotate(-90deg);
+    }
+}
+
+/* Scoped under .result to win over the launch panel's own p sizes. */
+.result .reading {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin: -6px 0 0;
+    color: var(--reward);
+}
+.reading strong {
+    font-size: clamp(34px, 5vw, 48px);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+.reading span {
+    font-size: 15px;
+    font-weight: 700;
+}
+.result .score {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.result .tease {
+    margin-top: 10px;
+    max-width: 360px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    animation: arrive 500ms ease-out 1100ms backwards;
+}
+.result .note {
+    font-size: 11px;
+    color: var(--text-muted);
+    animation: arrive 500ms ease-out 1300ms backwards;
+}
+@keyframes arrive {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+}
+
+@media (max-width: 760px) {
+    .result .tease {
+        font-size: 14px;
+    }
+}

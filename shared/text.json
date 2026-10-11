@@ -204,8 +204,8 @@
         "previewNote": "Preview component · no ECTS awarded",
         "launch": {
             "locked": "Locked",
-            "open": "Open game",
-            "launch": "Launch game",
+            "open": "Retry lecture",
+            "launch": "Start lecture",
             "preview": "Open preview"
         },
         "ectsGained": "+{ects} ECTS",
@@ -273,7 +273,44 @@
         },
         "earnedEcts": "{earned} / {ects} ECTS",
         "earnedLabel": "ECTS earned in this game",
-        "next": "Next"
+        "next": "Next",
+        "lectureResult": {
+            "label": "Your result for this lecture",
+            "outOf": "/ {ects} ECTS",
+            "score": "Score {score} %",
+            "replayNote": "Retries are for glory: your credits stay as they are.",
+            "_teases": "Shown under the gauge: the first line whose minScore the score reaches, highest first.",
+            "teases": [
+                {
+                    "minScore": 90,
+                    "text": "Unreasonably good. Are you a TA in disguise?"
+                },
+                {
+                    "minScore": 75,
+                    "text": "Show-off. The front row is taking notes on you now."
+                },
+                {
+                    "minScore": 60,
+                    "text": "Respectable. Your parents can mention this at dinner."
+                },
+                {
+                    "minScore": 40,
+                    "text": "Solidly mid. The Hiwi has seen worse, but not much worse."
+                },
+                {
+                    "minScore": 20,
+                    "text": "Technically you were there. Technically."
+                },
+                {
+                    "minScore": 1,
+                    "text": "Were you even awake? The coffee machine put in more effort."
+                },
+                {
+                    "minScore": 0,
+                    "text": "Zero. Bold strategy. Let's see if it pays off at graduation."
+                }
+            ]
+        }
     },
     "credits": {
         "title": "Credits",

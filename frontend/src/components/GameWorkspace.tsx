@@ -4,6 +4,7 @@ import { isYearComplete, isYearUnlocked } from "../store";
 import type { Game, Player, Progress } from "../types";
 import { Avatar } from "./Avatar";
 import HowToPlay, { hasHowToPlay } from "./HowToPlay";
+import LectureResult from "./LectureResult";
 import { GameHost } from "./GameHost";
 import { Icon } from "./Icon";
 import {
@@ -114,11 +115,14 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
         : completed
           ? T.state.completed
           : T.state.available;
-    // Every year's game explains itself in three steps before it starts.
-    const showsHowTo = unlocked && hasHowToPlay(game.id);
     const earned = completed
         ? gameEcts(game, args.progress.scores[game.id])
         : null;
+    // A played lecture shows its result; one still to play explains itself in three steps.
+    const showsResult = earned !== null;
+    const showsHowTo = unlocked && !showsResult && hasHowToPlay(game.id);
+    // Older saves have no score: their completion paid in full.
+    const score = args.progress.scores[game.id] ?? 100;
     // Years before the last lead on to the next one; only the last year graduates.
     const isLastYear = yearIndex === YEARS.length - 1;
 
@@ -446,7 +450,13 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                             />
                         ) : (
                             <div className={styles.launchPanel}>
-                                {showsHowTo ? (
+                                {showsResult ? (
+                                    <LectureResult
+                                        earned={earned}
+                                        ects={game.ects}
+                                        score={score}
+                                    />
+                                ) : showsHowTo ? (
                                     <HowToPlay gameId={game.id} />
                                 ) : (
                                     <>
@@ -485,7 +495,7 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
                                 )}
                                 <button
                                     className={
-                                        showsHowTo
+                                        showsHowTo || showsResult
                                             ? `button primary ${styles.afterHowTo}`
                                             : "button primary"
                                     }
