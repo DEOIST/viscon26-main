@@ -153,7 +153,7 @@ interface CvFrame {
 
 - **One HandLandmarker per WebSocket**: VIDEO mode needs strictly increasing
   timestamps per instance, which `CvSession` derives from a monotonic clock.
-  `num_hands=1` (was 2, which doubled the tracking time; see BUG_BASH.md), detection, presence and tracking
+  `num_hands=2` (the largest is the player), detection, presence and tracking
   confidence **0.3** (measured): MediaPipe's default 0.5 drops small,
   foreshortened gun hands (a fist pointing at the camera) and re-detects them,
   which loses frames and sometimes reports the hand twice. On a two-hand
