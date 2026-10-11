@@ -198,6 +198,7 @@ export function App() {
         const previous = store.getState().progress;
         if (previous.completedGameIds.includes(selectedGame.id)) {
             setSelectedGame(null);
+            resumeMenuMusicAfterGame();
             return;
         }
         if (score === undefined) return;
@@ -225,6 +226,7 @@ export function App() {
             ),
         });
         setSelectedGame(null);
+        resumeMenuMusicAfterGame();
         // The last game decides the degree: go straight to the career it earned, no revisit
         // screen in between.
         if (canGraduate(ids) && !current.graduated) {
@@ -250,6 +252,9 @@ export function App() {
         setGraduation(true);
         if (!wasGraduated) playUiSound("graduate", 0.54);
         if (!wasGraduated) void synchronize();
+    }
+    function resumeMenuMusicAfterGame() {
+        window.setTimeout(() => setMenuMusicPlaying(true), 80);
     }
     const inDegree = player.onboardingStage === "main";
     const showGraduation =
@@ -428,6 +433,7 @@ export function App() {
                             onExit={() => {
                                 if (!saving.current) {
                                     setSelectedGame(null);
+                                    resumeMenuMusicAfterGame();
                                     setError("");
                                 }
                             }}
