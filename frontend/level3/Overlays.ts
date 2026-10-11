@@ -25,6 +25,7 @@ import {
 } from "./textures";
 import type { BestRun, Verdict } from "./verdict";
 import { fill, TEXT as COPY_TEXT } from "../src/misc/text";
+import type { TimingLean } from "./latency";
 
 const COPY = COPY_TEXT.thesisDefense;
 
@@ -37,6 +38,7 @@ export interface RunSummary {
     best: BestRun;
     isNewBest: boolean;
     submitted: boolean;
+    timing: TimingLean | null; // how this run's hits leaned, when it's worth tuning
 }
 
 type Style = "normal" | "bold" | "italic";
@@ -106,6 +108,14 @@ export default class Overlays {
             stats: t(COLUMN.x, 446, 17),
             counts: t(COLUMN.x, 476, 15, CSS.inkSoft),
             best: t(COLUMN.x, 516, 16, CSS.ink, "italic"),
+            // Narrow, so it stays clear of the stamp landing on the right.
+            timing: t(
+                COLUMN.x,
+                552,
+                14,
+                CSS.inkSoft,
+                "italic",
+            ).setWordWrapWidth(300),
         };
         const rules = scene.add.graphics();
         rules.lineStyle(1.4, COLORS.ink, 1);
@@ -302,6 +312,17 @@ export default class Overlays {
             }),
         );
         p.counts.setText(fill(COPY.transcript.counts, { ...c }));
+        const timing = summary.timing;
+        p.timing.setText(
+            timing
+                ? fill(
+                      timing.lean > 0
+                          ? COPY.transcript.timingLate
+                          : COPY.transcript.timingEarly,
+                      { ms: Math.abs(timing.lean) },
+                  )
+                : "",
+        );
         p.best.setText(
             summary.isNewBest
                 ? COPY.transcript.newBest
@@ -345,6 +366,15 @@ export default class Overlays {
             ease: "Cubic.In",
             onComplete: () => this.scene.cameras.main.shake(140, 0.006),
         });
+    }
+
+    // The player pressed C on the transcript: say what the timing is tuned to now.
+    showTuned(offset: number): string {
+        const text = fill(COPY.transcript.timingTuned, {
+            offset: offset > 0 ? `+${offset}` : String(offset),
+        });
+        this.parts.timing.setText(text);
+        return text;
     }
 
     setSubmitted(isSubmitted: boolean) {

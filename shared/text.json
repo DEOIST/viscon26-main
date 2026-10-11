@@ -795,7 +795,10 @@
             "best": "Personal best: {score} points.",
             "revise": "Revise and resubmit",
             "submit": "Submit final version",
-            "submitted": "Submitted. The ECTS are yours."
+            "submitted": "Submitted. The ECTS are yours.",
+            "timingLate": "Your hits landed {ms} ms late on average. Press C to tune the timing to you.",
+            "timingEarly": "Your hits landed {ms} ms early on average. Press C to tune the timing to you.",
+            "timingTuned": "Timing tuned to you ({offset} ms). It counts from your next attempt."
         },
         "sections": {
             "opening": {

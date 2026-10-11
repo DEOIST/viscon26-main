@@ -29,6 +29,14 @@ export const SYNC_DEADBAND_MS = 2;
 export const SYNC_GAIN = 0.1;
 export const SYNC_SNAP_MS = 120;
 
+// The player's own timing offset (latency.ts), learned from a run's hits: what the browser
+// can't measure, like keyboard and screen lag or Bluetooth headphones that hide their delay.
+// A run needs enough hits and a clear lean before it suggests tuning, and the offset is capped.
+export const CALIBRATION_MIN_HITS = 12;
+export const CALIBRATION_MIN_MS = 10;
+export const CALIBRATION_MAX_MS = 250;
+export const OFFSET_KEY = "eth-life:thesis-defense:offset";
+
 // Timing windows, +- milliseconds around a note.
 export const WINDOWS = { perfect: 45, great: 90, good: 135 } as const;
 // A note is only written off this long after its late window, so a key event that arrives

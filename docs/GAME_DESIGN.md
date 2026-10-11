@@ -281,6 +281,11 @@ Keyboard only, no server side: the code is in `frontend/level3/`.
   ±135 GOOD, later is a MISS. A press with no note in its window is a stray: it
   breaks the combo and costs a little confidence, so mashing never pays. A
   timing meter under the receptors shows where recent presses landed.
+- **Timing offset:** some delay is invisible to the browser (keyboard and screen
+  lag, Bluetooth headphones). When a run's hits lean at least 10 ms early or late
+  (median of 12 or more hits), the transcript says so and `C` tunes the timing:
+  later key presses are shifted by that lean, capped at ±250 ms and kept in this
+  browser (`latency.ts`, `CALIBRATION_*` in `config.ts`).
 - **Score:** 100/70/40 points × multiplier (+1 every 10 combo, max 4×; Eureka
   doubles it); golden notes add 50. Golden notes fill the Eureka meter (four
   fill it); `Space` then gives 8 s of double points and halves miss damage.

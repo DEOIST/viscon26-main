@@ -25,6 +25,8 @@ import type { CommitteeEvent } from "./lines";
 import Overlays from "./Overlays";
 import ThesisAudio, { hitCue, phaseCue } from "./audio";
 import Soundtrack, { clockCorrection } from "./Soundtrack";
+import { loadOffset, saveOffset, suggestOffset } from "./latency";
+import type { TimingLean } from "./latency";
 import { TEXT, loadFonts, makeTextures } from "./textures";
 import { loadBest, saveBest, swissGrade, verdictFor } from "./verdict";
 import type { BestRun, BestStorage } from "./verdict";
@@ -85,6 +87,9 @@ export default class ThesisScene extends Scene {
     private lastQuip = -Infinity;
     private spoken = "";
     private best: BestRun | null = null;
+    private offset = 0; // the player's tuned timing offset in ms (latency.ts)
+    private deltas: number[] = []; // how early or late each hit of this run landed
+    private timingLean: TimingLean | null = null;
     private bestContract = 0;
     private attempts = 0;
     private soundCombo = 0;
@@ -138,6 +143,7 @@ export default class ThesisScene extends Scene {
             () => this.submit(),
         );
         this.best = loadBest(this.args.storage);
+        this.offset = loadOffset(this.args.storage);
         this.hud.setSound(this.soundtrack.muted);
         this.showTitle();
         this.args.announce(COPY.announcements.intro);
@@ -222,6 +228,8 @@ export default class ThesisScene extends Scene {
         this.overlays.hideTitle();
         this.overlays.hideResults();
         this.engine = new DefenseEngine(DEFENSE_CHART);
+        this.deltas = [];
+        this.timingLean = null;
         this.figure.setVisible(true);
         this.figure.setEureka(false);
         this.figure.setPhase("opening");
@@ -323,6 +331,7 @@ export default class ThesisScene extends Scene {
             best: saved.best,
             isNewBest: saved.isNew,
             submitted: this.submitted,
+            timing: (this.timingLean = suggestOffset(this.deltas, this.offset)),
         });
         this.fx?.play(
             failed || grade < 4
@@ -369,6 +378,7 @@ export default class ThesisScene extends Scene {
                 case "hit":
                     this.figure.hit(event.note, event.judgment);
                     this.hud.addTick(event.delta);
+                    this.deltas.push(event.delta);
                     break;
                 case "miss":
                     this.figure.miss(event.note);
@@ -581,6 +591,11 @@ export default class ThesisScene extends Scene {
             this.startAt -= clockCorrection(now - this.startAt, heard);
     }
 
+    // Song time of a key press, shifted by the player's tuned offset (latency.ts).
+    private pressTime(event: KeyboardEvent): number {
+        return this.eventTime(event) - this.startAt - this.offset;
+    }
+
     private songTime(now: number): number {
         if (this.mode === "paused" || this.mode === "resuming")
             return this.pausedAt - this.startAt;
@@ -605,12 +620,7 @@ export default class ThesisScene extends Scene {
             if (event.repeat) return;
             this.figure.setPressed(lane, true);
             if (this.mode === "playing")
-                this.handle(
-                    this.engine.press(
-                        lane,
-                        this.eventTime(event) - this.startAt,
-                    ),
-                );
+                this.handle(this.engine.press(lane, this.pressTime(event)));
             return;
         }
         switch (event.code) {
@@ -620,11 +630,17 @@ export default class ThesisScene extends Scene {
                 if (this.mode === "title") this.start();
                 else if (this.mode === "paused") this.resume();
                 else if (this.mode === "playing")
-                    this.handle(
-                        this.engine.activate(
-                            this.eventTime(event) - this.startAt,
-                        ),
-                    );
+                    this.handle(this.engine.activate(this.pressTime(event)));
+                return;
+            case "KeyC":
+                // Tune the timing to how this run's hits leaned (shown on the transcript).
+                if (this.mode === "results" && this.timingLean) {
+                    event.preventDefault();
+                    this.offset = this.timingLean.suggested;
+                    saveOffset(this.args.storage, this.offset);
+                    this.timingLean = null;
+                    this.args.announce(this.overlays.showTuned(this.offset));
+                }
                 return;
             case "KeyM":
                 event.preventDefault();
