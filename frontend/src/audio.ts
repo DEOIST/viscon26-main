@@ -1,4 +1,7 @@
 const UI_VOLUME = 0.32;
+const MENU_MUSIC = "/audio/music/strange-menu.ogg";
+const MENU_MUSIC_VOLUME = 0.18;
+const MENU_FADE_MS = 900;
 
 const UI_SOUNDS = {
     click: ["/audio/sfx/app/ui_click_1.ogg", "/audio/sfx/app/ui_click_2.ogg"],
@@ -40,6 +43,9 @@ const UI_SOUNDS = {
 type UiSound = keyof typeof UI_SOUNDS;
 
 const pool = new Map<string, HTMLAudioElement>();
+let menuMusic: HTMLAudioElement | null = null;
+let menuShouldPlay = false;
+let menuFade: number | null = null;
 
 function pick(paths: readonly string[]): string {
     return paths[Math.floor(Math.random() * paths.length)];
@@ -54,12 +60,91 @@ function audioFor(path: string): HTMLAudioElement {
     return audio;
 }
 
-export function playUiSound(sound: UiSound, volume = UI_VOLUME) {
-    if (
+function isTestBrowser(): boolean {
+    return (
         typeof navigator !== "undefined" &&
         navigator.userAgent.includes("jsdom")
-    )
+    );
+}
+
+function fadeAudio(
+    audio: HTMLAudioElement,
+    to: number,
+    duration = MENU_FADE_MS,
+    after?: () => void,
+) {
+    if (menuFade !== null) cancelAnimationFrame(menuFade);
+    const from = audio.volume;
+    const start = performance.now();
+    const step = (now: number) => {
+        const progress = Math.min(1, (now - start) / duration);
+        audio.volume = from + (to - from) * progress;
+        if (progress < 1) {
+            menuFade = requestAnimationFrame(step);
+            return;
+        }
+        menuFade = null;
+        after?.();
+    };
+    menuFade = requestAnimationFrame(step);
+}
+
+function ensureMenuMusic(): HTMLAudioElement | null {
+    if (isTestBrowser()) return null;
+    if (menuMusic) return menuMusic;
+    menuMusic = new Audio(MENU_MUSIC);
+    menuMusic.loop = true;
+    menuMusic.preload = "auto";
+    menuMusic.volume = 0;
+    return menuMusic;
+}
+
+function startMenuMusic() {
+    const audio = ensureMenuMusic();
+    if (!audio) return;
+    if (!audio.paused) {
+        fadeAudio(audio, MENU_MUSIC_VOLUME);
         return;
+    }
+    try {
+        const playback = audio.play();
+        if (playback)
+            void playback
+                .then(() => {
+                    fadeAudio(audio, MENU_MUSIC_VOLUME);
+                })
+                .catch(() => {
+                    /* Retry after the next trusted pointer/key gesture. */
+                });
+        else fadeAudio(audio, MENU_MUSIC_VOLUME);
+    } catch {
+        /* Music is optional when playback is locked or unsupported. */
+    }
+}
+
+export function setMenuMusicPlaying(playing: boolean) {
+    menuShouldPlay = playing;
+    const audio = ensureMenuMusic();
+    if (!audio) return;
+    if (playing) {
+        startMenuMusic();
+        return;
+    }
+    fadeAudio(audio, 0);
+}
+
+export function stopMenuMusic() {
+    menuShouldPlay = false;
+    const audio = ensureMenuMusic();
+    if (!audio) return;
+    fadeAudio(audio, 0, MENU_FADE_MS, () => {
+        if (menuShouldPlay) return;
+        audio.pause();
+    });
+}
+
+export function playUiSound(sound: UiSound, volume = UI_VOLUME) {
+    if (isTestBrowser()) return;
     const path = pick(UI_SOUNDS[sound]);
     const template = audioFor(path);
     const audio = template.paused
@@ -97,6 +182,10 @@ export function installUiSounds() {
         )
             return;
         playUiSound("click", 0.22);
+        if (menuShouldPlay && menuMusic?.paused) startMenuMusic();
+    };
+    const handleKeyDown = () => {
+        if (menuShouldPlay && menuMusic?.paused) startMenuMusic();
     };
     const handlePointerOver = (event: PointerEvent) => {
         const target = interactiveTarget(event.target);
@@ -112,11 +201,15 @@ export function installUiSounds() {
     document.addEventListener("pointerover", handlePointerOver, {
         capture: true,
     });
+    document.addEventListener("keydown", handleKeyDown, { capture: true });
     return () => {
         document.removeEventListener("pointerdown", handlePointerDown, {
             capture: true,
         });
         document.removeEventListener("pointerover", handlePointerOver, {
+            capture: true,
+        });
+        document.removeEventListener("keydown", handleKeyDown, {
             capture: true,
         });
     };

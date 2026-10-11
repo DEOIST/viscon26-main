@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 import { GAMES, YEARS } from "../config";
 import { isYearComplete, isYearUnlocked } from "../store";
 import type { Game, Player, Progress } from "../types";
@@ -15,6 +16,9 @@ import {
 import { creditSummary, gameEcts } from "../misc/credits";
 import { fill, TEXT } from "../misc/text";
 import CreditTranscript from "./common/CreditTranscript";
+import year1Url from "../assets/years/year1.jpg";
+import year2Url from "../assets/years/year2.jpg";
+import year3Url from "../assets/years/year3.jpg";
 import styles from "./GameWorkspace.module.css";
 
 export interface CompletionFeedback {
@@ -31,6 +35,9 @@ const T = TEXT.workspace;
 const ENTRIES = YEARS.flatMap((year, yearIndex) =>
     year.games.map((game) => ({ game, year, yearIndex })),
 );
+
+// One blurred photo behind each year, in YEARS order: library, main building, thesis desk.
+const BACKDROPS = [year1Url, year2Url, year3Url];
 
 interface GameWorkspaceArgs {
     player: Player;
@@ -227,6 +234,29 @@ export default function GameWorkspace(args: GameWorkspaceArgs) {
 
     return (
         <div className={styles.workspace}>
+            {/* In <body>: the workspace's fade-in would otherwise lift this fixed layer above the
+                top bar. Every year stays mounted, so switching crossfades without a load, and its
+                class parks earlier years left and later ones right, panning with the panel. */}
+            {createPortal(
+                <div className={styles.backdrop} aria-hidden="true">
+                    {BACKDROPS.map((url, index) => (
+                        <img
+                            key={url}
+                            src={url}
+                            alt=""
+                            decoding="async"
+                            className={
+                                index < yearIndex
+                                    ? styles.pastYear
+                                    : index === yearIndex
+                                      ? styles.currentYear
+                                      : undefined
+                            }
+                        />
+                    ))}
+                </div>,
+                document.body,
+            )}
             <aside className={styles.sidebar} aria-label={T.studentRecord}>
                 {studentRecord}
             </aside>

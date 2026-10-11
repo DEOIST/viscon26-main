@@ -208,7 +208,7 @@ index finger, drop your thumb to shoot. The technical design is in
   mouse (aim + click) is the automatic fallback when the camera is unavailable;
   the operator can force it with `M`.
 - **Flow:** calibration doubles as the tutorial (shoot 3 practice targets:
-  centre, top-left, bottom-right), then a 60-second round with a rising spawn
+  centre, top-left, bottom-right), then a 30-second round with a rising spawn
   rate. Could: a boss "Analysis I" paper in the last 10 seconds.
 - **Targets:** exam question (1 hit, 10 points), deadline clock (fast, 25
   points), coffee (+3 seconds). Could: "F grade" decoys (−15 if shot), open-palm
@@ -400,7 +400,7 @@ isometric shooter art match:
 1. A judge enrolls (name, department, archetype, avatar): about 20 s.
 2. Campus: the advisor greets them by name and department ("the game knows me").
 3. Blackjack: up to three hands (`HANDS` in `frontend/level2/config.ts` sets the length).
-4. Shooter: calibration, then 60 s of finger-gun shooting. **This is the wow.**
+4. Shooter: calibration, then 30 s of finger-gun shooting. **This is the wow.**
 5. Graduation: open the diploma; the career and a personal epilogue are read aloud.
 
 About 3 minutes in total. Fallbacks: mouse mode (`M`), pre-written epilogue,

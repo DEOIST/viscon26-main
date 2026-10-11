@@ -14,6 +14,7 @@ from level1.gesture import (
     TRIGGER_MIN_SAMPLES,
     GunTracker,
     GunTracks,
+    Motion,
     PinchTracker,
     PlayerGun,
     drop_duplicate_hands,
@@ -538,3 +539,90 @@ def test_a_short_gentle_swipe_counts():
     frames = play(PlayerGun(), [[shifted(OPEN, 0.012 * i)] for i in range(15)])
     assert [f.slide.direction for f in frames if f.slide] == ["left"]
     assert not any(f.slap for f in frames)
+
+
+# A remote server answers ~10 times a second instead of ~30: frames are 100 ms apart, so a fast
+# hand moves 3x further between frames and must still count as the same hand.
+REMOTE_FRAME_MS = 100
+
+
+def test_a_slap_counts_at_a_remote_servers_frame_rate():
+    still = [[OPEN]] * 10
+    sweep = [[shifted(OPEN, 0.3)], [shifted(OPEN, 0.6)], []]
+    gun = PlayerGun()
+    frames = [gun.update(h, SIZE, SIZE, i * REMOTE_FRAME_MS) for i, h in enumerate(still + sweep)]
+    assert [f.slap for f in frames if f.slap] == ["left"]
+    assert frames[-3].tracking != "lost"
+
+
+def test_a_fast_drag_keeps_the_pinch_at_a_remote_servers_frame_rate():
+    pinch = [[OPEN]] * 5 + [[CLOSED]] * 5
+    drag = [[shifted(CLOSED, 0.3 * i)] for i in range(1, 4)]  # 3 frame widths a second
+    gun = PlayerGun()
+    frames = [gun.update(h, SIZE, SIZE, i * REMOTE_FRAME_MS) for i, h in enumerate(pinch + drag)]
+    assert all(f.tracking != "lost" and f.pinching for f in frames[-3:])
+
+
+def test_a_far_away_hand_never_takes_over_the_players_track():
+    gun = PlayerGun()
+    gun.update([OPEN], SIZE, SIZE, 0)
+    frame = gun.update([shifted(OPEN, 0.9)], SIZE, SIZE, 250)  # gone, then a hand far away
+    assert frame.tracking == "lost"
+
+
+def remote_play(frames):
+    gun = PlayerGun()
+    return [gun.update(h, SIZE, SIZE, i * REMOTE_FRAME_MS) for i, h in enumerate(frames)]
+
+
+def test_a_hand_lost_right_after_a_visible_swing_slaps_at_a_remote_frame_rate():
+    # one frame shows the swing starting (too slow between frames for SLAP_MIN_SPEED), then blur
+    frames = [[OPEN]] * 10 + [[shifted(OPEN, 0.05)], [shifted(OPEN, 0.18)], []]
+    gun = PlayerGun()
+    slaps = [gun.update(h, SIZE, SIZE, i * REMOTE_FRAME_MS).slap for i, h in enumerate(frames)]
+    assert [s for s in slaps if s] == ["left"]
+
+
+def test_a_lost_hand_alone_is_no_slap():
+    still = [[OPEN]] * 10 + [[]] * 5
+    drift = [[shifted(OPEN, 0.02 * i)] for i in range(12)] + [[]] * 5  # 0.2 widths/s, then gone
+    for frames in (still, drift):
+        assert not any(f.slap for f in remote_play(frames))
+
+
+def test_losing_a_pinched_hand_is_no_slap():
+    pinch = [[OPEN]] * 5 + [[CLOSED]] * 5
+    frames = pinch + [[shifted(CLOSED, 0.08)], [shifted(CLOSED, 0.18)], []]
+    assert not any(f.slap for f in remote_play(frames))
+
+
+def test_a_hand_that_vanishes_and_returns_far_away_slapped():
+    # no frame shows the swing; the hand comes back 0.25 frame widths away 0.3 s later
+    frames = [[OPEN]] * 10 + [[], [], [shifted(OPEN, 0.25)]]
+    assert [f.slap for f in remote_play(frames) if f.slap] == ["left"]
+
+
+def test_a_blur_where_the_hand_was_slaps_when_the_hand_vanishes():
+    gun = PlayerGun()
+    for i in range(10):
+        gun.update([OPEN], SIZE, SIZE, i * REMOTE_FRAME_MS)
+    blur = Motion(share=0.18, dx=-0.1, speed=0.6)  # too weak for a visible hand, enough on loss
+    assert gun.update([], SIZE, SIZE, 10 * REMOTE_FRAME_MS, blur).slap == "right"
+
+
+def test_a_still_hand_that_drops_out_and_returns_is_no_slap():
+    calm = Motion(share=0.05, dx=0.0, speed=0.0)
+    gun = PlayerGun()
+    frames = [[OPEN]] * 10 + [[], []] + [[shifted(OPEN, 0.1)]] * 3
+    for i, hands in enumerate(frames):
+        assert not gun.update(hands, SIZE, SIZE, i * REMOTE_FRAME_MS, calm).slap
+
+
+def test_a_quick_pinch_seen_in_one_frame_grabs_at_a_remote_frame_rate():
+    frames = [[OPEN]] * 5 + [[CLOSED], [OPEN], [OPEN]]
+    assert any(f.fired_at for f in remote_play(frames))
+
+
+def test_a_one_frame_pinch_flicker_still_does_not_grab_at_30_fps():
+    frames = [[OPEN]] * 5 + [[CLOSED], [OPEN], [OPEN]]
+    assert not any(f.fired_at for f in play(PlayerGun(), frames))

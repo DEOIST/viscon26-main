@@ -1,6 +1,11 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import { api, errorMessage } from "./api";
-import { installUiSounds, playUiSound } from "./audio";
+import {
+    installUiSounds,
+    playUiSound,
+    setMenuMusicPlaying,
+    stopMenuMusic,
+} from "./audio";
 import { GAMES, YEARS } from "./config";
 import {
     CharacterBuilder,
@@ -193,6 +198,7 @@ export function App() {
         const previous = store.getState().progress;
         if (previous.completedGameIds.includes(selectedGame.id)) {
             setSelectedGame(null);
+            resumeMenuMusicAfterGame();
             return;
         }
         if (score === undefined) return;
@@ -220,6 +226,7 @@ export function App() {
             ),
         });
         setSelectedGame(null);
+        resumeMenuMusicAfterGame();
         // The last game decides the degree: go straight to the career it earned, no revisit
         // screen in between.
         if (canGraduate(ids) && !current.graduated) {
@@ -246,10 +253,17 @@ export function App() {
         if (!wasGraduated) playUiSound("graduate", 0.54);
         if (!wasGraduated) void synchronize();
     }
+    function resumeMenuMusicAfterGame() {
+        window.setTimeout(() => setMenuMusicPlaying(true), 80);
+    }
     const inDegree = player.onboardingStage === "main";
     const showGraduation =
         graduation || (graduationPreview && previewingGraduation);
     const gameScreen = inDegree && !showGraduation && !editingCharacter;
+    useEffect(() => {
+        setMenuMusicPlaying(!selectedGame && !intro);
+    }, [selectedGame, intro]);
+    useEffect(() => () => stopMenuMusic(), []);
     return (
         <div className={`app-shell ${gameScreen ? "game-screen" : ""}`}>
             <a className="skip-link" href="#main-content">
@@ -419,6 +433,7 @@ export function App() {
                             onExit={() => {
                                 if (!saving.current) {
                                     setSelectedGame(null);
+                                    resumeMenuMusicAfterGame();
                                     setError("");
                                 }
                             }}

@@ -19,6 +19,9 @@ are local and have not been pushed or merged.
   speech bubbles. One appears every 6.5–11 seconds; it leaves after 4.5 seconds if ignored.
 - The tracked hand is a filled cartoon hand with a solid palm, rounded tapered fingers,
   outline and nail highlights. There is no crosshair or browser cursor over the canvas.
+- The hand takes the player's avatar skin colour (`frontend/level1/handColors.ts`); its outline,
+  nails and crease are shades of it. Very dark skin, including the builder's "Deep brown", gets a
+  light rim instead of a dark outline, which would vanish into the near-black editor.
 
 ## Pinch, grab and throw
 
@@ -26,7 +29,11 @@ Pinching still uses the distance between thumb and index tips, normalized by pal
 Calibration asks for apart (2 s), pinched (1.5 s), apart (1.5 s), pinched (1.5 s), ignoring
 10 initial visible frames per step. It needs at least 10 samples per position and a gap
 of 0.15 palm widths between the open 20th and closed 80th percentiles. Closing at 30%
-of that gap confirms a grab after two frames; reopening at 70% rearms it.
+of that gap confirms a grab after two frames; reopening at 70% rearms it. When frames arrive
+at least 0.06 s apart (a remote server's ~10 fps), one closed frame confirms the grab
+(`PINCH_SINGLE_FRAME_GAP_S`): waiting for a second one took ~200 ms there, so quick pinches were
+missed (a 0.1 s pinch registered about half the time in simulation, now always). The cost is
+that a one-frame misreading can grab at that frame rate.
 
 Three practice pinches complete calibration, followed by three practice bugs to throw.
 `Enter` skips; `T` repeats calibration during warm-up. Collection suppresses game grabs.
@@ -66,18 +73,33 @@ interrupter bodies they touch: anywhere on a card (115 px around its centre at s
 - Hit text appears only when code is saved or a character is knocked out; empty swipes
   produce no "SWISH" or slap message.
 
+On a remote server (the VM) the engine answers only ~10 times a second instead of ~30: one
+frame is in flight at a time, and each needs the network round trip plus ~60 ms of tracking on
+the VM's CPU. Hand tracking therefore matches a hand to the previous frame by speed, not by a
+fixed per-frame distance (`TRACK_MAX_SPEED`, 8 frame widths/s, capped at 0.8 of the frame), so
+slaps and fast drags no longer drop the player's hand as "lost" between frames. The blurred-slap
+motion check accepts frames up to 0.35 s apart (`MOTION_MAX_GAP_S`). When the player's hand vanishes, the slap checks
+are looser than for a visible hand, since the vanishing is itself evidence of a blur
+(`SLAP_LOST_*`): 0.8 instead of 1.5 frame widths/s between the last two frames; any move of 8%
+of the frame width within 0.4 s; an image change over 15% (not 25%) of the area at 0.5 (not 0.9)
+widths/s. A hand reappearing within 0.6 s at least 0.2 widths away at 1 width/s also slaps. A hand
+that was pinching keeps the strict thresholds, so losing it mid-drag is no slap. In a 10 fps
+simulation of 400 slaps this detects 64% when the hand stays away and 77% when it comes back
+(main: 7% and 12%). The cost: tracking that drops while the hand moves at aiming speed can now
+read as a slap. Most remaining misses are swings no frame shows at all.
+
 These thresholds need human camera tuning. Returning a hand can still count if it meets
 speed/displacement rules; pose noise or fast body movement can still cause false positives.
 Raw motion is a lightweight image-change estimate, not a full optical-flow model.
 
 ## Scoring and controls
 
-The round lasts 60 seconds. Bugs award 10 points; saved code awards 25; streaks add 5.
+The round lasts 30 seconds. Bugs award 10 points; saved code awards 25; streaks add 5.
 Interrupters award 15. Escaped bugs deduct 5, exploded code deducts 15, missed grabs deduct
 2. The running total never drops below zero (`addPoints` in `score.ts`), so early mistakes don't
 leave a debt and a round with real catches always pays some ECTS. The 0–100 score sent to the shell
-is points / `PAR_POINTS` (325, scaled from 420 when the slower tuning cut a round from 44 to 34
-targets), and the year pays that share of its 60 ECTS. Legacy internal target kinds remain: `question` = bug, `deadline` = code bomb, `coffee`
+is points / `PAR_POINTS` (163: scaled from 420 to 325 when the slower tuning cut a round from 44 to
+34 targets, then halved with the round's length, 60 to 30 seconds and 34 to 17 targets), and the year pays that share of its 60 ECTS. Legacy internal target kinds remain: `question` = bug, `deadline` = code bomb, `coffee`
 no longer spawns. Results retain `points`, `hits`, `shots`, plus `savedCode` and `interruptions`.
 
 - `F` / fullscreen button: toggle fullscreen. `Esc`: exit fullscreen. Phaser targets the

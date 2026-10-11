@@ -148,6 +148,9 @@ class Recorder:
 # counts as changed when its brightness moved more than this (0–255).
 MOTION_STEP = 4
 MOTION_MIN_CHANGE = 40.0
+# The motion's speed is measured between consecutive frames up to this far apart: a remote server
+# answers only every ~100–150 ms, and 0.15 s switched the blurred-slap check off there.
+MOTION_MAX_GAP_S = 0.35
 
 
 class CvSession:
@@ -258,7 +261,7 @@ class CvSession:
         last = self._motion_centre
         self._motion_centre = (now, x, y)
         speed, dx = 0.0, 0.0
-        if last is not None and 0 < now - last[0] <= 0.15:
+        if last is not None and 0 < now - last[0] <= MOTION_MAX_GAP_S:
             dx, dy = x - last[1], y - last[2]
             distance = float(np.hypot(dx, dy))
             if distance >= 0.02:
