@@ -69,6 +69,13 @@ interrupter bodies they touch: anywhere on a card (115 px around its centre at s
 - Hit text appears only when code is saved or a character is knocked out; empty swipes
   produce no "SWISH" or slap message.
 
+On a remote server (the VM) the engine answers only ~10 times a second instead of ~30: one
+frame is in flight at a time, and each needs the network round trip plus ~60 ms of tracking on
+the VM's CPU. Hand tracking therefore matches a hand to the previous frame by speed, not by a
+fixed per-frame distance (`TRACK_MAX_SPEED`, 8 frame widths/s, capped at 0.8 of the frame), so
+slaps and fast drags no longer drop the player's hand as "lost" between frames. The blurred-slap
+motion check accepts frames up to 0.35 s apart (`MOTION_MAX_GAP_S`).
+
 These thresholds need human camera tuning. Returning a hand can still count if it meets
 speed/displacement rules; pose noise or fast body movement can still cause false positives.
 Raw motion is a lightweight image-change estimate, not a full optical-flow model.
