@@ -73,7 +73,7 @@ Pixel-alien bugs crawl over the code, working-code cards arrive with a lit bomb 
 - **Swipe** an open hand across a card before its nine-second fuse reaches the bomb.
 - **Slap** to knock out the colleague who is interrupting you.
 
-A round lasts 60 seconds. A thrown bug is worth 10 points, saved code 25 and a dismissed colleague 15, and streaks add 5. An escaped bug costs 5, exploded code 15 and an empty grab 2. 325 points earn the year's full 60 ECTS. Without a camera the round carries on with the mouse: drag bugs, and press Space to swipe.
+A round lasts 30 seconds. A thrown bug is worth 10 points, saved code 25 and a dismissed colleague 15, and streaks add 5. An escaped bug costs 5, exploded code 15 and an empty grab 2. 163 points earn the year's full 60 ECTS. Without a camera the round carries on with the mouse: drag bugs, and press Space to swipe.
 
 ## Year 2: Gauss Jack
 

@@ -5,7 +5,7 @@ import { TEXT } from "../src/misc/text";
 
 export type TargetKind = "question" | "deadline" | "coffee";
 
-export const ROUND_SECONDS = 60;
+export const ROUND_SECONDS = 30;
 export const COUNTDOWN_SECONDS = 3;
 // The warm-up before the round teaches the gesture (docs/GAME_DESIGN.md): one practice paper at a
 // time at the centre, top-left and bottom-right, in game-area coordinates. It also covers the
@@ -51,8 +51,9 @@ export const TRIGGER_TEST_SHOTS = 3;
 export const TRIGGER_MAX_ATTEMPTS = 2; // then the default trigger, so nobody gets stuck
 export const TRIGGER_RETRY_MS = 2500; // how long a failure's reason shows before retrying
 // Points for a score of 100 (a good first-time player scores about 70). Scaled with the round:
-// the slower tuning spawns 34 targets a round instead of 44, so 420 became 420 × 34 / 44.
-export const PAR_POINTS = 325;
+// the slower tuning spawns 34 targets a round instead of 44, so 420 became 420 × 34 / 44 = 325;
+// the 30-second round spawns 17 instead of 34, so 325 became 325 × 17 / 34.
+export const PAR_POINTS = 163;
 export const MISS_PENALTY = 2;
 export const STREAK_FOR_BONUS = 3;
 export const STREAK_BONUS = 5;

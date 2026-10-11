@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import { addPoints, shooterScore, shotPoints } from "./score";
 
 describe("shooterScore", () => {
-    it("scales points against par (325 points = 100)", () => {
+    it("scales points against par (163 points = 100)", () => {
         expect(shooterScore(0)).toBe(0);
-        expect(shooterScore(162.5)).toBe(50);
-        expect(shooterScore(325)).toBe(100);
+        expect(shooterScore(81.5)).toBe(50);
+        expect(shooterScore(163)).toBe(100);
     });
 
     it("rounds half up and clamps to 0–100", () => {
-        expect(shooterScore(1.625)).toBe(1); // 0.5 → 1
+        expect(shooterScore(20.375)).toBe(13); // 12.5 → 13
         expect(shooterScore(-30)).toBe(0);
         expect(shooterScore(9000)).toBe(100);
     });
